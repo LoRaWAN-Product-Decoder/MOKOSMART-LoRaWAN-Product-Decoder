@@ -1,58 +1,43 @@
-//LW004-CT V2 Payload Decoder rule
-//Creation time：2021-03-29
-//Creator:ShengHui Yan
-//Suitable firmware versions：V2.1.X
-//Programming languages：Javascript
-//Suitable platforms：TTN
-
-
 /*
-Before use this document, please set the corresponding parameters according to the device upload content settings.
+according dev config，show report data format choose, this flag must be the same as the device
 */
-
-
 /*
-The follow is guidence for select the content of Tracking part 
-bit 0  means device battery level; bit 1 means Host mac ; bit 2 means the raw data of the scanned beacons
-if you want upload device battery level, host mac and the raw data of the scanned beacons, alarm_period_data_flag should be 0000 0111, equal to 0x07.
-if you just want upload device battery level and host mac, alarm_period_data_flag should be 0000 0011.equal to 0x03.
-Pls kindly chang the initial value of the alarm_period_data_flag according your setting about the content of Tracking and location payload
+bit 0  have dev battery level
+bit 1  have dev  mac
+bit 2  have contact ble raw data
 */
 var alarm_period_data_flag = 0x07;
 
-
 /*
-The following are the guidence for select the content of location part
-If you want report Location information, report_beacon_choose should be 1 ;If you don't want report Location information, report_beacon_choose should be 0.
-report_beacon_num means the quantity of reported location beacons.
+report data choose beacon data and num
 */
 var report_beacon_choose = 1;
 var report_beacon_num = 4;  //MAX is 4
 
 /*
-The following are the guidence for select the content of 3-Axis Payload
-bit 0 means Host mac; bit 1 means timestamp
-if you want upload Host mac and timestamp, Accelerometer_data_flag should be 0000 0011, equal to 0x03.
-if you just want upload Host mac , Accelerometer_data_flag should be 0000 0001, equal to 0x01.
+Three-axis accelerometer report data choose
+bit 0 have dev mac
+bit 1 have timestamp
 */
 var Accelerometer_data_flag = 0x03; 
 
 /*
-The following are the guidence for select the content of SOS Payload
-bit 0 means timestamp; bit 1 means Host mac
-if you want upload Host mac and timestamp, sos_data_flag be 0000 0011, equal to 0x03.
-if you just want upload timestamp , sos_data_flag should be 0000 0001, equal to 0x01.
+SOS data report  choose
+bit 0 have timestamp
+bit 1 have dev mac
 */
 var sos_data_flag = 0x03;
 
 
 /*
-The following are the guidence for select the content of GPS Payload.
-bit 0 means altitude; bit 1 means timestamp; bit 2 means fix mode; bit 3 means PDOP; bit 4 means number of satellites.
+gps data report choose
+bit 0 have altitude
+bit 1 have timestamp
+bit 2 have fix mode
+bit 3 have PDOP
+bit 4 have satellites number  
 */
 var gps_data_flag = 0x1f;
-
-
 
 function BytesToStr(bytes, start, len)
 {	
@@ -166,12 +151,22 @@ function Decoder(bytes, port)
 			dev_info.dev_mac = substringBytes(bytes, parse_len, 6);
 			parse_len+=6;
 		}
-		dev_info.asix_x = bytes[parse_len]*256 + bytes[parse_len+1] +"mg";
+		
+		dev_info.asix_x = bytes[parse_len]*256 + bytes[parse_len+1];
 		parse_len +=2;
-		dev_info.asix_y = bytes[parse_len]*256 + bytes[parse_len+1] +"mg";
+		dev_info.asix_y = bytes[parse_len]*256 + bytes[parse_len+1];
 		parse_len +=2;
-		dev_info.asix_z = bytes[parse_len]*256 + bytes[parse_len+1] +"mg";
+		dev_info.asix_z = bytes[parse_len]*256 + bytes[parse_len+1];
 		parse_len +=2;
+		if(dev_info.asix_x>0x8000)
+			dev_info.asix_x -=0x10000;
+		if(dev_info.asix_y>0x8000)
+			dev_info.asix_y -=0x10000;
+		if(dev_info.asix_z>0x8000)
+			dev_info.asix_z -=0x10000;
+		dev_info.asix_x += "mg";
+		dev_info.asix_y += "mg";
+		dev_info.asix_z += "mg";
 	}
 	else if(bytes[0] == 4)
 	{
