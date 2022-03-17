@@ -1,7 +1,7 @@
 //LW003-B Payload Decoder rule
 //Creation time：2021-02-01
 //Creator：Allen Zhang
-//Suitable firmware versions：LW003-B v1
+//Suitable firmware versions：LW003-B V1
 //Programming languages：Javascript
 //Suitable platforms：TTN
 function Decoder(bytes, port) {
