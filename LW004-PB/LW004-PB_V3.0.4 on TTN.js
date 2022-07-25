@@ -90,8 +90,8 @@ function Decoder(bytes, port)
 		age = (bytes[1]&0x02) << 8 | bytes[2];
 		dev_info.age = age;
 
-		lat =BytestoInt(bytes,3);
-		lon =BytestoInt(bytes,7);
+		lon =BytestoInt(bytes,3);
+		lat =BytestoInt(bytes,7);
 
 		if(lat>0x80000000)
 			lat = lat-0x100000000;
