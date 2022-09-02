@@ -18,7 +18,7 @@ function substringBytes(bytes, start, len)
 	return char.join("");
 }
 
-function Decoder(port, bytes)
+function Decode(port, bytes)
 {
 	var region = ["AS923","AU915","CN470","CN779","EU433","EU868","KR920","IN865","US915","RU864"];
 	var dev_info = {};
