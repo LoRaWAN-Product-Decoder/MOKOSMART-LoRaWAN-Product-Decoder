@@ -18,11 +18,11 @@ function substringBytes(bytes, start, len)
 	return char.join("");
 }
 
-function Decode(port, bytes)
+function Decoder(fport, bytes)
 {
 	var region = ["AS923","AU915","CN470","CN779","EU433","EU868","KR920","IN865","US915","RU864"];
 	var dev_info = {};
-	if(port == 1)
+	if(fport == 1)
 	{
 		dev_info.batt_level = bytes[0] + "%";
 		dev_info.batt_v = bytes[1]*256 + bytes[2] + "mV";
@@ -40,7 +40,7 @@ function Decode(port, bytes)
 		dev_info.humility = (bytes[8]*256 + bytes[9])/100+"%";
 		dev_info.region = region[bytes[10]];
 	}
-	else if(port == 2)
+	else if(fport == 2)
 	{
 		dev_info.head = bytes[0];
 		dev_info.beacon_num = bytes[1];
@@ -84,7 +84,7 @@ function Decode(port, bytes)
 		}
 		dev_info.scan_data = datas;
 	}
-	else if(port == 4)
+	else if(fport == 4)
 	{
 		var parse_len = 0;
 		dev_info.beacon_num = bytes[4];
