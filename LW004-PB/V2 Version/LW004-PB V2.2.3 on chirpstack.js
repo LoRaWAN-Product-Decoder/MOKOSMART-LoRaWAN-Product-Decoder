@@ -4,11 +4,14 @@
 //Suitable firmware versions：LW004-PB V2.2.3 
 //Programming languages：Javascript
 //Suitable platforms：TTN
-function Decoder(bytes)
+
+function Decode(fPort,bytes,variables)
 {
   // Decode an uplink message from a buffer
   // (array) of bytes to an object of fields.
   var decoded = {}; 
+  if(fPort == 222)
+  {
   decoded.a_batterylevle = bytes[0] + '%';  //Parse  Battery Level 
   decoded.b_alarmstatus = (bytes[1] === 0) ? 'Non-alarm mode':'alarm mode';  //Parse Alarm mode
 
@@ -262,4 +265,5 @@ function Decoder(bytes)
     decoded.p_Angular = (bytes[44]*256 + bytes[45]) + '°'; // 
   }
   return decoded;
+}
 }
