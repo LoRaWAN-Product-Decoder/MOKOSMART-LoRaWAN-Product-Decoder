@@ -3,11 +3,11 @@
 //Creator:yujiahang
 //Suitable firmware versions:LW005-MP V1.X.X
 //Programming languages:Javascript
-//Suitable platforms:TTN
+//Suitable platforms:Chirpstack
 
-function command_format_check(bytes, port)
+function command_format_check(bytes, fPort)
 {
-    switch(port) 
+    switch(fPort) 
     {
         case 5:
             if (bytes.length === 7) 
@@ -155,14 +155,14 @@ function parse_time(timestamp, timezone)
     return time_str;   
 }
 
-function Decoder(bytes, port)
+function Decode(fPort, bytes, variables)
 {
     var res_data = {};
     var timestamp;
 
-    res_data.port = port;
+    res_data.fPort = fPort;
 
-    if(command_format_check(bytes, port) == false)
+    if(command_format_check(bytes, fPort) == false)
     {
         res_data.result = 'Format wrong';
         return res_data;
@@ -171,7 +171,7 @@ function Decoder(bytes, port)
     res_data.time = parse_time(timestamp, bytes[4] * 0.5);
     res_data.timezone = timezone_decode(bytes[4])
 
-    switch(port) 
+    switch(fPort) 
     {
         case 5:
             res_data.AC_output_state = parse_state(bytes[5]);
@@ -235,7 +235,7 @@ function Decoder(bytes, port)
             res_data.ac_output_state_after_countdown  = parse_state(bytes[5]);
             res_data.remaining_time_of_countdown_process = (bytes[6]<<24 | bytes[7]<<16 | bytes[8]<<8 | bytes[9]) + 's';
             break;
-            
+
         default:
            break;
     } 
