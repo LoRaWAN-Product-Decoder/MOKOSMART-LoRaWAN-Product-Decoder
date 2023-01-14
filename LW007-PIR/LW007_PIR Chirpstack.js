@@ -58,7 +58,7 @@ function timezone_decode(tz)
     return tz_str;
 }
 
-function Decoder(fport, bytes)
+function Decode(fport, bytes)
 {
     var res_data = {};
 
