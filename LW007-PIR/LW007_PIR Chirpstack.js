@@ -262,7 +262,7 @@ function Decode(fport, bytes)
         		{
         			res_data.hum_change_state = temp_value;
         		}
-         /*   res_data.pir_state = (bytes[5]&0xc0)>>6;
+         /* res_data.pir_state = (bytes[5]&0xc0)>>6;
             res_data.door_state = (bytes[5]&0x30)>>4;
             res_data.tem_ths_state = (bytes[5]&0x0c)>>2;
             res_data.hum_ths_state = bytes[5]&0x03;
@@ -290,11 +290,11 @@ function Decode(fport, bytes)
 }
 
 
-res_data1 = Decoder([0x62, 0x30, 0xC2, 0xC1, 0x10, 0x0A, 0x8A, 0xAD, 0x1A, 0x10, 0xA5], 5);
+/*res_data1 = Decoder([0x62, 0x30, 0xC2, 0xC1, 0x10, 0x0A, 0x8A, 0xAD, 0x1A, 0x10, 0xA5], 5);
 res_data2 = Decoder([0x62, 0x31, 0x33, 0xE1, 0x10, 0x4A, 0x8A, 0x2F, 0x5A, 0x10, 0xB5], 6);
 res_data3 = Decoder([0x62, 0x2F, 0xF8, 0x53, 0x10, 0x02, 0x0D], 7);
 
 console.log(res_data1);
 console.log(res_data2);
-console.log(res_data3);
+console.log(res_data3);*/
 
