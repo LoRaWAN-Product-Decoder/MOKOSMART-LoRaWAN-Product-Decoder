@@ -1,3 +1,11 @@
+/*
+according dev config，show report data format choose, this flag must be the same as the device configuration
+bit0 refer to the 1st content of the selected beacon type
+bit1 refer to the 2nd content of the selected beacon type
+............
+*/
+//If you don't want to change flag, you can export the decoder from MKLoRa APP after  configuration is done.
+
 var iBeaconFlag = 0x01FF;
 var EddystoneUIDFlag = 0xFF;
 var EddystoneURLFlag = 0x7F;
