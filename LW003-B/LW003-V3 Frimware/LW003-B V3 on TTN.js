@@ -4,7 +4,7 @@ bit0 refer to the 1st content of the selected beacon type
 bit1 refer to the 2nd content of the selected beacon type
 ............
 */
-//If you don't want to change flag, you can export the decoder from MKLoRa APP after  configuration is done.
+//If you don't want to change flag, you can export the decoder from MKLoRa APP after configuration is done.You can read "chapter 2.3.4.3 Device Information" of LW003-B APP guide.
 
 var iBeaconFlag = 0x01FF;
 var EddystoneUIDFlag = 0xFF;
