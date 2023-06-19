@@ -4,69 +4,56 @@ function Decoder(bytes, port) {
         return {};
     }
     if (port == 12) {
-        //Port 12 极限GPS数据包
         return parse_port12_data(bytes,port);
     }
     var deviceInfo = {};
-    //Port
+ 
     deviceInfo['port'] = port;
     var workBytes = [bytes[0] & 0x03];
-    //工作模式   
+
     deviceInfo['work_mode'] = bytesToInt(workBytes,0,1);
-    //低电状态
+
     deviceInfo['low_power'] = ((bytes[0] & 0x04) == 0x04);
-    //闲置状态
+
     deviceInfo['idle_state'] = ((bytes[0] & 0x08) == 0x08);
-    //移动状态
+
     deviceInfo['move_state'] = ((bytes[0] & 0x10) == 0x10);
-    //定位状态
+
     deviceInfo['positioning_state'] = ((bytes[0] & 0x20) == 0x20);
-    //温度
+
     var temperature = signedHexToInt(bytesToHexString(bytes,1,1)) + '°C';
     deviceInfo['temperature'] = temperature;
-    //帧序号
+
     var indexValue = [bytes[2] & 0x0f];
     deviceInfo['index'] = bytesToInt(indexValue,0,1);
 
     var data_dic = {};
     if (port == 1 && (bytes.length == 9)) {
-        //Port 1 心跳包
+   
         data_dic = parse_port1_data(bytes.slice(3),port);
     }else if (port == 2 && (bytes.length >= 7)) {
-        //Port 2 定位成功数据包
+   
         data_dic = parse_port2_data(bytes.slice(3),port);
     }else if (port == 4 && (bytes.length >= 5)) {
-        //Port 4 定位失败数据包
+      
         data_dic = parse_port4_data(bytes.slice(3),port);
     }else if (port == 5 && (bytes.length == 4)) {
-        //Port 5 关机信息
-        /*
-        关机方式:
-            0：蓝牙指令关机
-            1：lorawan指令关机
-            2：电源键关机
-            3：低电关机 
-        */
         data_dic = {
             'shutdown_type':bytesToInt(bytes,3,1),
         };
     }else if (port == 6 && (bytes.length == 5)) {
-        //Port 6 震动检测信息包
-        data_dic = {
+       data_dic = {
             'vibrations_number':bytesToInt(bytes,3,2),
         };
     }else if (port == 7 && (bytes.length == 5)) {
-        //Port 7 闲置检测包
         data_dic = {
             'idle_time':bytesToInt(bytes,3,2),
         };
     }else if (port == 8 && (bytes.length == 4)) {
-        //Port 8 事件信息包
         data_dic = {
             'event_type':bytesToInt(bytes,3,1),
         };
     }else if (port == 9 && (bytes.length == 43)) {
-        //Port 9 电池消耗包
         data_dic = parse_port9_data(bytes.slice(3),port);
     }
 
@@ -200,15 +187,11 @@ function parse_port1_data (bytes, port) {
     if (bytes.length != 6 || port != 1) {
         return {};
     }
-    //Port 1 心跳
-    //0:断电重启 1:蓝牙指令重启 2:lorawan配置重启 3:切换到OFF模式重启
     var reboot_reason = bytesToInt(bytes,0,1);
-    //固件版本
     var majorVersion = [(bytes[1] >> 6) & 0x03];
     var minorVersion = [(bytes[1] >> 4) & 0x03];
     var patchVersion = [bytes[1] & 0x0f];
     var firmware_version = 'V' + bytesToInt(majorVersion,0,1) + '.' + bytesToInt(minorVersion,0,1) + '.' + bytesToInt(patchVersion,0,1);
-    //活动计数差值
     var activity_count = bytesToInt(bytes,2,4);
     return {
         'reboot_reason':reboot_reason,
@@ -218,21 +201,10 @@ function parse_port1_data (bytes, port) {
 }
 
 function parse_port2_data (bytes, port) {
-    //Port 2 定位成功
     if (bytes.length < 4 || port != 2) {
         return {};
     }
-    //定位成功的时间与上报间隔之间的时间差
     var time_space = bytesToInt(bytes,0,2);
-    //定位成功类型
-    /*
-        0：WIFI定位成功包（跟定位数据）
-        1：WIFI定位成功标志（不跟定位数据，数据通过199端口发送）
-        2：蓝牙定位成功包
-        3：GPS定位成功包（L76C）
-        4：GNSS定位成功包(LR1110)
-        5：GNSS定位成功标志（LR1110）
-    */
     var position_type = bytesToInt(bytes,2,1);
     var position_data = parse_position_data(bytes.slice(4),position_type);
     return {
@@ -243,29 +215,10 @@ function parse_port2_data (bytes, port) {
 }
 
 function parse_port4_data (bytes, port) {
-    //定位失败
     if (bytes.length < 2 || port != 4) {
         return {};
     }
-    //定位失败原因
-    /*
-        0：WIFI定位时间超时
-        1：WIFI定位技术超时
-        2：WIFI定位蓝牙广播失败
-        3：蓝牙定位时间超时
-        4：蓝牙定位技术超时
-        5：蓝牙广播不使用蓝牙定位
-        6：GNSS定位时间超时
-        7：GNSS定位技术超时
-        8：GNSS辅助定位超时
-        9：GNSS辅助定位星历太旧
-        10：PDOP限制
-        11：下行定位打断
-        12：运动开始定位被运动结束打断
-        13：运动结束定位被运动开始打断
-    */
     var failed_type = bytesToInt(bytes,0,1);
-    //后续数据长度
     var data_len = bytesToInt(bytes,1,1);
     var data_bytes = bytes.slice(2);
     if (failed_type == 0 || failed_type == 1 || failed_type == 2
@@ -302,25 +255,15 @@ function parse_port9_data (bytes, port) {
     if (bytes.length != 40 || port != 9) {
         return {};
     }
-    //设备工作时间
     var work_times = bytesToInt(bytes,0,4);
-    //蓝牙广播次数
     var adv_times = bytesToInt(bytes,4,4);
-    //Flash读写次数
     var flash_write_times = bytesToInt(bytes,8,4);
-    //三轴唤醒时长
     var axis_wakeup_times = bytesToInt(bytes,12,4);
-    //蓝牙定位时长
     var ble_postion_times = bytesToInt(bytes,16,4);
-    //WIFI定位时长
     var wifi_postion_times = bytesToInt(bytes,20,4);
-    //GPS定位时长
     var gps_postion_times = bytesToInt(bytes,24,4);
-    //lorawan发送次数
     var lora_send_times = bytesToInt(bytes,28,4);
-    //lorawan发送接收功耗
     var lora_power = bytesToInt(bytes,32,4);
-    //电池总消耗
     var battery_value = bytesToInt(bytes,36,4);
     return {
         'work_times':work_times,
@@ -337,40 +280,29 @@ function parse_port9_data (bytes, port) {
 }
 
 function parse_port12_data (bytes, port) {
-    //Port 12 极限GPS数据包
     if (port != 12 || (bytes.length != 11)) {
         return {};
     }
     var data_dic = {'port':port};
-    //设备状态
-    var work_bytes = [bytes[0] & 0x03];
-    //工作模式   
+    var work_bytes = [bytes[0] & 0x03];  
     data_dic['work_mode'] = bytesToInt(work_bytes,0,1);
-    //低电状态
     data_dic['low_power'] = ((bytes[0] & 0x04) == 0x04);
-    //闲置状态
     data_dic['idle_state'] = ((bytes[0] & 0x08) == 0x08);
-    //移动状态
     data_dic['move_state'] = ((bytes[0] & 0x10) == 0x10);
-    //定位状态
     data_dic['positioning_state'] = ((bytes[0] & 0x20) == 0x20);
 
     var sub_dic = {};
 
-    //电池与下行技术
+
     var ack_bytes = [bytes[1] & 0x0f];
-    //ACK
     sub_dic['ack'] = bytesToInt(ack_bytes,0,1);
     var battery_bytes = [(bytes[1] >> 4) & 0x0f];
     sub_dic['battery_value'] = bytesToInt(battery_bytes,0,1) * 0.1 + 2.2;
 
-    //纬度
     sub_dic['latitude'] = Number(signedHexToInt(bytesToHexString(bytes,2,4)) * 0.0000001).toFixed(7)
     + '°';
-    //经度
     sub_dic['longitude'] = Number(signedHexToInt(bytesToHexString(bytes,6,4)) * 0.0000001).toFixed(7)
     + '°';
-    //PDOP
     sub_dic['podp'] = bytesToInt(bytes,10,1);
 
     data_dic['data'] = sub_dic;
@@ -380,8 +312,6 @@ function parse_port12_data (bytes, port) {
 
 function parse_position_data (bytes,type) {
     if (((type == 0) || (type == 2))) {
-        //type=0:WIFI定位成功数据
-        //type=2://蓝牙定位成功数据
         var number = (bytes.length / 7);
         var data_list = [];
         for (var i = 0; i < number; i ++) {
@@ -397,8 +327,6 @@ function parse_position_data (bytes,type) {
         return data_list;
     }
     if (type == 3) {
-        //GPS定位成功数据
-        //L76C定位成功数据，实际位置经纬度
         var number = (bytes.length / 9);
         var data_list = [];
         for (var i = 0; i < number; i ++) {
@@ -417,13 +345,8 @@ function parse_position_data (bytes,type) {
         return data_list;
     }
     if (type == 4) {
-        //GNSS定位成功数据
         return bytes;
     }
-    //WIFI定位成功标志
-    //WIFI定位成功事件，后续定位数据通过199端口通过stream协议发送
-    //GNSS定位成功标志
-    //GNSS定位成功事件，后续定位数据，DAS数据通过Port199端口stream协议发送
     return [];
 }
 /*********************Port Parse*************************/
