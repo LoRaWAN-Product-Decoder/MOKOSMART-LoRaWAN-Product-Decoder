@@ -606,7 +606,7 @@ function Decoder(bytes, port) {
                 }
                 if (!no_response_package) {
                     if (flag & 0x0200) {
-                        data.full_scale = bytes[parse_len++];
+                        data.full_scale = fullScale[bytes[parse_len++]];
                         beacon_len++;
                     }
                     if (flag & 0x0400) {
@@ -627,13 +627,14 @@ function Decoder(bytes, port) {
                         data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis
                     }
                     if (flag & 0x1000) {
-                        var temperature = bytesToInt(bytes, parse_len, 2);
-                        if (temperature > 0x8000)
-                            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
-                        else
-                            data.temperature = temperature / 100 + "°C";
-                        parse_len += 2;
-                        beacon_len += 2;
+                        var tempInt = bytes[parse_len++];
+                        beacon_len++;
+                        var tempDecimal = bytes[parse_len++];
+                        beacon_len++;
+                        tempInt = tempInt > 128 ? tempInt - 256 : tempInt;
+                        tempDecimal = tempDecimal / 256;
+                        var temperature = (tempInt + tempDecimal).toFixed(1);
+                        data.temperature = temperature + "°C";
                     }
                     if (flag & 0x2000) {
                         var rangingData = bytes[parse_len++];
@@ -703,7 +704,7 @@ function Decoder(bytes, port) {
                     var z_axis = "0x" + bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
-                    data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + y_axis
+                    data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis
                 }
                 if (flag & 0x80) {
                     data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
