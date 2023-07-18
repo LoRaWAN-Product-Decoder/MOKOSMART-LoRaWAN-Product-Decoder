@@ -27,10 +27,10 @@ var frameTypeArray = ["Single press mode", "Double press mode", "Long press mode
 var urlSchemeArray = ["http://www.", "https://www.", "http://", "https://"];
 var urlExpansionArray = [".com/", ".org/", ".edu/", ".net/", ".info/", ".biz/", ".gov/", ".com", ".org", ".edu", ".net", ".info", ".biz", ".gov"];
 
-function Decoder(bytes, port, uplink_info) {
+function Decode(fPort, bytes) {
     var dev_info = {};
-    dev_info.port = port;
-    if (port == 1 || port == 3) {
+    dev_info.port = fPort;
+    if (fPort == 1 || fPort == 3) {
         // port 1:Turn on info/port 3:Device info
         dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
         dev_info.battery_level = (bytes[0] & 0x7F) + "%";
@@ -43,7 +43,7 @@ function Decoder(bytes, port, uplink_info) {
         var hardware_ver_patch = bytes[4] & 0x0f;
         dev_info.hardware_version = "V" + hardware_ver_major + "." + hardware_ver_patch;
         var length = bytes.length;
-        if ((port == 1 && length > 6) || (port == 3 && length > 7)) {
+        if ((fPort == 1 && length > 6) || (fPort == 3 && length > 7)) {
             var temperature = bytesToInt(bytes, 5, 2);
             if (temperature > 0x8000)
                 dev_info.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
@@ -51,16 +51,16 @@ function Decoder(bytes, port, uplink_info) {
                 dev_info.temperature = temperature / 100 + "°C";
             dev_info.humility = bytesToInt(bytes, 7, 2) / 100 + "%";
             dev_info.timezone = timezone_decode(bytes[9]);
-            if (port == 3) {
+            if (fPort == 3) {
                 dev_info.message_type = messageTypeArray[bytes[10]];
             }
         } else {
             dev_info.timezone = timezone_decode(bytes[5]);
-            if (port == 3) {
+            if (fPort == 3) {
                 dev_info.message_type = messageTypeArray[bytes[6]];
             }
         }
-    } else if (port == 2) {
+    } else if (fPort == 2) {
         // Turn off info
         dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
         dev_info.battery_level = (bytes[0] & 0x7F) + "%";
@@ -68,7 +68,7 @@ function Decoder(bytes, port, uplink_info) {
         dev_info.timestamp = parse_time(bytesToInt(bytes, 3, 4), bytes[7] * 0.5);
         dev_info.timezone = timezone_decode(bytes[7]);
         dev_info.shutdown_type = shutDownTypeArray[bytes[8]];
-    } else if (port == 4) {
+    } else if (fPort == 4) {
         // Adv event info
         dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
         dev_info.battery_level = (bytes[0] & 0x7F) + "%";
@@ -76,7 +76,7 @@ function Decoder(bytes, port, uplink_info) {
         dev_info.scan_cycle_start_timezone = timezone_decode(bytes[5]);
         dev_info.adv_interrupt_timestamp = parse_time(bytesToInt(bytes, 6, 4), bytes[10] * 0.5);
         dev_info.adv_interrupt_timezone = timezone_decode(bytes[10]);
-    } else if (port == 5) {
+    } else if (fPort == 5) {
         // Scan data info
         dev_info.packet_sequence = bytes[0];
         dev_info.payload_reporting_timestamp = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
@@ -800,8 +800,6 @@ function Decoder(bytes, port, uplink_info) {
         }
         dev_info.scan_data = datas;
     }
-    if (uplink_info)
-        dev_info.uplink_info = uplink_info;
     return dev_info;
 }
 

@@ -18,23 +18,23 @@ var BXPButtonFlag = 0x03FFFF;
 var BXPTagFlag = 0x0FFF;
 var OtherTypeFlag = 0x1F;
 
-var turnOffMode = ["Bluetooth", "LoRa", "Button", "Low Battery"];
-var dataType = ["iBeacon", "Eddystone-UID", "Eddystone-URL", "Eddystone-TLM", "BXP-iBeacon", "BXP-DeviceInfo", "BXP-ACC", "BXP-T&H", "BXP-BUTTON", "BXP-Tag", "Unknown"];
-var infoType = ["Heartbeat", "Low power triggers reporting", "Downlink triggers reporting"];
-var sampleRate = ["1Hz", "10Hz", "25Hz", "50Hz", "100Hz", "200Hz", "400Hz", "1344Hz", "1620Hz", "5376Hz"];
-var fullScale = ["±2g", "±4g", "±8g", "±16g"];
-var frameType = ["Single press mode", "Double press mode", "Long press mode", "Abnormal inactivity mode"];
-var urlScheme = ["http://www.", "https://www.", "http://", "https://"];
-var urlExpansion = [".com/", ".org/", ".edu/", ".net/", ".info/", ".biz/", ".gov/", ".com", ".org", ".edu", ".net", ".info", ".biz", ".gov"];
+var shutDownTypeArray = ["Bluetooth command or App", "LoRaWAN Command", "Power button", "Battery run out"];
+var beaconTypeArray = ["iBeacon", "Eddystone-UID", "Eddystone-URL", "Eddystone-TLM", "BXP-iBeacon", "BXP-DeviceInfo", "BXP-ACC", "BXP-T&H", "BXP-BUTTON", "BXP-Tag", "Unknown"];
+var messageTypeArray = ["Normal heartbeat report", "The device come into low power state", "Other type"];
+var sampleRateArray = ["1Hz", "10Hz", "25Hz", "50Hz", "100Hz", "200Hz", "400Hz", "1344Hz", "1620Hz", "5376Hz"];
+var fullScaleArray = ["±2g", "±4g", "±8g", "±16g"];
+var frameTypeArray = ["Single press mode", "Double press mode", "Long press mode", "Abnormal inactivity mode"];
+var urlSchemeArray = ["http://www.", "https://www.", "http://", "https://"];
+var urlExpansionArray = [".com/", ".org/", ".edu/", ".net/", ".info/", ".biz/", ".gov/", ".com", ".org", ".edu", ".net", ".info", ".biz", ".gov"];
 
 function Decoder(bytes, port) {
     var dev_info = {};
     dev_info.port = port;
     if (port == 1 || port == 3) {
         // port 1:Turn on info/port 3:Device info
-        dev_info.charging_status = bytes[0] & 0x80 ? "charging" : "no charging";
-        dev_info.batt_level = (bytes[0] & 0x7F) + "%";
-        dev_info.batt_v = bytesToInt(bytes, 1, 2) + "mV";
+        dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
+        dev_info.battery_level = (bytes[0] & 0x7F) + "%";
+        dev_info.battery_voltage = bytesToInt(bytes, 1, 2) + "mV";
         var firmware_ver_major = (bytes[3] >> 6) & 0x03;
         var firmware_ver_minor = (bytes[3] >> 4) & 0x03;
         var firmware_ver_patch = bytes[3] & 0x0f;
@@ -52,39 +52,39 @@ function Decoder(bytes, port) {
             dev_info.humility = bytesToInt(bytes, 7, 2) / 100 + "%";
             dev_info.timezone = timezone_decode(bytes[9]);
             if (port == 3) {
-                dev_info.info_type = infoType[bytes[10]];
+                dev_info.message_type = messageTypeArray[bytes[10]];
             }
         } else {
             dev_info.timezone = timezone_decode(bytes[5]);
             if (port == 3) {
-                dev_info.info_type = infoType[bytes[6]];
+                dev_info.message_type = messageTypeArray[bytes[6]];
             }
         }
     } else if (port == 2) {
         // Turn off info
-        dev_info.charging_status = bytes[0] & 0x80 ? "charging" : "no charging";
-        dev_info.batt_level = (bytes[0] & 0x7F) + "%";
-        dev_info.batt_v = bytesToInt(bytes, 1, 2) + "mV";
+        dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
+        dev_info.battery_level = (bytes[0] & 0x7F) + "%";
+        dev_info.battery_voltage = bytesToInt(bytes, 1, 2) + "mV";
         dev_info.timestamp = parse_time(bytesToInt(bytes, 3, 4), bytes[7] * 0.5);
         dev_info.timezone = timezone_decode(bytes[7]);
-        dev_info.turnOffMode = turnOffMode[bytes[8]];
+        dev_info.shutdown_type = shutDownTypeArray[bytes[8]];
     } else if (port == 4) {
         // Adv event info
-        dev_info.charging_status = bytes[0] & 0x80 ? "charging" : "no charging";
-        dev_info.batt_level = (bytes[0] & 0x7F) + "%";
+        dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
+        dev_info.battery_level = (bytes[0] & 0x7F) + "%";
         dev_info.scan_cycle_start_timestamp = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
         dev_info.scan_cycle_start_timezone = timezone_decode(bytes[5]);
         dev_info.adv_interrupt_timestamp = parse_time(bytesToInt(bytes, 6, 4), bytes[10] * 0.5);
         dev_info.adv_interrupt_timezone = timezone_decode(bytes[10]);
     } else if (port == 5) {
         // Scan data info
-        dev_info.head = bytes[0];
-        dev_info.timestamp = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
-        dev_info.timezone = timezone_decode(bytes[5]);
-        dev_info.beacon_num = bytes[6];
+        dev_info.packet_sequence = bytes[0];
+        dev_info.payload_reporting_timestamp = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
+        dev_info.payload_reporting_timezone = timezone_decode(bytes[5]);
+        dev_info.beacon_number = bytes[6];
         var parse_len = 7;
         var datas = [];
-        for (var i = 0; i < dev_info.beacon_num; i++) {
+        for (var i = 0; i < dev_info.beacon_number; i++) {
             var data = {};
             var beacon_len = 0;
             var no_response_package = bytes[parse_len] & 0x80;
@@ -94,7 +94,7 @@ function Decoder(bytes, port) {
             if (beacon_type == 0) {
                 // iBeaconFlag
                 var flag = iBeaconFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -141,15 +141,15 @@ function Decoder(bytes, port) {
                     beacon_len++;
                 }
                 if (flag & 0x0180) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 1) {
                 // EddystoneUIDFlag
                 var flag = EddystoneUIDFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -181,15 +181,15 @@ function Decoder(bytes, port) {
                     beacon_len += 6;
                 }
                 if (flag & 0xC0) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 2) {
                 // EddystoneURLFlag
                 var flag = EddystoneURLFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -213,28 +213,28 @@ function Decoder(bytes, port) {
                 if (flag & 0x10) {
                     var length = bytes[parse_len++];
                     beacon_len++;
-                    var urlSchemeDesc = urlScheme[bytes[parse_len++]];
+                    var urlSchemeDesc = urlSchemeArray[bytes[parse_len++]];
                     beacon_len++;
                     var urlExpansionValue = bytes[parse_len + length - 2];
                     if (urlExpansionValue > 13) {
                         data.url = urlSchemeDesc + bytesToString(bytes, parse_len, length - 1);
                     } else {
-                        var urlExpansionDesc = urlExpansion[urlExpansionValue];
+                        var urlExpansionDesc = urlExpansionArray[urlExpansionValue];
                         data.url = urlSchemeDesc + bytesToString(bytes, parse_len, length - 2) + urlExpansionDesc;
                     }
                     parse_len += length - 1;
                     beacon_len += length - 1;
                 }
                 if (flag & 0x60) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 3) {
                 // EddystoneTLMFlag
                 var flag = EddystoneTLMFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -255,7 +255,7 @@ function Decoder(bytes, port) {
                     beacon_len++;
                 }
                 if (flag & 0x10) {
-                    data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
+                    data.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -280,15 +280,15 @@ function Decoder(bytes, port) {
                     beacon_len += 4;
                 }
                 if (flag & 0x0300) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 4) {
                 // BXPiBeaconFlag
                 var flag = BXPiBeaconFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -346,15 +346,15 @@ function Decoder(bytes, port) {
                     }
                 }
                 if (flag & 0x0600) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 5) {
                 // BXPDeviceInfoFlag
                 var flag = BXPDeviceInfoFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -385,7 +385,7 @@ function Decoder(bytes, port) {
                     beacon_len++;
                 }
                 if (flag & 0x40) {
-                    data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
+                    data.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -397,8 +397,8 @@ function Decoder(bytes, port) {
                     beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    data.connectable_status = (bytes[parse_len] & 0x01) ? "Connectable" : "Unconnectable";
-                    data.ambient_light_status = (bytes[parse_len] & 0x02) ? "Ambient light detected" : "Ambient light not detected";
+                    data.connectable_switch_status = (bytes[parse_len] & 0x01) ? "Connectable" : "Unconnectable";
+                    data.ambient_light_switch_status = (bytes[parse_len] & 0x02) ? "Ambient light detected" : "Ambient light not detected";
                     parse_len++;
                     beacon_len++;
                 }
@@ -419,15 +419,15 @@ function Decoder(bytes, port) {
                     }
                 }
                 if ((flag & 0x1800)) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 6) {
                 // BXPACCFlag
                 var flag = BXPACCFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -458,17 +458,17 @@ function Decoder(bytes, port) {
                     beacon_len++;
                 }
                 if (flag & 0x40) {
-                    data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
+                    data.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
                     parse_len += 2;
                     beacon_len += 2;
                 }
                 // ================
                 if (flag & 0x80) {
-                    data.sample_rate = sampleRate[bytes[parse_len++]];
+                    data.sample_rate = sampleRateArray[bytes[parse_len++]];
                     beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    data.full_scale = fullScale[bytes[parse_len++]];
+                    data.full_scale = fullScaleArray[bytes[parse_len++]];
                     beacon_len++;
                 }
                 if (flag & 0x0200) {
@@ -488,15 +488,15 @@ function Decoder(bytes, port) {
                     data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis
                 }
                 if ((flag & 0x1800)) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 7) {
                 // BXPTHFlag
                 var flag = BXPTHFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -527,7 +527,7 @@ function Decoder(bytes, port) {
                     beacon_len++;
                 }
                 if (flag & 0x40) {
-                    data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
+                    data.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -547,15 +547,15 @@ function Decoder(bytes, port) {
                     beacon_len += 2;
                 }
                 if ((flag & 0x0600)) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 8) {
                 // BXPButtonFlag
                 var flag = BXPButtonFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -572,11 +572,11 @@ function Decoder(bytes, port) {
                 }
                 // ================
                 if (flag & 0x08) {
-                    data.frame_type = frameType[bytes[parse_len++] & 0x03];
+                    data.frame_type = frameTypeArray[bytes[parse_len++] & 0x03];
                     beacon_len++;
                 }
                 if (flag & 0x10) {
-                    data.password_verification_status = (bytes[parse_len] & 0x01) ? "Enabled" : "Disabled";
+                    data.password_verification_status = (bytes[parse_len] & 0x01) ? "Password verification enabled" : "Password verification disabled";
                     data.alarm_triggered_status = (bytes[parse_len] & 0x02) ? "Alarm be triggered" : "Alarm not be triggered";
                     parse_len++;
                     beacon_len++;
@@ -606,7 +606,7 @@ function Decoder(bytes, port) {
                 }
                 if (!no_response_package) {
                     if (flag & 0x0200) {
-                        data.full_scale = fullScale[bytes[parse_len++]];
+                        data.full_scale = fullScaleArray[bytes[parse_len++]];
                         beacon_len++;
                     }
                     if (flag & 0x0400) {
@@ -642,7 +642,7 @@ function Decoder(bytes, port) {
                         beacon_len++;
                     }
                     if (flag & 0x4000) {
-                        data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
+                        data.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
                         parse_len += 2;
                         beacon_len += 2;
                     }
@@ -653,15 +653,15 @@ function Decoder(bytes, port) {
                     }
                 }
                 if ((flag & 0x030000)) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 9) {
                 // BXPTagFlag
                 var flag = BXPTagFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -679,8 +679,8 @@ function Decoder(bytes, port) {
                 // ================
                 if (flag & 0x08) {
                     data.hall_sensor_status = bytes[parse_len] & 0x01 ? "Magnet away/absent" : "Magnet approach/present";
-                    data.acc_sensor_status = bytes[parse_len] & 0x02 ? "In move" : "In static";
-                    data.acc_equipped_status = bytes[parse_len] & 0x04 ? "Equipped" : "Not equipped";
+                    data.accelerometer_sensor_status = bytes[parse_len] & 0x02 ? "In move" : "In static";
+                    data.accelerometer_sensor_equipped_status = bytes[parse_len] & 0x04 ? "Equipped" : "Not equipped";
                     parse_len++;
                     beacon_len++;
                 }
@@ -707,7 +707,7 @@ function Decoder(bytes, port) {
                     data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis
                 }
                 if (flag & 0x80) {
-                    data.batt_v = bytesToInt(bytes, parse_len, 2) + "mV";
+                    data.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -728,15 +728,15 @@ function Decoder(bytes, port) {
                     }
                 }
                 if ((flag & 0x0C00)) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             } else if (beacon_type == 10) {
                 // OtherTypeFlag
                 var flag = OtherTypeFlag;
-                data.type = dataType[beacon_type];
+                data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
                     data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
                     parse_len += 6;
@@ -791,9 +791,9 @@ function Decoder(bytes, port) {
                     data.dataBlocks = dataBlocks;
                 }
                 if ((flag & 0x18)) {
-                    data.adv_len = current_data_len - beacon_len;
-                    data.adv_data = bytesToHexString(bytes, parse_len, data.adv_len).toUpperCase();
-                    parse_len += data.adv_len;
+                    data.raw_data_length = current_data_len - beacon_len;
+                    data.raw_data = bytesToHexString(bytes, parse_len, data.raw_data_length).toUpperCase();
+                    parse_len += data.raw_data_length;
                 }
                 datas.push(data);
             }
