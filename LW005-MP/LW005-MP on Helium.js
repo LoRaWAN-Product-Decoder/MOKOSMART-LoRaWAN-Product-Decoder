@@ -3,7 +3,7 @@
 //Creator:yujiahang
 //Suitable firmware versions:LW005-MP V1.X.X
 //Programming languages:Javascript
-//Suitable platforms:TTN
+//Suitable platforms:Helium
 var payloadTypeArray = [
     "Switch"
     , "Electrical"
@@ -18,13 +18,15 @@ var payloadTypeArray = [
 ];
 
 
-function Decoder(bytes, port) {
+function Decoder(bytes, port, uplink_info) {
     var dev_info = {};
 
     dev_info.port = port;
     dev_info.payload_type = payloadTypeArray[port - 5];
     if (command_format_check(bytes, port) == false) {
         dev_info.result = "Format wrong";
+        if (uplink_info)
+            dev_info.uplink_info = uplink_info;
         return dev_info;
     }
     var timestamp = bytesToInt(bytes, 0, 4);
@@ -78,7 +80,8 @@ function Decoder(bytes, port) {
         default:
             break;
     }
-
+    if (uplink_info)
+        dev_info.uplink_info = uplink_info;
     return dev_info;
 }
 

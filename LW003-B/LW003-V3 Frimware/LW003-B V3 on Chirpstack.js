@@ -824,7 +824,7 @@ function bytesToString(bytes, start, len) {
 
 function bytesToInt(bytes, start, len) {
     var value = 0;
-    for (let i = 0; i < len; i++) {
+    for (var i = 0; i < len; i++) {
         var m = ((len - 1) - i) * 8;
         value = value | bytes[start + i] << m;
     }
