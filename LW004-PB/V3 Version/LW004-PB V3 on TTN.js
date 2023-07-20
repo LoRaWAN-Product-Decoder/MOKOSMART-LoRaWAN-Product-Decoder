@@ -3,7 +3,7 @@
 //Creator:taojianfeng
 //Suitable firmware versions:LW004-PB V3.0.4 
 //Programming languages:Javascript
-//Suitable platforms:Chirpstack
+//Suitable platforms:TTN
 
 var payloadTypeArray = ["Event Message", "Device Information", "Shut Down", "Heartbeat", "Low Power", "GPS Location Fixed", "GPS Location Failure", "Bluetooth Location Fixed", "Bluetooth Location Failure", "GPS Location Fixed of auxiliary operation", "GPS Location Failure of auxiliary operation", "Bluetooth Location Fixed of auxiliary operation", "Bluetooth Location Failure of auxiliary operation"];
 var deviceModeArray = [
@@ -60,44 +60,44 @@ var posFailedReasonArray2 = [
 ];
 
 
-function Decode(fPort, bytes) {
+function Decoder(bytes, port) {
 	var dev_info = {};
 	var datas = [];
 	var parse_len;
-	dev_info.port = fPort;
-	dev_info.payload_type = payloadTypeArray[fPort - 1];
+	dev_info.port = port;
+	dev_info.payload_type = payloadTypeArray[port - 1];
 	dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";	//Parse  Battery charging state 
 	dev_info.battery_level = (bytes[0] & 0x7F) + "%";  //Parse  Battery Level
-	if (fPort == 1) {
+	if (port == 1) {
 		dev_info.timezone = timezone_decode(bytes[1]);					//timezone
 		dev_info.timestamp = bytesToInt(bytes, 2, 4);		//timestamp
 		var eventTypeCode = bytes[6] & 0xFF;
 		dev_info.event_type = eventTypeArray[eventTypeCode];		//event
-	} else if (fPort == 2) {
+	} else if (port == 2) {
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.firmware_version = "V" + bytes[2] + "." + bytes[3] + "." + bytes[4];
 		dev_info.hardware_version = "V" + bytes[5] + "." + bytes[6];
 		dev_info.timezone = timezone_decode(bytes[7]);		//timezone
 		// dev_info.alarm_error = bytes[8];	//error state
-	} else if (fPort == 3) {
+	} else if (port == 3) {
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.timezone = timezone_decode(bytes[2]);		//timezone
 		dev_info.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		dev_info.shutdown_type = shutdownTypeArray[bytes[7]];
-	} else if (fPort == 4) {
+	} else if (port == 4) {
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.timezone = timezone_decode(bytes[2]);		//timezone
 		dev_info.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
-	} else if (fPort == 5) {
+	} else if (port == 5) {
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.timezone = timezone_decode(bytes[2]);		//timezone
 		dev_info.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		dev_info.low_power_prompt_percent = (bytes[7] & 0xFF) + "%";		//low power level
-	} else if (fPort == 6 || fPort == 10) {
+	} else if (port == 6 || port == 10) {
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] >> 2 & 0x07];	//device status
 
@@ -114,7 +114,7 @@ function Decode(fPort, bytes) {
 
 		dev_info.latitude = lat / 10000000;
 		dev_info.longitude = lon / 10000000;
-	} else if (fPort == 7 || fPort == 11) {
+	} else if (port == 7 || port == 11) {
 		var gps_fix_false_reason = ["hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "gps_fix_tech_timeout", "gps_fix_timeout", "alert_short_time", "sos_short_time", "pdop_limit", "motion_start_interrupt", "motion_stop_interrupt"];
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -123,7 +123,7 @@ function Decode(fPort, bytes) {
 		dev_info.location_failure_cn1 = bytes[4];
 		dev_info.location_failure_cn2 = bytes[5];
 		dev_info.location_failure_cn3 = bytes[6];
-	} else if (fPort == 8 || fPort == 12) {
+	} else if (port == 8 || port == 12) {
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		var age = (bytes[2]) << 8 | bytes[3];
@@ -139,7 +139,7 @@ function Decode(fPort, bytes) {
 		}
 		dev_info.bluetooth_data = datas;
 
-	} else if (fPort == 9 || fPort == 13) {
+	} else if (port == 9 || port == 13) {
 		var ble_fix_false_reason = ["none", "hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "ble_fix_timeout", "ble_adv", "motion_start_interrupt", "motion_stop_interrupt"];
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status

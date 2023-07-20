@@ -14,7 +14,7 @@ var posFailedReasonArray = [
 	, "GPS fine positioning timeout (Pls increase fine positioning timeout or increase fine accuracy target via MKLoRa app)"
 	, "GPS positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
 	, "GPS aiding positioning timeout (Please adjust GPS autonomous latitude and autonomous longitude)"
-	, " GPS cold start positioning timeout (The gps signal current environment isn’t very good, please leave the device in a more open area)"
+	, "GPS cold start positioning timeout (The gps signal current environment isn’t very good, please leave the device in a more open area)"
 	, "Interrupted by Downlink for Position"
 	, "Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)"
 	, "Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)"
