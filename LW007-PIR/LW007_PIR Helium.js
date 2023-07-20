@@ -1,12 +1,14 @@
 var payloadTypeArray = ["Heartbeat", "Information", "Shut Down"];
 
-function Decode(fPort, bytes) {
+function Decoder(bytes, port, uplink_info) {
 	var dev_info = {};
 
-	dev_info.port = fPort;
-	dev_info.payload_type = payloadTypeArray[fPort - 5];
-	if (command_format_check(bytes, fPort) == false) {
+	dev_info.port = port;
+	dev_info.payload_type = payloadTypeArray[port - 5];
+	if (command_format_check(bytes, port) == false) {
 		dev_info.result = "Format wrong";
+		if (uplink_info)
+			dev_info.uplink_info = uplink_info;
 		return dev_info;
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
@@ -16,7 +18,7 @@ function Decode(fPort, bytes) {
 	var tem = 0;
 	var hum = 0;
 	var temp_value;
-	switch (fPort) {
+	switch (port) {
 		case 5:
 		case 6:
 			temp_value = (bytes[5] >> 6) & 0x03;
@@ -106,7 +108,8 @@ function Decode(fPort, bytes) {
 		default:
 			break;
 	}
-
+	if (uplink_info)
+		dev_info.uplink_info = uplink_info;
 	return dev_info;
 }
 
