@@ -115,7 +115,7 @@ function parse_port1_data(deviceInfo, bytes, port) {
     var majorVersion = (bytes[1] >> 6) & 0x03;
     var minorVersion = (bytes[1] >> 4) & 0x03;
     var patchVersion = bytes[1] & 0x0f;
-    var firmwareVersion = 'V' + bytesToInt(majorVersion, 0, 1) + '.' + bytesToInt(minorVersion, 0, 1) + '.' + bytesToInt(patchVersion, 0, 1);
+    var firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
     data.firmware_version = firmwareVersion;
     var activityCount = bytesToInt(bytes, 2, 4);
     data.activity_count = activityCount;
@@ -192,10 +192,7 @@ function parse_port9_data(deviceInfo, bytes, port) {
 
 function parse_port12_data(deviceInfo, bytes, port) {
     var data = {};
-    var ack_bytes = [bytes[1] & 0x0f];
-    data.ack = bytesToInt(ack_bytes, 0, 1);
-    var battery_bytes = [(bytes[1] >> 4) & 0x0f];
-    data.battery_value = bytesToInt(battery_bytes, 0, 1) * 0.1 + 2.2;
+    data.ack = bytes[1] & 0x0f;
 
     data.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';

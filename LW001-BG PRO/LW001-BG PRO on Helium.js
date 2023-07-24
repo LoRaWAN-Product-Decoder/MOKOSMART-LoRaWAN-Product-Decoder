@@ -72,7 +72,7 @@ function Decoder(bytes, port, uplink_info) {
 		var majorVersion = (bytes[4] >> 6) & 0x03;
 		var minorVersion = (bytes[4] >> 4) & 0x03;
 		var patchVersion = bytes[4] & 0x0f;
-		var firmwareVersion = 'V' + bytesToInt(majorVersion, 0, 1) + '.' + bytesToInt(minorVersion, 0, 1) + '.' + bytesToInt(patchVersion, 0, 1);
+		var firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
 		dev_info.firmware_version = firmwareVersion;
 
 		var activityCount = bytesToInt(bytes, 5, 4);
