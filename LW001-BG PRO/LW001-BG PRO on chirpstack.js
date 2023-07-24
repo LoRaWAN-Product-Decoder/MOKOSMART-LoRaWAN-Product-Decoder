@@ -61,7 +61,7 @@ function Decode(fPort, bytes) {
 		var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
 		dev_info.temperature = temperature;
 
-		dev_info.downlink_frame_count, = bytes[2] & 0x0f;
+		dev_info.ack = bytes[2] & 0x0f;
 		dev_info.battery_voltage = (22 + ((bytes[2] >> 4) & 0x0f)) / 10 + "V";
 	}
 	if (fPort == 1) {

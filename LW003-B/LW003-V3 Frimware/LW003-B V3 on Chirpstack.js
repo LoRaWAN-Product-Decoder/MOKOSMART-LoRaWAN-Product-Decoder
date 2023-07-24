@@ -96,7 +96,7 @@ function Decode(fPort, bytes) {
                 var flag = iBeaconFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -105,6 +105,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -151,7 +152,7 @@ function Decode(fPort, bytes) {
                 var flag = EddystoneUIDFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -160,6 +161,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -191,7 +193,7 @@ function Decode(fPort, bytes) {
                 var flag = EddystoneURLFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -200,6 +202,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -236,7 +239,7 @@ function Decode(fPort, bytes) {
                 var flag = EddystoneTLMFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -245,6 +248,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -290,7 +294,7 @@ function Decode(fPort, bytes) {
                 var flag = BXPiBeaconFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -299,6 +303,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -356,7 +361,7 @@ function Decode(fPort, bytes) {
                 var flag = BXPDeviceInfoFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -365,6 +370,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -429,7 +435,7 @@ function Decode(fPort, bytes) {
                 var flag = BXPACCFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -438,6 +444,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -498,7 +505,7 @@ function Decode(fPort, bytes) {
                 var flag = BXPTHFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -507,6 +514,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -557,7 +565,7 @@ function Decode(fPort, bytes) {
                 var flag = BXPButtonFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -566,6 +574,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -663,7 +672,7 @@ function Decode(fPort, bytes) {
                 var flag = BXPTagFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -672,6 +681,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -738,7 +748,7 @@ function Decode(fPort, bytes) {
                 var flag = OtherTypeFlag;
                 data.beacon_type = beaconTypeArray[beacon_type];
                 if (flag & 0x01) {
-                    data.mac = bytesToHexString(bytes, parse_len, 6).toUpperCase();
+                    data.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
                     beacon_len += 6;
                 }
@@ -747,6 +757,7 @@ function Decode(fPort, bytes) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
+                    data.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     data.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
@@ -871,18 +882,29 @@ function parse_time(timestamp, timezone) {
     var time_str = "";
     time_str += d.getUTCFullYear();
     time_str += "/";
-    time_str += d.getUTCMonth() + 1;
+    time_str += formatNumber(d.getUTCMonth() + 1);
     time_str += "/";
-    time_str += d.getUTCDate();
+    time_str += formatNumber(d.getUTCDate());
     time_str += " ";
 
-    time_str += d.getUTCHours();
+    time_str += formatNumber(d.getUTCHours());
     time_str += ":";
-    time_str += d.getUTCMinutes();
+    time_str += formatNumber(d.getUTCMinutes());
     time_str += ":";
-    time_str += d.getUTCSeconds()
+    time_str += formatNumber(d.getUTCSeconds());
 
     return time_str;
+}
+
+function get_timestamp(timestamp) {
+    if (timestamp < 0) {
+        timestamp = 0;
+    }
+    return timestamp * 1000;
+}
+
+function formatNumber(number) {
+    return number < 10 ? "0" + number : number;
 }
 
 String.prototype.format = function () {

@@ -61,7 +61,7 @@ function Decoder(bytes, port) {
 		var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
 		dev_info.temperature = temperature;
 
-		dev_info.downlink_frame_count, = bytes[2] & 0x0f;
+		dev_info.ack = bytes[2] & 0x0f;
 		dev_info.battery_voltage = (22 + ((bytes[2] >> 4) & 0x0f)) / 10 + "V";
 	}
 	if (port == 1) {
@@ -305,3 +305,16 @@ function signedHexToInt(hexStr) {
 	twoStr = parseInt(-twoStr_unsign, 2);
 	return twoStr;
 }
+
+// function getData(hex) {
+//     var length = hex.length;
+//     var datas = [];
+//     for (var i = 0; i < length; i += 3) {
+//         var start = i;
+//         var end = i + 2;
+//         var data = parseInt("0x" + hex.substring(start, end));
+//         datas.push(data);
+//     }
+//     return datas;
+// }
+// console.log(Decoder(getData("01 1C 00 00 08 05 02 00 01"), 2));

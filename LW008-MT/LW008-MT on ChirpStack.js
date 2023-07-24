@@ -70,8 +70,7 @@ function Decode(fPort, bytes) {
     var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
     deviceInfo.temperature = temperature;
 
-    var indexValue = bytes[2] & 0x0f;
-    deviceInfo.index = bytesToInt(indexValue, 0, 1);
+    deviceInfo.ack = bytes[2] & 0x0f;
 
     if (fPort == 1 && bytes.length == 9) {
         parse_port1_data(deviceInfo, bytes.slice(3), fPort);
@@ -130,9 +129,13 @@ function parse_port2_data(deviceInfo, bytes, port) {
     var positionTypeCode = bytesToInt(bytes, 2, 1);
     // data.position_type_code = positionTypeCode;
     data.position_success_type = positionTypeArray[positionTypeCode];
-    var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
-    // data.location_fixed_data = JSON.stringify(positionData);;
-    data.location_fixed_data = positionData;
+    if (positionTypeCode < 5) {
+        var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
+        // data.location_fixed_data = JSON.stringify(positionData);;
+        data.location_fixed_data = positionData;
+    } else {
+        data.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
+    }
     deviceInfo.data = data;
 }
 
@@ -263,7 +266,7 @@ function bytesToString(bytes, start, len) {
 
 function bytesToInt(bytes, start, len) {
     var value = 0;
-    for (let i = 0; i < len; i++) {
+    for (var i = 0; i < len; i++) {
         var m = ((len - 1) - i) * 8;
         value = value | bytes[start + i] << m;
     }
@@ -310,23 +313,27 @@ function parse_time(timestamp, timezone) {
     var time_str = "";
     time_str += d.getUTCFullYear();
     time_str += "/";
-    time_str += d.getUTCMonth() + 1;
+    time_str += formatNumber(d.getUTCMonth() + 1);
     time_str += "/";
-    time_str += d.getUTCDate();
+    time_str += formatNumber(d.getUTCDate());
     time_str += " ";
 
-    time_str += d.getUTCHours();
+    time_str += formatNumber(d.getUTCHours());
     time_str += ":";
-    time_str += d.getUTCMinutes();
+    time_str += formatNumber(d.getUTCMinutes());
     time_str += ":";
-    time_str += d.getUTCSeconds()
+    time_str += formatNumber(d.getUTCSeconds());
 
     return time_str;
 }
 
+function formatNumber(number) {
+    return number < 10 ? "0" + number : number;
+}
+
 function signedHexToInt(hexStr) {
-    let twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
-    let bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
+    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
     if (twoStr.length < bitNum) {
         while (twoStr.length < bitNum) {
             twoStr = "0" + twoStr;
@@ -338,7 +345,7 @@ function signedHexToInt(hexStr) {
         return twoStr;
     }
     // 负数
-    let twoStr_unsign = "";
+    var twoStr_unsign = "";
     twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
     twoStr = twoStr.toString(2);
     twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
@@ -357,39 +364,3 @@ String.prototype.format = function () {
         s = s.replace(new RegExp("\\{" + i + "\\}", "g"), arguments[i]);
     return s;
 };
-
-
-// var port_data1 = [0xf5,0xe4,0xa0,0x03,0x43,0x00,0x00,0xff,0xff];
-// Decoder(port_data1,1);
-
-// var port_data2 = [0xf5,0xe5,0xa0,0x00,0x64,0x00,0x0e,0xaa,0xbb,0xaa,0xbb,0xaa,0xbb,0xe4,0xaa,0xbb,0xaa,0xbb,0xaa,0xbb,0xe5];
-// var port_data22 = [0xf5,0xe5,0xa0,0x00,0x64,0x01,0x00];
-// var port_data222 = [0xf5,0xe5,0xa0,0x00,0x64,0x03,0x12,0xff,0xff,0xff,0x00,0xaa,0xbb,0x00,0x00,0x0f,0xf0,0xff,0xff,0x00,0xa0,0xbb,0x00,0x00,0x0d];
-// Decoder(port_data2,2);
-// Decoder(port_data22,2);
-// Decoder(port_data222,2);
-
-// var port_data4 = [0xf5,0xe5,0xa0,0x00,0x0e,0xaa,0xbb,0xaa,0xbb,0xaa,0xbb,0xe4,0xaa,0xbb,0xaa,0xbb,0xaa,0xbb,0xe5];
-// var port_data44 = [0xf5,0xe5,0xa0,0x06,0x0e,0xaa,0xbb,0xaa,0xbb,0xaa,0xbb,0xe4,0xaa,0xbb,0xaa,0xbb,0xaa,0xbb,0xe5];
-// Decoder(port_data4,4);
-// Decoder(port_data44,4);
-
-// var port_data5 = [0xf5,0xe5,0xa0,0x01];
-// var port_data55 = [0xf5,0xe5,0xa0,0x03];
-// Decoder(port_data5,5);
-// Decoder(port_data55,5);
-
-// var port_data6 = [0xf5,0xe5,0xa0,0x01,0x01];
-// Decoder(port_data6,6);
-
-// var port_data7 = [0xf5,0xe5,0xa0,0x00,0x64];
-// Decoder(port_data7,7);
-
-// var port_data8 = [0xf5,0xe5,0xa0,0x01];
-// Decoder(port_data8,8);
-
-// var port_data9 = [0xf5,0xe5,0xa0,0x00,0x00,0x00,0x64,0x00,0x00,0x00,0x65,0x00,0x00,0x00,0x66,0x00,0x00,0x00,0x67,0x00,0x00,0x00,0x68,0x00,0x00,0x00,0x69,0x00,0x00,0x00,0x6a,0x00,0x00,0x00,0x6b,0x00,0x00,0x00,0x6c,0x00,0x00,0x00,0x6d];
-// Decoder(port_data9,9);
-
-// var port_data12 = [0xf4, 0xa3, 0xff, 0xff, 0xff, 0x00, 0x0f, 0xff, 0xff, 0x00, 0x0a];
-// Decoder(port_data12, 12);
