@@ -1,6 +1,9 @@
 var payloadTypeArray = ["Heartbeat", "Information", "Shut Down"];
 
 function Decode(fPort, bytes) {
+	if (fPort == 0) {
+        return {};
+    }
 	var dev_info = {};
 
 	dev_info.port = fPort;
@@ -11,6 +14,7 @@ function Decode(fPort, bytes) {
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
 	dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
+	dev_info.timestamp = timestamp;
 	dev_info.timezone = timezone_decode(bytes[4])
 
 	var tem = 0;
@@ -24,7 +28,7 @@ function Decode(fPort, bytes) {
 				dev_info.pir_state = "PIR motion not detected";
 			} else if (temp_value == 0x01) {
 				dev_info.pir_state = "PIR motion detected";
-			} else if (temp_value == 0x11) {
+			} else {
 				dev_info.pir_state = "Occupancy detection function is disable";
 			}
 
@@ -33,7 +37,7 @@ function Decode(fPort, bytes) {
 				dev_info.door_state = "Door/window is close";
 			} else if (temp_value == 0x01) {
 				dev_info.door_state = "Door/window is open";
-			} else if (temp_value == 0x11) {
+			} else {
 				dev_info.door_state = "Door/window status detection function is disable";
 			}
 
@@ -42,7 +46,7 @@ function Decode(fPort, bytes) {
 				dev_info.temperature_state = "Current environment temperature is lower than minimum temperature alarm threshold value";
 			} else if (temp_value == 0x01) {
 				dev_info.temperature_state = "Current environment temperature is higher than maximum temperature alarm threshold value";
-			} else if (temp_value == 0x11) {
+			} else {
 				dev_info.temperature_state = "Temperature threshold alarm function is disable";
 			}
 
@@ -51,7 +55,7 @@ function Decode(fPort, bytes) {
 				dev_info.humidity_state = "Current environment humidity is lower than minimum humidity alarm threshold value";
 			} else if (temp_value == 0x01) {
 				dev_info.humidity_state = "Current environment humidity is higher than maximum humidity alarm threshold value";
-			} else if (temp_value == 0x11) {
+			} else {
 				dev_info.humidity_state = "Humidity threshold alarm function is disable";
 			}
 
@@ -76,7 +80,7 @@ function Decode(fPort, bytes) {
 				dev_info.temperature_change_state = "Current environment temperature rises faster than temperature change alarm condition";
 			} else if (temp_value == 0x01) {
 				dev_info.temperature_change_state = "Current environment temperature drops faster than temperature change alarm condition";
-			} else if (temp_value == 0x11) {
+			} else {
 				dev_info.temperature_change_state = "Temperature change alarm function is disable";
 			}
 
@@ -85,7 +89,7 @@ function Decode(fPort, bytes) {
 				dev_info.humidity_change_state = "Current environment humidity rises faster than humidity change alarm condition";
 			} else if (temp_value == 0x01) {
 				dev_info.humidity_change_state = "Current environment humidity drops faster than humidity change alarm condition";
-			} else if (temp_value == 0x11) {
+			} else {
 				dev_info.humidity_change_state = "Humidity change alarm function is disable";
 			}
 			dev_info.low_battery_status = (bytesToInt(bytes, 9, 2) >> 15) == 1 ? "Battery level is low" : "Battery level is normal";

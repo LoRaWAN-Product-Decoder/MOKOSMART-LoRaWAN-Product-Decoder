@@ -61,6 +61,9 @@ var posFailedReasonArray2 = [
 
 
 function Decode(fPort, bytes) {
+	if (fPort == 0 || fPort == 100) {
+        return {};
+    }
 	var dev_info = {};
 	var datas = [];
 	var parse_len;
@@ -168,7 +171,7 @@ function substringBytes(bytes, start, len) {
 }
 function bytesToInt(bytes, start, len) {
 	var value = 0;
-	for (let i = 0; i < len; i++) {
+	for (var i = 0; i < len; i++) {
 		var m = ((len - 1) - i) * 8;
 		value = value | bytes[start + i] << m;
 	}

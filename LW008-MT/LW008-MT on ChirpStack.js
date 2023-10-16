@@ -35,11 +35,23 @@ var eventTypeArray = [
 ];
 
 function Decode(fPort, bytes) {
-    if (bytes.length < 4) {
+    if (fPort == 199 || fPort == 10 || fPort == 11) {
         return {};
     }
     var deviceInfo = {};
     deviceInfo.port = fPort;
+
+    // if (fPort == 199) {
+    //     var i = 0;
+    //     var len = bytes.length;
+    //     var out = { access_points: [] };
+
+    //     for (; i < len;) {
+    //         out.access_points.push({ macAddress: bytes.slice(i, i + 6), signalStrength: int8(bytes[i + 6]) });
+    //         i += 7;
+    //     }
+    //     return out;
+    // }
 
     var operationModeCode = bytes[0] & 0x03;
     // deviceInfo.operation_mode_code = operationModeCode;
@@ -127,11 +139,11 @@ function parse_port2_data(deviceInfo, bytes, port) {
     var age = bytesToInt(bytes, 0, 2);
     data.age = age + "s";
     var positionTypeCode = bytesToInt(bytes, 2, 1);
-    // data.position_type_code = positionTypeCode;
+    data.position_type_code = positionTypeCode;
     data.position_success_type = positionTypeArray[positionTypeCode];
     if (positionTypeCode < 5) {
         var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
-        // data.location_fixed_data = JSON.stringify(positionData);;
+        data.location_fixed_data_str = JSON.stringify(positionData);;
         data.location_fixed_data = positionData;
     } else {
         data.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
@@ -157,7 +169,7 @@ function parse_port4_data(deviceInfo, bytes, port) {
             item.rssi = rssi;
             data_list.push(item);
         }
-        // data.reasons_for_positioning_failure_code = failedTypeCode;
+        data.reasons_for_positioning_failure_code = failedTypeCode;
         data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
         data.location_failure_data = data_list;
         deviceInfo.data = data;
@@ -168,7 +180,7 @@ function parse_port4_data(deviceInfo, bytes, port) {
             var stringValue = bytesToHexString(dataBytes, (i * 1), 1);
             data_list.push(stringValue);
         }
-        // data.reasons_for_positioning_failure_code = failedTypeCode;
+        data.reasons_for_positioning_failure_code = failedTypeCode;
         data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
         data.location_failure_data = data_list;
         deviceInfo.data = data;
@@ -181,9 +193,9 @@ function parse_port9_data(deviceInfo, bytes, port) {
     data.adv_times = bytesToInt(bytes, 4, 4);
     data.flash_write_times = bytesToInt(bytes, 8, 4);
     data.axis_wakeup_times = bytesToInt(bytes, 12, 4);
-    data.ble_postion_times = bytesToInt(bytes, 16, 4);
-    data.wifi_postion_times = bytesToInt(bytes, 20, 4);
-    data.gps_postion_times = bytesToInt(bytes, 24, 4);
+    data.ble_position_times = bytesToInt(bytes, 16, 4);
+    data.wifi_position_times = bytesToInt(bytes, 20, 4);
+    data.gps_position_times = bytesToInt(bytes, 24, 4);
     data.lora_send_times = bytesToInt(bytes, 28, 4);
     data.lora_power = bytesToInt(bytes, 32, 4);
     data.battery_value = bytesToInt(bytes, 36, 4);
@@ -193,12 +205,12 @@ function parse_port9_data(deviceInfo, bytes, port) {
 function parse_port12_data(deviceInfo, bytes, port) {
     var data = {};
     data.ack = bytes[1] & 0x0f;
-
+    data.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
     data.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';
     data.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
         + '°';
-    data.podp = bytesToInt(bytes, 10, 1);
+    data.pdop = bytesToInt(bytes, 10, 1);
     deviceInfo.data = data;
 }
 
@@ -226,11 +238,11 @@ function parse_position_data(bytes, type) {
             var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7)
                 + '°';
             var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7) + '°';
-            var podp = bytesToInt(sub_bytes, 8, 1) * 0.1;
+            var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
             var data_dic = {
                 'latitude': latitude,
                 'longitude': longitude,
-                'podp': podp
+                'pdop': pdop
             };
             data_list.push(data_dic);
         }
@@ -361,3 +373,12 @@ String.prototype.format = function () {
         s = s.replace(new RegExp("\\{" + i + "\\}", "g"), arguments[i]);
     return s;
 };
+
+// convert a byte value to signed int8
+function int8(byte) {
+    var sign = byte & (1 << 7);
+    if (sign) {
+        return 0xFFFFFF00 | byte;
+    }
+    return byte;
+}

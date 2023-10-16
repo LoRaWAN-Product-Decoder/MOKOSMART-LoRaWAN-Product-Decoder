@@ -19,6 +19,9 @@ var payloadTypeArray = [
 
 
 function Decode(fPort, bytes) {
+    if (fPort == 0) {
+        return {};
+    }
     var dev_info = {};
 
     dev_info.port = fPort;
@@ -29,6 +32,7 @@ function Decode(fPort, bytes) {
     }
     var timestamp = bytesToInt(bytes, 0, 4);
     dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
+	dev_info.timestamp = timestamp;
     dev_info.timezone = timezone_decode(bytes[4])
     switch (fPort) {
         case 5:
