@@ -33,13 +33,26 @@ var eventTypeArray = [
     , "Notify of ephemeris update start"
     , "Notify of ephemeris update end"
 ];
-
-function Decode(fPort, bytes) {
+// Decode uplink function.
+//
+// Input is an object with the following fields:
+// - bytes = Byte array containing the uplink payload, e.g. [255, 230, 255, 0]
+// - fPort = Uplink fPort.
+// - variables = Object containing the configured device variables.
+//
+// Output must be an object with the following fields:
+// - data = Object representing the decoded payload.
+function decodeUplink(input) {
+    var bytes = input.bytes;
+    var fPort = input.fPort;
+    var variables = input.variables;
     if (fPort == 199 || fPort == 10 || fPort == 11) {
         return {};
     }
     var deviceInfo = {};
-    deviceInfo.port = fPort;
+    var data = {};
+    data.port = fPort;
+    data.devEUI = variables.devEUI;
 
     // if (fPort == 2) {
     //     var positionTypeCode = bytesToInt(bytes, 2, 1);
@@ -57,105 +70,114 @@ function Decode(fPort, bytes) {
     // }
 
     var operationModeCode = bytes[0] & 0x03;
-    // deviceInfo.operation_mode_code = operationModeCode;
-    deviceInfo.operation_mode = operationModeArray[operationModeCode];
+    // data.operation_mode_code = operationModeCode;
+    data.operation_mode = operationModeArray[operationModeCode];
 
     var batteryLevelCode = bytes[0] & 0x04;
-    // deviceInfo.battery_level_code = batteryLevelCode;
-    deviceInfo.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
+    // data.battery_level_code = batteryLevelCode;
+    data.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
 
     var manDownStatusCode = bytes[0] & 0x08;
-    // deviceInfo.mandown_status_code = manDownStatusCode;
-    deviceInfo.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
+    // data.mandown_status_code = manDownStatusCode;
+    data.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
 
     var motionStateSinceLastPaylaodCode = bytes[0] & 0x10;
-    // deviceInfo.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
-    deviceInfo.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
+    // data.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
+    data.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
 
     var positioningTypeCode = bytes[0] & 0x20;
-    // deviceInfo.positioning_type_code = positioningTypeCode;
-    deviceInfo.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
+    // data.positioning_type_code = positioningTypeCode;
+    data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
+
+    var timestamp = new Date().getTime();
+    timestamp = timestamp;
+    data.timestamp = timestamp;
+
+    var date = new Date();
+    data.time = date.toJSON();
 
     if (fPort == 12 && bytes.length == 11) {
-        parse_port12_data(deviceInfo, bytes, fPort);
-        // console.log(deviceInfo);
+        parse_port12_data(data, bytes, fPort);
+        // console.log(data);
+        deviceInfo.data = data
         return deviceInfo;
     }
 
     var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
-    deviceInfo.temperature = temperature;
+    data.temperature = temperature;
 
-    deviceInfo.ack = bytes[2] & 0x0f;
+    data.ack = bytes[2] & 0x0f;
 
     if (fPort == 1 && bytes.length == 9) {
-        parse_port1_data(deviceInfo, bytes.slice(3), fPort);
+        parse_port1_data(data, bytes.slice(3), fPort);
     } else if (fPort == 2 && bytes.length >= 7) {
-        parse_port2_data(deviceInfo, bytes.slice(3), fPort);
+        parse_port2_data(data, bytes.slice(3), fPort);
     } else if (fPort == 4 && bytes.length >= 5) {
-        parse_port4_data(deviceInfo, bytes.slice(3), fPort);
+        parse_port4_data(data, bytes.slice(3), fPort);
     } else if (fPort == 5 && bytes.length == 4) {
-        var data = {};
+        var obj = {};
         var shutdownTypeCode = bytesToInt(bytes, 3, 1);
-        // data.shutdown_type_code = shutdownTypeCode;
-        data.shutdown_type = shutdownTypeArray[shutdownTypeCode];
-        deviceInfo.data = data;
+        // obj.shutdown_type_code = shutdownTypeCode;
+        obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
+        data.obj = obj;
     } else if (fPort == 6 && bytes.length == 5) {
-        var data = {};
-        data.number_of_shocks = bytesToInt(bytes, 3, 2);
-        deviceInfo.data = data;
+        var obj = {};
+        obj.number_of_shocks = bytesToInt(bytes, 3, 2);
+        data.obj = obj;
     } else if (fPort == 7 && bytes.length == 5) {
-        var data = {};
-        data.total_idle_time = bytesToInt(bytes, 3, 2);
-        deviceInfo.data = data;
+        var obj = {};
+        obj.total_idle_time = bytesToInt(bytes, 3, 2);
+        data.obj = obj;
     } else if (fPort == 8 && bytes.length == 4) {
-        var data = {};
+        var obj = {};
         var eventTypeCode = bytesToInt(bytes, 3, 1);
-        // data.event_type_code = eventTypeCode;
-        data.event_type = eventTypeArray[eventTypeCode];
-        deviceInfo.data = data;
+        // obj.event_type_code = eventTypeCode;
+        obj.event_type = eventTypeArray[eventTypeCode];
+        data.obj = obj;
     } else if (fPort == 9 && bytes.length == 43) {
-        parse_port9_data(deviceInfo, bytes.slice(3), fPort);
+        parse_port9_data(data, bytes.slice(3), fPort);
     }
-    // deviceInfo.data = data_dic;
-    // console.log(deviceInfo);
+    // data.obj = data_dic;
+    // console.log(data);
+    deviceInfo.data = data;
     return deviceInfo;
 }
 
 /*********************Port Parse*************************/
-function parse_port1_data(deviceInfo, bytes, port) {
-    var data = {};
+function parse_port1_data(data, bytes, port) {
+    var obj = {};
     var rebootReasonCode = bytesToInt(bytes, 0, 1);
-    // deviceInfo.data.reboot_reason_code = rebootReasonCode;
-    data.reboot_reason = rebootReasonArray[rebootReasonCode];
+    // data.obj.reboot_reason_code = rebootReasonCode;
+    obj.reboot_reason = rebootReasonArray[rebootReasonCode];
     var majorVersion = (bytes[1] >> 6) & 0x03;
     var minorVersion = (bytes[1] >> 4) & 0x03;
     var patchVersion = bytes[1] & 0x0f;
     var firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
-    data.firmware_version = firmwareVersion;
+    obj.firmware_version = firmwareVersion;
     var activityCount = bytesToInt(bytes, 2, 4);
-    data.activity_count = activityCount;
-    deviceInfo.data = data;
+    obj.activity_count = activityCount;
+    data.obj = obj;
 }
 
-function parse_port2_data(deviceInfo, bytes, port) {
-    var data = {};
+function parse_port2_data(data, bytes, port) {
+    var obj = {};
     var age = bytesToInt(bytes, 0, 2);
-    data.age = age + "s";
+    obj.age = age + "s";
     var positionTypeCode = bytesToInt(bytes, 2, 1);
-    data.position_type_code = positionTypeCode;
-    data.position_success_type = positionTypeArray[positionTypeCode];
+    obj.position_type_code = positionTypeCode;
+    obj.position_success_type = positionTypeArray[positionTypeCode];
     if (positionTypeCode < 5) {
         var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
-        data.location_fixed_data_str = JSON.stringify(positionData);;
-        data.location_fixed_data = positionData;
+        obj.location_fixed_data_str = JSON.stringify(positionData);;
+        obj.location_fixed_data = positionData;
     } else {
-        data.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
+        obj.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
     }
-    deviceInfo.data = data;
+    data.obj = obj;
 }
 
-function parse_port4_data(deviceInfo, bytes, port) {
-    var data = {};
+function parse_port4_data(data, bytes, port) {
+    var obj = {};
     var failedTypeCode = bytesToInt(bytes, 0, 1);
     var dataLen = bytesToInt(bytes, 1, 1);
     var dataBytes = bytes.slice(2);
@@ -172,10 +194,10 @@ function parse_port4_data(deviceInfo, bytes, port) {
             item.rssi = rssi;
             data_list.push(item);
         }
-        data.reasons_for_positioning_failure_code = failedTypeCode;
-        data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
-        data.location_failure_data = data_list;
-        deviceInfo.data = data;
+        obj.reasons_for_positioning_failure_code = failedTypeCode;
+        obj.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
+        obj.location_failure_data = data_list;
+        data.obj = obj;
         return;
     } else {
         var data_list = [];
@@ -183,38 +205,38 @@ function parse_port4_data(deviceInfo, bytes, port) {
             var stringValue = bytesToHexString(dataBytes, (i * 1), 1);
             data_list.push(stringValue);
         }
-        data.reasons_for_positioning_failure_code = failedTypeCode;
-        data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
-        data.location_failure_data = data_list;
-        deviceInfo.data = data;
+        obj.reasons_for_positioning_failure_code = failedTypeCode;
+        obj.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
+        obj.location_failure_data = data_list;
+        data.obj = obj;
     }
 }
 
-function parse_port9_data(deviceInfo, bytes, port) {
-    var data = {};
-    data.work_times = bytesToInt(bytes, 0, 4);
-    data.adv_times = bytesToInt(bytes, 4, 4);
-    data.flash_write_times = bytesToInt(bytes, 8, 4);
-    data.axis_wakeup_times = bytesToInt(bytes, 12, 4);
-    data.ble_position_times = bytesToInt(bytes, 16, 4);
-    data.wifi_position_times = bytesToInt(bytes, 20, 4);
-    data.gps_position_times = bytesToInt(bytes, 24, 4);
-    data.lora_send_times = bytesToInt(bytes, 28, 4);
-    data.lora_power = bytesToInt(bytes, 32, 4);
-    data.battery_value = bytesToInt(bytes, 36, 4);
-    deviceInfo.data = data;
+function parse_port9_data(data, bytes, port) {
+    var obj = {};
+    obj.work_times = bytesToInt(bytes, 0, 4);
+    obj.adv_times = bytesToInt(bytes, 4, 4);
+    obj.flash_write_times = bytesToInt(bytes, 8, 4);
+    obj.axis_wakeup_times = bytesToInt(bytes, 12, 4);
+    obj.ble_position_times = bytesToInt(bytes, 16, 4);
+    obj.wifi_position_times = bytesToInt(bytes, 20, 4);
+    obj.gps_position_times = bytesToInt(bytes, 24, 4);
+    obj.lora_send_times = bytesToInt(bytes, 28, 4);
+    obj.lora_power = bytesToInt(bytes, 32, 4);
+    obj.battery_value = bytesToInt(bytes, 36, 4);
+    data.obj = obj;
 }
 
-function parse_port12_data(deviceInfo, bytes, port) {
-    var data = {};
-    data.ack = bytes[1] & 0x0f;
-    data.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
-    data.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
+function parse_port12_data(data, bytes, port) {
+    var obj = {};
+    obj.ack = bytes[1] & 0x0f;
+    obj.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
+    obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';
-    data.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
+    obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
         + '°';
-    data.pdop = bytesToInt(bytes, 10, 1);
-    deviceInfo.data = data;
+    obj.pdop = bytesToInt(bytes, 10, 1);
+    data.obj = obj;
 }
 
 function parse_position_data(bytes, type) {
@@ -238,9 +260,8 @@ function parse_position_data(bytes, type) {
         var data_list = [];
         for (var i = 0; i < number; i++) {
             var sub_bytes = bytes.slice((i * 9), (i * 9 + 10));
-            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7)
-                + '°';
-            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7) + '°';
+            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
+            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
             var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
             var data_dic = {
                 'latitude': latitude,
