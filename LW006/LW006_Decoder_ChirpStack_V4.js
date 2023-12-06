@@ -110,11 +110,11 @@ function decodeUplink(input) {
             var count = pos_data_length / 7;
             var index = 6;
             for (var i = 0; i < count; i++) {
-                var data = {};
-                data.rssi = bytes[index++];
-                data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
+                var item = {};
+                item.rssi = bytes[index++];
+                item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
-                datas.push(data);
+                datas.push(item);
             }
             data.pos_data = datas;
         }
@@ -124,16 +124,16 @@ function decodeUplink(input) {
             var count = pos_data_length / 9;
             var index = 6;
             for (var i = 0; i < count; i++) {
-                var data = {};
+                var item = {};
                 var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
                 index += 4;
                 var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
                 index += 4;
                 var pdop = (bytes[index++] & 0xFF) * 0.1;
-                data.latitude = latitude;
-                data.longitude = longitude;
-                data.pdop = pdop;
-                datas.push(data);
+                item.latitude = latitude;
+                item.longitude = longitude;
+                item.pdop = pdop;
+                datas.push(item);
             }
             data.pos_data = datas;
         }
@@ -153,11 +153,11 @@ function decodeUplink(input) {
             var count = pos_data_length / 7;
             var index = 6;
             for (var i = 0; i < count; i++) {
-                var data = {};
-                data.rssi = bytes[index++];
-                data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
+                var item = {};
+                item.rssi = bytes[index++];
+                item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
-                datas.push(data);
+                datas.push(item);
             }
             data.pos_data = datas;
         } else if (pos_data_sign < 6) {
@@ -168,11 +168,11 @@ function decodeUplink(input) {
             var count = pos_data_length / 7;
             var index = 6;
             for (var i = 0; i < count; i++) {
-                var data = {};
-                data.rssi = bytes[index++];
-                data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
+                var item = {};
+                item.rssi = bytes[index++];
+                item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
-                datas.push(data);
+                datas.push(item);
             }
             data.pos_data = datas;
         } else if (pos_data_sign < 8) {
@@ -185,8 +185,8 @@ function decodeUplink(input) {
             var datas = [];
             var index = 6;
             for (var i = 0; i < 4; i++) {
-                var data = bytesToHexString(bytes, index++, 1).toLowerCase();
-                datas.push(data);
+                var item = bytesToHexString(bytes, index++, 1).toLowerCase();
+                datas.push(item);
             }
             data.pos_data = datas;
         } else if (pos_data_sign < 12) {
@@ -194,8 +194,8 @@ function decodeUplink(input) {
             var datas = [];
             var index = 6;
             for (var i = 0; i < 4; i++) {
-                var data = bytesToHexString(bytes, index++, 1).toLowerCase();
-                datas.push(data);
+                var item = bytesToHexString(bytes, index++, 1).toLowerCase();
+                datas.push(item);
             }
             data.pos_data = datas;
         }
