@@ -41,6 +41,7 @@ function decodeUplink(input) {
 	var dev_info = {};
     var data = {};
     data.port = fPort;
+	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[fPort - 1];
 	//common frame head
 	if (fPort <= 10) {

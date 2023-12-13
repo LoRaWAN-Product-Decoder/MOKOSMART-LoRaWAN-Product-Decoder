@@ -23,6 +23,8 @@ function decodeUplink(input) {
     var dev_info = {};
     var data = {};
     data.fPort = fPort;
+    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+
     if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
         || fPort == 5 || fPort == 8 || fPort == 9) {
         data.charging_status = bytes[0] & 0x80 ? "charging" : "no charging";

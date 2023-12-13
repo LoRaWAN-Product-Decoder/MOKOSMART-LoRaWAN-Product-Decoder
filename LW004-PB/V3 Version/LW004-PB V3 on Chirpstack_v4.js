@@ -71,6 +71,7 @@ function decodeUplink(input) {
 	var datas = [];
 	var parse_len;
 	data.port = fPort;
+	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[fPort - 1];
 	data.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";	//Parse  Battery charging state 
 	data.battery_level = (bytes[0] & 0x7F) + "%";  //Parse  Battery Level

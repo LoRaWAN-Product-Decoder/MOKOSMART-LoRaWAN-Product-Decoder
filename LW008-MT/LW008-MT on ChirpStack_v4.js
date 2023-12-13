@@ -52,6 +52,7 @@ function decodeUplink(input) {
         return deviceInfo;
     }
     data.port = fPort;
+    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
     // if (fPort == 2) {
     //     var positionTypeCode = bytesToInt(bytes, 2, 1);
