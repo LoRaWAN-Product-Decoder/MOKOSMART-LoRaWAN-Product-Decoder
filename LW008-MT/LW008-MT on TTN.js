@@ -45,14 +45,12 @@ var eventTypeArray = [
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
-    var variables = input.variables;
     if (fPort == 199 || fPort == 10 || fPort == 11) {
         return {};
     }
     var deviceInfo = {};
     var data = {};
     data.port = fPort;
-    data.devEUI = variables.devEUI;
 
     // if (fPort == 2) {
     //     var positionTypeCode = bytesToInt(bytes, 2, 1);
