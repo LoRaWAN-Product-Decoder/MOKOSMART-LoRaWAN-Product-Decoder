@@ -1,23 +1,33 @@
 var payloadTypeArray = ["Heartbeat", "Information", "Shut Down"];
 
+// Decode uplink function.
+//
+// Input is an object with the following fields:
+// - bytes = Byte array containing the uplink payload, e.g. [255, 230, 255, 0]
+// - fPort = Uplink fPort.
+// - variables = Object containing the configured device variables.
+//
+// Output must be an object with the following fields:
+// - data = Object representing the decoded payload.
+
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
 	if (fPort == 0) {
         return {};
     }
-	var dev_info = {};
+	var data = {};
 
-	dev_info.port = fPort;
-	dev_info.payload_type = payloadTypeArray[fPort - 5];
+	data.port = fPort;
+	data.payload_type = payloadTypeArray[fPort - 5];
 	if (command_format_check(bytes, fPort) == false) {
-		dev_info.result = "Format wrong";
-		return dev_info;
+		data.result = "Format wrong";
+		return data;
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
-	dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
-	dev_info.timestamp = timestamp;
-	dev_info.timezone = timezone_decode(bytes[4])
+	data.time = parse_time(timestamp, bytes[4] * 0.5);
+	data.timestamp = timestamp;
+	data.timezone = timezone_decode(bytes[4])
 
 	var tem = 0;
 	var hum = 0;
@@ -27,102 +37,102 @@ function decodeUplink(input) {
 		case 6:
 			temp_value = (bytes[5] >> 6) & 0x03;
 			if (temp_value == 0x00) {
-				dev_info.pir_state = "PIR motion not detected";
+				data.pir_state = "PIR motion not detected";
 			} else if (temp_value == 0x01) {
-				dev_info.pir_state = "PIR motion detected";
+				data.pir_state = "PIR motion detected";
 			} else {
-				dev_info.pir_state = "Occupancy detection function is disable";
+				data.pir_state = "Occupancy detection function is disable";
 			}
 
 			temp_value = (bytes[5] >> 4) & 0x03;
 			if (temp_value == 0x00) {
-				dev_info.door_state = "Door/window is close";
+				data.door_state = "Door/window is close";
 			} else if (temp_value == 0x01) {
-				dev_info.door_state = "Door/window is open";
+				data.door_state = "Door/window is open";
 			} else {
-				dev_info.door_state = "Door/window status detection function is disable";
+				data.door_state = "Door/window status detection function is disable";
 			}
 
 			temp_value = (bytes[5] >> 2) & 0x03;
 			if (temp_value == 0x00) {
-				dev_info.temperature_state = "Current environment temperature is lower than minimum temperature alarm threshold value";
+				data.temperature_state = "Current environment temperature is lower than minimum temperature alarm threshold value";
 			} else if (temp_value == 0x01) {
-				dev_info.temperature_state = "Current environment temperature is higher than maximum temperature alarm threshold value";
+				data.temperature_state = "Current environment temperature is higher than maximum temperature alarm threshold value";
 			} else {
-				dev_info.temperature_state = "Temperature threshold alarm function is disable";
+				data.temperature_state = "Temperature threshold alarm function is disable";
 			}
 
 			temp_value = bytes[5] & 0x03;
 			if (temp_value == 0x00) {
-				dev_info.humidity_state = "Current environment humidity is lower than minimum humidity alarm threshold value";
+				data.humidity_state = "Current environment humidity is lower than minimum humidity alarm threshold value";
 			} else if (temp_value == 0x01) {
-				dev_info.humidity_state = "Current environment humidity is higher than maximum humidity alarm threshold value";
+				data.humidity_state = "Current environment humidity is higher than maximum humidity alarm threshold value";
 			} else {
-				dev_info.humidity_state = "Humidity threshold alarm function is disable";
+				data.humidity_state = "Humidity threshold alarm function is disable";
 			}
 
 			temp_value = (bytesToInt(bytes, 6, 3) >> 14) & 0x03ff;
 			if (temp_value == 0x03ff) {
-				dev_info.temperature = "Temperature monitoring function is disable";
+				data.temperature = "Temperature monitoring function is disable";
 			} else {
 				temp_value = temp_value / 10 - 30;
-				dev_info.temperature = temp_value.toFixed(1) + "°";
+				data.temperature = temp_value.toFixed(1) + "°";
 			}
 
 			temp_value = (bytesToInt(bytes, 6, 3) >> 4) & 0x03ff;
 			if (temp_value == 0x03ff) {
-				dev_info.humidity = "Humidity monitoring function is disable";
+				data.humidity = "Humidity monitoring function is disable";
 			} else {
 				temp_value = temp_value / 10;
-				dev_info.humidity = temp_value.toFixed(1) + "%";
+				data.humidity = temp_value.toFixed(1) + "%";
 			}
 
 			temp_value = (bytesToInt(bytes, 6, 3) >> 2) & 0x03;
 			if (temp_value == 0x00) {
-				dev_info.temperature_change_state = "Current environment temperature rises faster than temperature change alarm condition";
+				data.temperature_change_state = "Current environment temperature rises faster than temperature change alarm condition";
 			} else if (temp_value == 0x01) {
-				dev_info.temperature_change_state = "Current environment temperature drops faster than temperature change alarm condition";
+				data.temperature_change_state = "Current environment temperature drops faster than temperature change alarm condition";
 			} else {
-				dev_info.temperature_change_state = "Temperature change alarm function is disable";
+				data.temperature_change_state = "Temperature change alarm function is disable";
 			}
 
 			temp_value = bytesToInt(bytes, 6, 3) & 0x03;
 			if (temp_value == 0x00) {
-				dev_info.humidity_change_state = "Current environment humidity rises faster than humidity change alarm condition";
+				data.humidity_change_state = "Current environment humidity rises faster than humidity change alarm condition";
 			} else if (temp_value == 0x01) {
-				dev_info.humidity_change_state = "Current environment humidity drops faster than humidity change alarm condition";
+				data.humidity_change_state = "Current environment humidity drops faster than humidity change alarm condition";
 			} else {
-				dev_info.humidity_change_state = "Humidity change alarm function is disable";
+				data.humidity_change_state = "Humidity change alarm function is disable";
 			}
-			dev_info.low_battery_status = (bytesToInt(bytes, 9, 2) >> 15) == 1 ? "Battery level is low" : "Battery level is normal";
+			data.low_battery_status = (bytesToInt(bytes, 9, 2) >> 15) == 1 ? "Battery level is low" : "Battery level is normal";
 			temp_value = bytesToInt(bytes, 9, 2) & 0x7FFF;
-			dev_info.door_trigger_times = temp_value == 0x7FFF ? "Door/window status detection function is disable" : temp_value + "times";
+			data.door_trigger_times = temp_value == 0x7FFF ? "Door/window status detection function is disable" : temp_value + "times";
 			break;
 		case 7:
 			temp_value = bytes[5];
 			if (temp_value == 0x00) {
-				dev_info.low_battery_status = "Battery level is normal";
-				dev_info.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
+				data.low_battery_status = "Battery level is normal";
+				data.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
 			} 
 			else if (temp_value == 0x01) {
-				dev_info.low_battery_status = "Battery is low";
-				dev_info.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
+				data.low_battery_status = "Battery is low";
+				data.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
 			} 
 			else if (temp_value == 0x02) {
-				dev_info.low_battery_status = "Battery is normal";
-				dev_info.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
+				data.low_battery_status = "Battery is normal";
+				data.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
 			} 
 			else if (temp_value == 0x03) {
-				dev_info.low_battery_status = "Battery is low";
-				dev_info.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
+				data.low_battery_status = "Battery is low";
+				data.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
 			} 
-			//dev_info.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";  
+			//data.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";  
 			break;
 		default:
 			break;
 	}
 
-	return dev_info;
+	return data;
 }
 
 function command_format_check(bytes, port) {
