@@ -96,20 +96,11 @@ function Decoder(bytes, port) {
 			temp_value = bytes[5];
 			if (temp_value == 0x00) {
 				dev_info.low_battery_status = "Battery level is normal";
-				dev_info.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
-			} 
-			else if (temp_value == 0x01) {
+			} else if (temp_value == 0x01) {
 				dev_info.low_battery_status = "Battery is low";
-				dev_info.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
-			} 
-			else if (temp_value == 0x02) {
-				dev_info.low_battery_status = "Battery is normal";
-				dev_info.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
-			} 
-			else if (temp_value == 0x03) {
-			dev_info.low_battery_status = "Battery is low";
-			dev_info.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
-		    }
+			} else if (temp_value == 0xFF) {
+				dev_info.low_battery_status = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
+			}
 			//dev_info.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";
 			break;
 		default:
