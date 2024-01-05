@@ -105,7 +105,7 @@ function Decode(fPort, bytes) {
 			} else if (temp_value == 0xFF) {
 				dev_info.low_battery_status = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
 			}
-			dev_info.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";
+			//dev_info.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";  
 			break;
 		default:
 			break;
