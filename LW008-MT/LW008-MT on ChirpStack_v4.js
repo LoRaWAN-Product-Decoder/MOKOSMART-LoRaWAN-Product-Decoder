@@ -47,27 +47,29 @@ function decodeUplink(input) {
     var fPort = input.fPort;
     var deviceInfo = {};
     var data = {};
-    if (fPort == 0 || fPort == 199 || fPort == 10 || fPort == 11) {
+    if (fPort == 0 || fPort == 10 || fPort == 11) {
         deviceInfo.data = data;
         return deviceInfo;
     }
+
+    // if (fPort == 199) {
+    //     var access_points = [];
+    //     for (var i = 1; i < 4; i++) {
+    //         var sub_bytes = bytes.slice((i * 8), (i * 8 + 7));
+    //         var mac_address = bytesToHexString(sub_bytes, 0, 6);
+    //         var rssi = int8(sub_bytes[6]);
+    //         var data_dic = {
+    //             'macAddress': mac_address,
+    //             'signalStrength': rssi
+    //         };
+    //         access_points.push(data_dic);
+    //     }
+    //     data.access_points = access_points;
+    //     deviceInfo.data = data;
+    //     return deviceInfo;
+    // }
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
-
-    // if (fPort == 2) {
-    //     var positionTypeCode = bytesToInt(bytes, 2, 1);
-    //     if (positionTypeCode == 0) {
-    //         var i = 0;
-    //         var len = bytes.length;
-    //         var out = { access_points: [] };
-
-    //         for (; i < len;) {
-    //             out.access_points.push({ macAddress: bytes.slice(i, i + 6), signalStrength: int8(bytes[i + 6]) });
-    //             i += 7;
-    //         }
-    //         return out;
-    //     }
-    // }
 
     var operationModeCode = bytes[0] & 0x03;
     // data.operation_mode_code = operationModeCode;
@@ -168,7 +170,7 @@ function parse_port2_data(data, bytes, port) {
     obj.position_success_type = positionTypeArray[positionTypeCode];
     if (positionTypeCode < 5) {
         var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
-        obj.location_fixed_data_str = JSON.stringify(positionData);;
+        // obj.location_fixed_data_str = JSON.stringify(positionData);;
         obj.location_fixed_data = positionData;
     } else {
         obj.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
