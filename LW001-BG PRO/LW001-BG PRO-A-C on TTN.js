@@ -28,10 +28,10 @@ var eventTypeArray = [
 ];
 function decodeUplink(input) {
     var bytes = input.bytes;
-    var fPort = input.fPort;
+    var port = input.fPort;
 	var dev_info = {};
     var data = {};
-    data.port = fPort;
+    data.port = port;
 	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[port - 1];
 	//common frame head
@@ -86,17 +86,17 @@ function decodeUplink(input) {
 	} else if (port == 2) {
 		var parse_len = 4; // common head is 3 byte
 		var datas = [];
-		positionTypeCode = bytes[parse_len++];
+		var positionTypeCode = bytes[parse_len++];
 		data.position_success_type = positionTypeArray[positionTypeCode];
 
-		year = bytes[parse_len] * 256 + bytes[parse_len + 1];
+		var year = bytes[parse_len] * 256 + bytes[parse_len + 1];
 		parse_len += 2;
-		mon = bytes[parse_len++];
-		days = bytes[parse_len++];
-		hour = bytes[parse_len++];
-		minute = bytes[parse_len++];
-		sec = bytes[parse_len++];
-		timezone = bytes[parse_len++];
+		var mon = bytes[parse_len++];
+		var days = bytes[parse_len++];
+		var hour = bytes[parse_len++];
+		var minute = bytes[parse_len++];
+		var sec = bytes[parse_len++];
+		var timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
 			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
@@ -104,7 +104,7 @@ function decodeUplink(input) {
 		else {
 			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
 		}
-		datalen = bytes[parse_len++];
+		var datalen = bytes[parse_len++];
 
 		if (positionTypeCode == 0 || positionTypeCode == 1) {
 			for (var i = 0; i < (datalen / 7); i++) {
@@ -116,9 +116,9 @@ function decodeUplink(input) {
 			}
 			data.mac_data = datas;
 		} else {
-			lat = bytesToInt(bytes, parse_len, 4);
+			var lat = bytesToInt(bytes, parse_len, 4);
 			parse_len += 4;
-			lon = bytesToInt(bytes, parse_len, 4);
+			var lon = bytesToInt(bytes, parse_len, 4);
 			parse_len += 4;
 
 			if (lat > 0x80000000)
@@ -135,8 +135,8 @@ function decodeUplink(input) {
 		var datas = [];
 		var failedTypeCode = bytesToInt(bytes, parse_len++, 1);
 		data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
-		datalen = bytes[parse_len++];
-		if (reason <= 5) //wifi and ble reason
+		var datalen = bytes[parse_len++];
+		if (failedTypeCode <= 5) //wifi and ble reason
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
@@ -148,9 +148,9 @@ function decodeUplink(input) {
 				}
 				data.mac_data = datas;
 			}
-		} else if (reason <= 11) //gps reason
+		} else if (failedTypeCode <= 11) //gps reason
 		{
-			pdop = bytes[parse_len++];
+			var pdop = bytes[parse_len++];
 			if (pdop != 0xff)
 				data.pdop = pdop / 10
 			else
@@ -167,14 +167,14 @@ function decodeUplink(input) {
 		data.total_idle_time = bytesToInt(bytes, 4, 2);
 	} else if (port == 7) {
 		var parse_len = 4; // common head is 3 byte
-		year = bytesToInt(bytes, parse_len, 1);
+		var year = bytesToInt(bytes, parse_len, 1);
 		parse_len += 2;
-		mon = bytes[parse_len++];
-		days = bytes[parse_len++];
-		hour = bytes[parse_len++];
-		minute = bytes[parse_len++];
-		sec = bytes[parse_len++];
-		timezone = bytes[parse_len++];
+		var mon = bytes[parse_len++];
+		var days = bytes[parse_len++];
+		var hour = bytes[parse_len++];
+		var minute = bytes[parse_len++];
+		var sec = bytes[parse_len++];
+		var timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
 			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
@@ -233,9 +233,9 @@ function decodeUplink(input) {
 		data.battery_voltage = (22 + ((bytes[1] >> 4) & 0x0f)) / 10 + "V";
 
 		var parse_len = 2;
-		lat = bytesToInt(bytes, parse_len, 4);
+		var lat = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
-		lon = bytesToInt(bytes, parse_len, 4);
+		var lon = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
 
 		if (lat > 0x80000000)

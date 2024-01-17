@@ -26,79 +26,83 @@ var eventTypeArray = [
 	, "End of movement"
 	, "Uplink Payload triggered by downlink message"
 ];
-function Decoder(bytes, port) {
+function decodeUplink(input) {
+    var bytes = input.bytes;
+    var port = input.fPort;
 	var dev_info = {};
-    dev_info.port = port;
-	dev_info.payload_type = payloadTypeArray[port - 1];
+    var data = {};
+    data.port = port;
+	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+	data.payload_type = payloadTypeArray[port - 1];
 	//common frame head
 	if (port <= 10) {
 		var operationModeCode = bytes[0] & 0x03;
-		// dev_info.operation_mode_code = operationModeCode;
-		dev_info.operation_mode = operationModeArray[operationModeCode];
+		// data.operation_mode_code = operationModeCode;
+		data.operation_mode = operationModeArray[operationModeCode];
 
 		var batteryLevelCode = bytes[0] & 0x04;
-		// dev_info.battery_level_code = batteryLevelCode;
-		dev_info.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
+		// data.battery_level_code = batteryLevelCode;
+		data.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
 
 		var tamperAlarmCode = bytes[0] & 0x08;
-		// dev_info.tamper_alarm_code = tamperAlarmCode;
-		dev_info.tamper_alarm = tamperAlarmCode == 0 ? "Not triggered" : "Triggered";
+		// data.tamper_alarm_code = tamperAlarmCode;
+		data.tamper_alarm = tamperAlarmCode == 0 ? "Not triggered" : "Triggered";
 
 		var manDownStatusCode = bytes[0] & 0x10;
-		// dev_info.mandown_status_code = manDownStatusCode;
-		dev_info.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
+		// data.mandown_status_code = manDownStatusCode;
+		data.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
 
 		var motionStateSinceLastPaylaodCode = bytes[0] & 0x20;
-		// dev_info.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
-		dev_info.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
+		// data.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
+		data.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
 
 		if (port == 2 || port == 3) {
 			var positioningTypeCode = bytes[0] & 0x40;
-			// dev_info.positioning_type_code = positioningTypeCode;
-			dev_info.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
+			// data.positioning_type_code = positioningTypeCode;
+			data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 		}
 
 		var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
-		dev_info.temperature = temperature;
+		data.temperature = temperature;
 
-		dev_info.ack = bytes[2] & 0x0f;
-		dev_info.battery_voltage = (22 + ((bytes[2] >> 4) & 0x0f)) / 10 + "V";
+		data.ack = bytes[2] & 0x0f;
+		data.battery_voltage = (22 + ((bytes[2] >> 4) & 0x0f)) / 10 + "V";
 	}
 	if (port == 1) {
 		var rebootReasonCode = bytesToInt(bytes, 3, 1);
-		// dev_info.reboot_reason_code = rebootReasonCode;
-		dev_info.reboot_reason = rebootReasonArray[rebootReasonCode];
+		// data.reboot_reason_code = rebootReasonCode;
+		data.reboot_reason = rebootReasonArray[rebootReasonCode];
 
 		var majorVersion = (bytes[4] >> 6) & 0x03;
 		var minorVersion = (bytes[4] >> 4) & 0x03;
 		var patchVersion = bytes[4] & 0x0f;
 		var firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
-		dev_info.firmware_version = firmwareVersion;
+		data.firmware_version = firmwareVersion;
 
 		var activityCount = bytesToInt(bytes, 5, 4);
-		dev_info.activity_count = activityCount;
+		data.activity_count = activityCount;
 	} else if (port == 2) {
 		var parse_len = 3; // common head is 3 byte
 		var datas = [];
-		positionTypeCode = bytes[parse_len++];
-		dev_info.position_success_type = positionTypeArray[positionTypeCode];
+		var positionTypeCode = bytes[parse_len++];
+		data.position_success_type = positionTypeArray[positionTypeCode];
 
-		year = bytes[parse_len] * 256 + bytes[parse_len + 1];
+		var year = bytes[parse_len] * 256 + bytes[parse_len + 1];
 		parse_len += 2;
-		mon = bytes[parse_len++];
-		days = bytes[parse_len++];
-		hour = bytes[parse_len++];
-		minute = bytes[parse_len++];
-		sec = bytes[parse_len++];
-		timezone = bytes[parse_len++];
+		var mon = bytes[parse_len++];
+		var days = bytes[parse_len++];
+		var hour = bytes[parse_len++];
+		var minute = bytes[parse_len++];
+		var sec = bytes[parse_len++];
+		var timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
-			dev_info.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
+			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
 		}
 		else {
-			dev_info.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
+			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
 		}
-		datalen = bytes[parse_len++];
+		var datalen = bytes[parse_len++];
 
 		if (positionTypeCode == 0 || positionTypeCode == 1) {
 			for (var i = 0; i < (datalen / 7); i++) {
@@ -108,11 +112,11 @@ function Decoder(bytes, port) {
 				data.rssi = bytes[parse_len++] - 256 + "dBm";
 				datas.push(data);
 			}
-			dev_info.mac_data = datas;
+			data.mac_data = datas;
 		} else {
-			lat = bytesToInt(bytes, parse_len, 4);
+			var lat = bytesToInt(bytes, parse_len, 4);
 			parse_len += 4;
-			lon = bytesToInt(bytes, parse_len, 4);
+			var lon = bytesToInt(bytes, parse_len, 4);
 			parse_len += 4;
 
 			if (lat > 0x80000000)
@@ -120,17 +124,17 @@ function Decoder(bytes, port) {
 			if (lon > 0x80000000)
 				lon = lon - 0x100000000;
 
-			dev_info.latitude = lat / 10000000;
-			dev_info.longitude = lon / 10000000;
-			dev_info.pdop = bytes[parse_len] / 10;
+			data.latitude = lat / 10000000;
+			data.longitude = lon / 10000000;
+			data.pdop = bytes[parse_len] / 10;
 		}
 	} else if (port == 3) {
 		var parse_len = 3;
 		var datas = [];
 		var failedTypeCode = bytesToInt(bytes, parse_len++, 1);
-		dev_info.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
-		datalen = bytes[parse_len++];
-		if (reason <= 5) //wifi and ble reason
+		data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
+		var datalen = bytes[parse_len++];
+		if (failedTypeCode <= 5) //wifi and ble reason
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
@@ -140,57 +144,57 @@ function Decoder(bytes, port) {
 					data.rssi = bytes[parse_len++] - 256 + "dBm";
 					datas.push(data);
 				}
-				dev_info.mac_data = datas;
+				data.mac_data = datas;
 			}
-		} else if (reason <= 11) //gps reason
+		} else if (failedTypeCode <= 11) //gps reason
 		{
-			pdop = bytes[parse_len++];
+			var pdop = bytes[parse_len++];
 			if (pdop != 0xff)
-				dev_info.pdop = pdop / 10
+				data.pdop = pdop / 10
 			else
-				dev_info.pdop = "unknow";
-			dev_info.gps_satellite_cn = bytes[parse_len] + "-" + bytes[parse_len + 1] + "-" + bytes[parse_len + 2] + "-" + bytes[parse_len + 3];
+				data.pdop = "unknow";
+			data.gps_satellite_cn = bytes[parse_len] + "-" + bytes[parse_len + 1] + "-" + bytes[parse_len + 2] + "-" + bytes[parse_len + 3];
 		}
 	} else if (port == 4) {
 		var shutdownTypeCode = bytesToInt(bytes, 3, 1);
 		// data.shutdown_type_code = shutdownTypeCode;
-		dev_info.shutdown_type = shutdownTypeArray[shutdownTypeCode];
+		data.shutdown_type = shutdownTypeArray[shutdownTypeCode];
 	} else if (port == 5) {
-		dev_info.number_of_shocks = bytesToInt(bytes, 3, 2);
+		data.number_of_shocks = bytesToInt(bytes, 3, 2);
 	} else if (port == 6) {
-		dev_info.total_idle_time = bytesToInt(bytes, 3, 2);
+		data.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (port == 7) {
 		var parse_len = 3; // common head is 3 byte
-		year = bytesToInt(bytes, parse_len, 1);
+		var year = bytesToInt(bytes, parse_len, 1);
 		parse_len += 2;
-		mon = bytes[parse_len++];
-		days = bytes[parse_len++];
-		hour = bytes[parse_len++];
-		minute = bytes[parse_len++];
-		sec = bytes[parse_len++];
-		timezone = bytes[parse_len++];
+		var mon = bytes[parse_len++];
+		var days = bytes[parse_len++];
+		var hour = bytes[parse_len++];
+		var minute = bytes[parse_len++];
+		var sec = bytes[parse_len++];
+		var timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
-			dev_info.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
+			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
 		}
 		else {
-			dev_info.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
+			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
 		}
 	} else if (port == 8) {
 		var eventTypeCode = bytesToInt(bytes, 3, 1);
 		// data.event_type_code = eventTypeCode;
-		dev_info.event_type = eventTypeArray[eventTypeCode];
+		data.event_type = eventTypeArray[eventTypeCode];
 	} else if (port == 9) {
 		var parse_len = 3;
-		dev_info.gps_work_time = bytesToInt(bytes, parse_len, 4);
+		data.gps_work_time = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
-		dev_info.wifi_work_time = bytesToInt(bytes, parse_len, 4);
+		data.wifi_work_time = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
-		dev_info.ble_scan_work_time = bytesToInt(bytes, parse_len, 4);
+		data.ble_scan_work_time = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
-		dev_info.ble_adv_work_time = bytesToInt(bytes, parse_len, 4);
+		data.ble_adv_work_time = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
-		dev_info.lora_work_time = bytesToInt(bytes, parse_len, 4);
+		data.lora_work_time = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
 	} else if (port == 10) {
 		//
@@ -199,37 +203,37 @@ function Decoder(bytes, port) {
 	} else if (port == 12) {
 
 		var operationModeCode = bytes[0] & 0x03;
-		// dev_info.operation_mode_code = operationModeCode;
-		dev_info.operation_mode = operationModeArray[operationModeCode];
+		// data.operation_mode_code = operationModeCode;
+		data.operation_mode = operationModeArray[operationModeCode];
 
 		var batteryLevelCode = bytes[0] & 0x04;
-		// dev_info.battery_level_code = batteryLevelCode;
-		dev_info.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
+		// data.battery_level_code = batteryLevelCode;
+		data.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
 
 		var tamperAlarmCode = bytes[0] & 0x08;
-		// dev_info.tamper_alarm_code = tamperAlarmCode;
-		dev_info.tamper_alarm = tamperAlarmCode == 0 ? "Not triggered" : "Triggered";
+		// data.tamper_alarm_code = tamperAlarmCode;
+		data.tamper_alarm = tamperAlarmCode == 0 ? "Not triggered" : "Triggered";
 
 		var manDownStatusCode = bytes[0] & 0x10;
-		// dev_info.mandown_status_code = manDownStatusCode;
-		dev_info.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
+		// data.mandown_status_code = manDownStatusCode;
+		data.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
 
 		var motionStateSinceLastPaylaodCode = bytes[0] & 0x20;
-		// dev_info.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
-		dev_info.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
+		// data.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
+		data.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
 
 		var positioningTypeCode = bytes[0] & 0x40;
-		// dev_info.positioning_type_code = positioningTypeCode;
-		dev_info.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
+		// data.positioning_type_code = positioningTypeCode;
+		data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 
 
-		dev_info.lorawan_downlink_count = bytes[1] & 0x0f;
-		dev_info.battery_voltage = (22 + ((bytes[1] >> 4) & 0x0f)) / 10 + "V";
+		data.lorawan_downlink_count = bytes[1] & 0x0f;
+		data.battery_voltage = (22 + ((bytes[1] >> 4) & 0x0f)) / 10 + "V";
 
 		var parse_len = 2;
-		lat = bytesToInt(bytes, parse_len, 4);
+		var lat = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
-		lon = bytesToInt(bytes, parse_len, 4);
+		var lon = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
 
 		if (lat > 0x80000000)
@@ -237,10 +241,11 @@ function Decoder(bytes, port) {
 		if (lon > 0x80000000)
 			lon = lon - 0x100000000;
 
-		dev_info.latitude = lat / 10000000;
-		dev_info.longitude = lon / 10000000;
-		dev_info.pdop = bytes[parse_len] / 10;
+		data.latitude = lat / 10000000;
+		data.longitude = lon / 10000000;
+		data.pdop = bytes[parse_len] / 10;
 	}
+    dev_info.data = data;
 	return dev_info;
 }
 
