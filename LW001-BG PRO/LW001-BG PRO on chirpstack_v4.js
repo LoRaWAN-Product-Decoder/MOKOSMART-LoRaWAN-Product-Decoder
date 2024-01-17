@@ -143,7 +143,7 @@ function decodeUplink(input) {
 		var failedTypeCode = bytesToInt(bytes, parse_len++, 1);
 		data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
 		datalen = bytes[parse_len++];
-		if (reason <= 5) //wifi and ble reason
+		if (failedTypeCode <= 5) //wifi and ble reason
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
@@ -155,7 +155,7 @@ function decodeUplink(input) {
 				}
 				data.mac_data = datas;
 			}
-		} else if (reason <= 11) //gps reason
+		} else if (failedTypeCode <= 11) //gps reason
 		{
 			pdop = bytes[parse_len++];
 			if (pdop != 0xff)
