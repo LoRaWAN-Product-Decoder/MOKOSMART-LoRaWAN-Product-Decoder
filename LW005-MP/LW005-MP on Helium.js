@@ -48,7 +48,7 @@ function Decoder(bytes, port, uplink_info) {
             break;
         case 8:
             dev_info.total_energy = bytesToInt(bytes, 5, 4) / 3200 + "KWH";
-            dev_info.energy_of_last_hour = bytesToInt(bytes, 9, 2) + "KWH";
+            dev_info.energy_of_last_hour = bytesToInt(bytes, 9, 2) / 3200 + "KWH";
             break;
         case 9:
             dev_info.over_voltage_state = bytes[5];
