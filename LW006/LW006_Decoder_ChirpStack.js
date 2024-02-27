@@ -315,7 +315,7 @@ function signedHexToInt(hexStr) {
     twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
     twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
     twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
-    twoStr = parseInt(-twoStr_unsign, 2);
+    twoStr = -parseInt(twoStr_unsign, 2);
     return twoStr;
 }
 

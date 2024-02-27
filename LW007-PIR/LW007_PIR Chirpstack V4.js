@@ -13,16 +13,19 @@ var payloadTypeArray = ["Heartbeat", "Information", "Shut Down"];
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
-	if (fPort == 0) {
-        return {};
+	var deviceInfo = {};
+    var data = {};
+    if (fPort == 0) {
+        deviceInfo.data = data;
+        return deviceInfo;
     }
-	var data = {};
-
 	data.port = fPort;
+    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[fPort - 5];
 	if (command_format_check(bytes, fPort) == false) {
 		data.result = "Format wrong";
-		return data;
+		deviceInfo.data = data;
+        return deviceInfo;
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
 	data.time = parse_time(timestamp, bytes[4] * 0.5);
@@ -131,9 +134,20 @@ function decodeUplink(input) {
 		default:
 			break;
 	}
-
-	return data;
+	deviceInfo.data = data;
+    return deviceInfo;
 }
+
+function bytesToHexString(bytes, start, len) {
+    var char = [];
+    for (var i = 0; i < len; i++) {
+        var data = bytes[start + i].toString(16);
+        var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+        char.push(dataHexStr);
+    }
+    return char.join("");
+}
+
 
 function command_format_check(bytes, port) {
 	switch (port) {
@@ -148,7 +162,7 @@ function command_format_check(bytes, port) {
 			break;
 
 		case 7:
-			if (bytes.length === 7)
+			if (bytes.length >= 6)
 				return true;
 			break;
 
@@ -160,57 +174,60 @@ function command_format_check(bytes, port) {
 }
 
 function parse_time(timestamp, timezone) {
-	timestamp = timestamp + timezone * 3600;
-	if (timestamp < 0) {
-		timestamp = 0;
-	}
+    timezone = timezone > 64 ? timezone - 128 : timezone;
+    timestamp = timestamp + timezone * 3600;
+    if (timestamp < 0) {
+        timestamp = 0;
+    }
 
-	var d = new Date(timestamp * 1000);
-	//d.setUTCSeconds(1660202724);
+    var d = new Date(timestamp * 1000);
+    //d.setUTCSeconds(1660202724);
 
-	var time_str = "";
-	time_str += d.getUTCFullYear();
-	time_str += "/";
-	time_str += d.getUTCMonth() + 1;
-	time_str += "/";
-	time_str += d.getUTCDate();
-	time_str += " ";
+    var time_str = "";
+    time_str += d.getUTCFullYear();
+    time_str += "-";
+    time_str += formatNumber(d.getUTCMonth() + 1);
+    time_str += "-";
+    time_str += formatNumber(d.getUTCDate());
+    time_str += " ";
 
-	time_str += d.getUTCHours();
-	time_str += ":";
-	time_str += d.getUTCMinutes();
-	time_str += ":";
-	time_str += d.getUTCSeconds()
+    time_str += formatNumber(d.getUTCHours());
+    time_str += ":";
+    time_str += formatNumber(d.getUTCMinutes());
+    time_str += ":";
+    time_str += formatNumber(d.getUTCSeconds());
 
-	return time_str;
+    return time_str;
+}
+
+function formatNumber(number) {
+    return number < 10 ? "0" + number : number;
 }
 
 function timezone_decode(tz) {
-	var tz_str = "UTC";
+    var tz_str = "UTC";
+    tz = tz > 128 ? tz - 256 : tz;
+    if (tz < 0) {
+        tz_str += "-";
+        tz = -tz;
+    } else {
+        tz_str += "+";
+    }
 
-	if (tz < 0) {
-		tz_str += "-";
-		tz = -tz;
-	}
-	else {
-		tz_str += "+";
-	}
+    if (tz < 20) {
+        tz_str += "0";
+    }
 
-	if (tz < 20) {
-		tz_str += "0";
-	}
+    tz_str += String(parseInt(tz / 2));
+    tz_str += ":"
 
-	tz_str += String(parseInt(tz / 2));
-	tz_str += ":"
+    if (tz % 2) {
+        tz_str += "30"
+    } else {
+        tz_str += "00"
+    }
 
-	if (tz % 2) {
-		tz_str += "30"
-	}
-	else {
-		tz_str += "00"
-	}
-
-	return tz_str;
+    return tz_str;
 }
 
 function bytesToInt(bytes, start, len) {
