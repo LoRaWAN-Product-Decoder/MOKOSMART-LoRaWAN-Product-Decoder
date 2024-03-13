@@ -346,6 +346,30 @@ function getData(hex) {
     return datas;
 }
 
+// Encode downlink function.
+//
+// Input is an object with the following fields:
+// - data = Object representing the payload that must be encoded.
+// - variables = Object containing the configured device variables.
+//
+// Output must be an object with the following fields:
+// - bytes = Byte array containing the downlink payload.
+//   function encodeDownlink(input) {
+//     var data = input.data;
+//     var head = 0xED;
+//     var flag = data.flag;
+//     var cmd = data.cmd;
+//     if (flag == 0) {
+//         return {
+//             bytes: [head, flag, cmd, 0]
+//           };
+//     }
+
+//     return {
+//       bytes: [225, 230, 255, 0]
+//     };
+//   }
+
 // var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
 
 // console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
