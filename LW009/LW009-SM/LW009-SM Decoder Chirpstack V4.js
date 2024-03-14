@@ -63,7 +63,31 @@ function decodeUplink(input) {
       }
       else if (tag == 0x02) {
         data.payloadType = 'Device State Payload';
-        data.messageType = messageTypeArray[bytesToInt(messageBytes, i, len)];
+        var value = bytesToInt(messageBytes, i, len);
+        if (value == 0x00) {
+          data.messageType = messageTypeArray[0];
+        }
+        else if (value == 0x0b) {
+          data.messageType = messageTypeArray[1];
+        }
+        else if (value == 0x0c) {
+          data.messageType = messageTypeArray[2];
+        }
+        else if (value == 0x0d) {
+          data.messageType = messageTypeArray[3];
+        }
+        else if (value == 0x0e) {
+          data.messageType = messageTypeArray[4];
+        }
+        else if (value == 0x10) {
+          data.messageType = messageTypeArray[5];
+        }
+        else if (value == 0x11) {
+          data.messageType = messageTypeArray[6];
+        }
+        else if (value == 0x12) {
+          data.messageType = messageTypeArray[7];
+        }
       }
       // else if (tag == 0x23) {
       //   data.radarData = bytesToInt(messageBytes, i + 1, len);
