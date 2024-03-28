@@ -212,7 +212,7 @@ function getData(hex) {
 }
 
 // console.log(getData("7E1165F027B20009001D010002010023031C003C29020DE92506F01DF040FD6F3201000B011635012600007E"));
-var input = {};
-input.fPort = 1;
-input.bytes = getData("7e1065fa32280004001c01000201002303dc012f2401642506f2098000719d3201010b011535011700007e");
-console.log(decodeUplink(input));
+// var input = {};
+// input.fPort = 1;
+// input.bytes = getData("7e1065fa32280004001c01000201002303dc012f2401642506f2098000719d3201010b011535011700007e");
+// console.log(decodeUplink(input));

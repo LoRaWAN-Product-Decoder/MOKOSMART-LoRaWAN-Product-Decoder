@@ -290,7 +290,7 @@ function getData(hex) {
 	return datas;
 }
 
-var input = {};
-input.fPort = 1;
-input.bytes = getData("631065f9132404");
-console.log(decodeUplink(input));
+// var input = {};
+// input.fPort = 1;
+// input.bytes = getData("631065f9132404");
+// console.log(decodeUplink(input));
