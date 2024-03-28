@@ -5,8 +5,24 @@ var lowPower = ["10%", "20%", "30%", "40%", "50%", "60%"];
 var eventType = ["Motion On Start", "Motion In Trip", "Motion On End", "Man Down Start", "Man Down End", "SOS Start", "SOS End", "Alert Start", "Alert End", "Ephemeris Start", "Ephemeris End", "Downlink Report"];
 var posType = ["Working Mode", "Man Down", "Downlink", "Alert", "SOS"];
 var posDataSign = ["WIFI Pos Success", "BLE Pos Success", "LR1110 GPS Pos Success", "L76 Pos Success", "WIFI Pos Success(No Data)", "LR1110 GPS Pos Success(No Data)"];
-var fixFailedReason = ["WIFI Pos Timeout", "WIFI Pos Tech Timeout", "WIFI Pos Failed By BLE Adv", "BLE Pos Timeout", "BLE Pos Tech Timeout", "BLE Pos Failed By BLE Adv", "GPS Pos Timeout", "GPS Pos Tech Timeout", "LR1110 GPS Pos Timeout", "LR1110 GPS Pos Ephemeris Old"
-    , "L76 GPS Pos Not Enough DPOP Limit", "Interrupted by the end of the Motion", "Interrupted by the start of the Motion", "Interrupted by ManDown Pos", "Interrupted by Downlink Pos", "Interrupted by Alarm"];
+var fixFailedReason = [
+    "WIFI positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
+    , "WIFI positioning strategies timeout (Please increase the WIFI positioning timeout via MKLoRa app)"
+    , "Bluetooth broadcasting in progress causes WIFI location failure (Please reduce the Bluetooth broadcast timeout or avoid Bluetooth positioning when Bluetooth broadcasting in process via MKLoRa app)"
+    , "Bluetooth positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
+    , "Bluetooth positioning strategies timeout (Please increase the Bluetooth positioning timeout via MKLoRa app)"
+    , "Bluetooth broadcasting in progress (Please reduce the Bluetooth broadcast timeout or avoid Bluetooth positioning when Bluetooth broadcasting in process via MKLoRa app)"
+    , "GPS positioning timeout (Pls increase GPS positioning timeout via MKLoRa app)"
+    , "GPS positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
+    , "GPS aiding positioning timeout (Please adjust GPS autonomous latitude and autonomous longitude)"
+    , "The ephemeris of GPS aiding positioning is too old, need to be updated"
+    , "PDOP limit (Please increase the POP value via MKLoRa app)"
+    , "Interrupted positioning at start of movement (the movement ends too quickly, resulting in not enough time to complete the positioning)"
+    , "Interrupted positioning at end of movement (the movement restarted too quickly, resulting in not enough time to complete the positioning)"
+    , "Interrupted by Man Down Detection State"
+    , "Interrupted by Downlink for Position"
+    , "Interrupted by Alarm Function"
+];
 
 // Decode uplink function.
 //
@@ -22,7 +38,7 @@ function decodeUplink(input) {
     var fPort = input.fPort;
     var dev_info = {};
     var data = {};
-    data.fPort = fPort;
+    data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
     if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
@@ -32,6 +48,7 @@ function decodeUplink(input) {
     }
     if (fPort == 1) {
         // Device info
+        data.payload_type = 'Device info';
         var temperature = bytes[1];
         if (temperature > 0x80)
             data.temperature = "-" + (0x100 - temperature) + "°C";
@@ -55,20 +72,24 @@ function decodeUplink(input) {
             data.temperature = "-" + (0x100 - temperature) + "°C";
         else
             data.temperature = temperature + "°C";
-        data.current_time = parse_time(bytesToInt(bytes, 2, 4), bytes[6] * 0.5);
-        data.timestamp = get_timestamp(bytesToInt(bytes, 2, 4));
+        data.time = parse_time(bytesToInt(bytes, 2, 4), bytes[6] * 0.5);
+        data.timestamp = bytesToInt(bytes, 2, 4);
         data.timezone = timezone_decode(bytes[6]);
         data.device_mode = deviceMode[bytes[7]];
-        data.device_status = deviceStatus[bytes[8]];
-        if (fPort == 2)
+        data.device_status_code = bytes[8] & 0x0F;
+        data.device_status = deviceStatus[data.device_status_code];
+        if (fPort == 2) {
+            data.payload_type = 'Turn off info';
             data.turn_off_mode = turnOffMode[bytes[9]];
-        if (fPort == 4)
+        } else if (fPort == 4) {
             data.low_power_prompt = lowPower[bytes[9]];
+        }
         // data.batt_v = bytesToInt(bytes, 1, 2) + "mV";
     } else if (fPort == 5) {
         // Event info
-        data.current_time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
-        data.timestamp = get_timestamp(bytesToInt(bytes, 1, 4));
+        data.payload_type = 'Event info';
+        data.time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
+        data.timestamp = bytesToInt(bytes, 1, 4);
         data.timezone = timezone_decode(bytes[5]);
         data.event_type = eventType[bytes[6]];
     } else if (fPort == 6) {
@@ -88,22 +109,30 @@ function decodeUplink(input) {
         if (length == 2) {
             data.packet_sum = bytesToInt(bytes, 1, 2);
         } else {
-            data.current_time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
-            data.timestamp = get_timestamp(bytesToInt(bytes, 1, 4));
+            data.time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
+            data.timestamp = bytesToInt(bytes, 1, 4);
             data.timezone = timezone_decode(bytes[5]);
             data.data_port = bytes[6] & 0xFF;
             var data_len = length - 6;
             data.rawData = bytesToHexString(bytes, 7, data_len).toUpperCase();
         }
     } else if (fPort == 8) {
+        var date = new Date();
+        var timestamp = Math.trunc(date.getTime() / 1000);
+        var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+        data.timestamp = timestamp;
+        data.time = parse_time(timestamp, offsetHours);
+        data.timezone = timezone_decode(offsetHours * 2);
         // Pos Success
+        data.payload_type = 'Pos Success';
         data.age = bytesToInt(bytes, 1, 2) + "s";
         data.pos_type = posType[bytes[3] >> 4];
         var pos_data_sign = bytes[3] & 0x0F;
         data.pos_data_sign = posDataSign[pos_data_sign];
         data.pos_data_sign_code = pos_data_sign;
         data.device_mode = deviceMode[bytes[4] >> 4];
-        data.device_status = deviceStatus[bytes[4] & 0x0F];
+        data.device_status_code = bytes[4] & 0x0F;
+        data.device_status = deviceStatus[data.device_status_code];
         var pos_data_length = bytes[5] & 0xFF;
         data.pos_data_length = pos_data_length;
         if ((pos_data_sign == 0 || pos_data_sign == 1) && pos_data_length > 0) {
@@ -131,7 +160,7 @@ function decodeUplink(input) {
                 index += 4;
                 var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
                 index += 4;
-                var pdop = (bytes[index++] & 0xFF) * 0.1;
+                var pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
                 item.latitude = latitude;
                 item.longitude = longitude;
                 item.pdop = pdop;
@@ -141,16 +170,17 @@ function decodeUplink(input) {
         }
     } else if (fPort == 9) {
         // Pos Failed
+        data.payload_type = 'Pos Failed';
         data.pos_type = posType[bytes[1]];
         data.device_mode = deviceMode[bytes[2]];
         data.device_status = deviceStatus[bytes[3]];
         var pos_data_sign = bytes[4] & 0x0F;
         data.pos_data_sign = pos_data_sign;
         data.failed_reason = fixFailedReason[pos_data_sign];
-        if (pos_data_sign < 3) {
-            var pos_data_length = bytes[5] & 0xFF;
-            data.pos_data_length = pos_data_length;
-            // WIFI Failed
+        var pos_data_length = bytes[5] & 0xFF;
+        data.pos_data_length = pos_data_length;
+        if (pos_data_length % 7 == 0) {
+            // WIFI/BLE Failed
             var datas = [];
             var count = pos_data_length / 7;
             var index = 6;
@@ -162,36 +192,21 @@ function decodeUplink(input) {
                 datas.push(item);
             }
             data.pos_data = datas;
-        } else if (pos_data_sign < 6) {
-            var pos_data_length = bytes[5] & 0xFF;
-            data.pos_data_length = pos_data_length;
-            // WIFI Failed
-            var datas = [];
-            var count = pos_data_length / 7;
-            var index = 6;
-            for (var i = 0; i < count; i++) {
-                var item = {};
-                item.rssi = bytes[index++];
-                item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
-                index += 6;
-                datas.push(item);
-            }
-            data.pos_data = datas;
-        } else if (pos_data_sign < 8) {
+        } else if (pos_data_length == 5) {
             // L76 GPS Failed
-            var pdop = bytes[5] & 0xFF * 0.1;
+            var pdop = Number(bytes[6] & 0xFF * 0.1).toFixed(1);
             data.pdop = pdop;
             if (pdop == 0xFF) {
                 data.pdop == "unknow";
             }
             var datas = [];
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < 4; i++) {
                 var item = bytesToHexString(bytes, index++, 1).toLowerCase();
                 datas.push(item);
             }
             data.pos_data = datas;
-        } else if (pos_data_sign < 12) {
+        } else if (pos_data_length == 4) {
             // LR1110 GPS Failed
             var datas = [];
             var index = 6;
@@ -273,9 +288,9 @@ function parse_time(timestamp, timezone) {
 
     var time_str = "";
     time_str += d.getUTCFullYear();
-    time_str += "/";
+    time_str += "-";
     time_str += formatNumber(d.getUTCMonth() + 1);
-    time_str += "/";
+    time_str += "-";
     time_str += formatNumber(d.getUTCDate());
     time_str += " ";
 
@@ -286,13 +301,6 @@ function parse_time(timestamp, timezone) {
     time_str += formatNumber(d.getUTCSeconds());
 
     return time_str;
-}
-
-function get_timestamp(timestamp) {
-    if (timestamp < 0) {
-        timestamp = 0;
-    }
-    return timestamp * 1000;
 }
 
 function formatNumber(number) {
@@ -337,7 +345,7 @@ function signedHexToInt(hexStr) {
 function getData(hex) {
     var length = hex.length;
     var datas = [];
-    for (var i = 0; i < length; i += 3) {
+    for (var i = 0; i < length; i += 2) {
         var start = i;
         var end = i + 2;
         var data = parseInt("0x" + hex.substring(start, end));
@@ -359,7 +367,7 @@ function getData(hex) {
 //     var head = 0xED;
 //     var flag = data.flag;
 //     var cmd = data.cmd;
-//     if (flag == 0) {
+//     if (flag == 0) {ce
 //         return {
 //             bytes: [head, flag, cmd, 0]
 //           };
@@ -372,5 +380,8 @@ function getData(hex) {
 
 // var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
 
-// console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
-// console.log(Decode(8, getData("E4 00 05 04 30 00")));
+// console.log(getData("5c000943240912278934443a9fcb0f"));
+// var input = {};
+// input.fPort = 8;
+// input.bytes = getData("5c000943240912278934443a9fcb0f");
+// console.log(decodeUplink(input));

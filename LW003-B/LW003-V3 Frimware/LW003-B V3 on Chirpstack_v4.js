@@ -57,7 +57,7 @@ function decodeUplink(input) {
                 data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
             else
                 data.temperature = temperature / 100 + "°C";
-            data.humility = bytesToInt(bytes, 7, 2) / 100 + "%";
+            data.humidity = bytesToInt(bytes, 7, 2) / 100 + "%";
             data.timezone = timezone_decode(bytes[9]);
             if (fPort == 3) {
                 data.message_type = messageTypeArray[bytes[10]];
@@ -99,13 +99,14 @@ function decodeUplink(input) {
     } else if (fPort == 5) {
         // Scan data info
         data.packet_sequence = bytes[0];
-        data.payload_reporting_timestamp = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
-        data.payload_reporting_timezone = timezone_decode(bytes[5]);
+        data.time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
+        data.timestamp = bytesToInt(bytes, 1, 4);
+        data.timezone = timezone_decode(bytes[5]);
         data.beacon_number = bytes[6];
         data.message_type = "Scan data";
 
-        var date = new Date();
-        data.time = date.toJSON();
+        // var date = new Date();
+        // data.time = date.toJSON();
         
         var parse_len = 7;
         var datas = [];
@@ -598,7 +599,7 @@ function decodeUplink(input) {
                     beacon_len += 2;
                 }
                 if (flag & 0x0100) {
-                    item.humility = bytesToInt(bytes, parse_len, 2) / 10;
+                    item.humidity = bytesToInt(bytes, parse_len, 2) / 10;
                     parse_len += 2;
                     beacon_len += 2;
                 }

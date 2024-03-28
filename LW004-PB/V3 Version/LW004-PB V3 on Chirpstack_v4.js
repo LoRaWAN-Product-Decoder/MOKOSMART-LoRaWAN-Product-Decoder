@@ -78,8 +78,11 @@ function decodeUplink(input) {
 	if (fPort == 1) {
 		data.timezone = timezone_decode(bytes[1]);					//timezone
 		data.timestamp = bytesToInt(bytes, 2, 4);		//timestamp
+		data.time = parse_time(data.timestamp, bytes[1] * 0.5);
 		var eventTypeCode = bytes[6] & 0xFF;
+		data.event_type_code = eventTypeCode;
 		data.event_type = eventTypeArray[eventTypeCode];		//event
+		data.payload_type = "Event info"
 	} else if (fPort == 2) {
 		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -87,12 +90,19 @@ function decodeUplink(input) {
 		data.hardware_version = "V" + bytes[5] + "." + bytes[6];
 		data.timezone = timezone_decode(bytes[7]);		//timezone
 		// data.alarm_error = bytes[8];	//error state
+		var date = new Date();
+		var timestamp = Math.trunc(date.getTime() / 1000);
+		data.timestamp = timestamp;
+		data.payload_type = "Device info"
+		data.time = parse_time(data.timestamp, bytes[1] * 0.5);
 	} else if (fPort == 3) {
 		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.timezone = timezone_decode(bytes[2]);		//timezone
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		data.shutdown_type = shutdownTypeArray[bytes[7]];
+		data.payload_type = "Turn off info"
+		data.time = parse_time(data.timestamp, bytes[1] * 0.5);
 	} else if (fPort == 4) {
 		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -105,6 +115,13 @@ function decodeUplink(input) {
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		data.low_power_prompt_percent = (bytes[7] & 0xFF) + "%";		//low power level
 	} else if (fPort == 6 || fPort == 10) {
+		var date = new Date();
+		var timestamp = Math.trunc(date.getTime() / 1000);
+		var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+		data.timestamp = timestamp;
+		data.time = parse_time(timestamp, offsetHours);
+		data.timezone = timezone_decode(offsetHours * 2);
+		
 		data.device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] >> 2 & 0x07];	//device status
 
@@ -165,6 +182,25 @@ function decodeUplink(input) {
 	dev_info.data = data;
 	return dev_info;
 }
+// ==========================
+function bytesToHexString(bytes, start, len) {
+	var char = [];
+	for (var i = 0; i < len; i++) {
+		var data = bytes[start + i].toString(16);
+		var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+		char.push(dataHexStr);
+	}
+	return char.join("");
+}
+
+
+function bytesToString(bytes, start, len) {
+	var char = [];
+	for (var i = 0; i < len; i++) {
+		char.push(String.fromCharCode(bytes[start + i]));
+	}
+	return char.join("");
+}
 
 function substringBytes(bytes, start, len) {
 	var char = [];
@@ -208,3 +244,53 @@ function timezone_decode(tz) {
 
 	return tz_str;
 }
+
+
+
+function parse_time(timestamp, timezone) {
+	timezone = timezone > 64 ? timezone - 128 : timezone;
+	timestamp = timestamp + timezone * 3600;
+	if (timestamp < 0) {
+		timestamp = 0;
+	}
+
+	var d = new Date(timestamp * 1000);
+	//d.setUTCSeconds(1660202724);
+
+	var time_str = "";
+	time_str += d.getUTCFullYear();
+	time_str += "-";
+	time_str += formatNumber(d.getUTCMonth() + 1);
+	time_str += "-";
+	time_str += formatNumber(d.getUTCDate());
+	time_str += " ";
+
+	time_str += formatNumber(d.getUTCHours());
+	time_str += ":";
+	time_str += formatNumber(d.getUTCMinutes());
+	time_str += ":";
+	time_str += formatNumber(d.getUTCSeconds());
+
+	return time_str;
+}
+
+function formatNumber(number) {
+	return number < 10 ? "0" + number : number;
+}
+
+function getData(hex) {
+	var length = hex.length;
+	var datas = [];
+	for (var i = 0; i < length; i += 2) {
+		var start = i;
+		var end = i + 2;
+		var data = parseInt("0x" + hex.substring(start, end));
+		datas.push(data);
+	}
+	return datas;
+}
+
+var input = {};
+input.fPort = 1;
+input.bytes = getData("631065f9132404");
+console.log(decodeUplink(input));

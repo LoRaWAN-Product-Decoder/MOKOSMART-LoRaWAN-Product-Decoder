@@ -40,9 +40,20 @@ function decodeUplink(input) {
     var fPort = input.fPort;
 	var dev_info = {};
     var data = {};
+	if (fPort == 0 || fPort == 100) {
+		dev_info.data = data;
+		return dev_info;
+	}
     data.port = fPort;
 	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[fPort - 1];
+
+	var date = new Date();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, offsetHours);
+    data.timezone = timezone_decode(offsetHours * 2);
 	//common frame head
 	if (fPort <= 10) {
 		var operationModeCode = bytes[0] & 0x03;
@@ -54,7 +65,7 @@ function decodeUplink(input) {
 		data.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
 
 		var tamperAlarmCode = bytes[0] & 0x08;
-		// data.tamper_alarm_code = tamperAlarmCode;
+		data.tamper_alarm_code = tamperAlarmCode;
 		data.tamper_alarm = tamperAlarmCode == 0 ? "Not triggered" : "Triggered";
 
 		var manDownStatusCode = bytes[0] & 0x10;
@@ -106,20 +117,20 @@ function decodeUplink(input) {
 		timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
-			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
 		}
 		else {
-			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
 		}
 		datalen = bytes[parse_len++];
 
 		if (positionTypeCode == 0 || positionTypeCode == 1) {
 			for (var i = 0; i < (datalen / 7); i++) {
-				var data = {};
-				data.mac = substringBytes(bytes, parse_len, 6);
+				var item = {};
+				item.mac = substringBytes(bytes, parse_len, 6);
 				parse_len += 6;
-				data.rssi = bytes[parse_len++] - 256 + "dBm";
-				datas.push(data);
+				item.rssi = bytes[parse_len++] - 256 + "dBm";
+				datas.push(item);
 			}
 			data.mac_data = datas;
 		} else {
@@ -184,10 +195,10 @@ function decodeUplink(input) {
 		timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
-			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
 		}
 		else {
-			data.timestamp = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
 		}
 	} else if (fPort == 8) {
 		var eventTypeCode = bytesToInt(bytes, 3, 1);
@@ -319,3 +330,79 @@ function signedHexToInt(hexStr) {
 	twoStr = parseInt(-twoStr_unsign, 2);
 	return twoStr;
 }
+
+
+
+function timezone_decode(tz) {
+    var tz_str = "UTC";
+    tz = tz > 128 ? tz - 256 : tz;
+    if (tz < 0) {
+        tz_str += "-";
+        tz = -tz;
+    } else {
+        tz_str += "+";
+    }
+
+    if (tz < 20) {
+        tz_str += "0";
+    }
+
+    tz_str += String(parseInt(tz / 2));
+    tz_str += ":"
+
+    if (tz % 2) {
+        tz_str += "30"
+    } else {
+        tz_str += "00"
+    }
+
+    return tz_str;
+}
+
+function parse_time(timestamp, timezone) {
+    timezone = timezone > 64 ? timezone - 128 : timezone;
+    timestamp = timestamp + timezone * 3600;
+    if (timestamp < 0) {
+        timestamp = 0;
+    }
+
+    var d = new Date(timestamp * 1000);
+    //d.setUTCSeconds(1660202724);
+
+    var time_str = "";
+    time_str += d.getUTCFullYear();
+    time_str += "-";
+    time_str += formatNumber(d.getUTCMonth() + 1);
+    time_str += "-";
+    time_str += formatNumber(d.getUTCDate());
+    time_str += " ";
+
+    time_str += formatNumber(d.getUTCHours());
+    time_str += ":";
+    time_str += formatNumber(d.getUTCMinutes());
+    time_str += ":";
+    time_str += formatNumber(d.getUTCSeconds());
+
+    return time_str;
+}
+
+function formatNumber(number) {
+	return number < 10 ? "0" + number : number;
+}
+
+function getData(hex) {
+	var length = hex.length;
+	var datas = [];
+	for (var i = 0; i < length; i += 2) {
+		var start = i;
+		var end = i + 2;
+		var data = parseInt("0x" + hex.substring(start, end));
+		datas.push(data);
+	}
+	return datas;
+}
+
+// var input = {};
+// input.fPort = 2;
+// input.bytes = getData("0118D00107E8031A1033010807D90B0786212FB3");
+// console.log(decodeUplink(input));

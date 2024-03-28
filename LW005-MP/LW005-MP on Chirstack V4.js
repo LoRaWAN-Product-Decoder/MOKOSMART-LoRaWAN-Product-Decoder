@@ -62,8 +62,8 @@ function decodeUplink(input) {
             data.instantaneous_power_factor = (bytes[9] & 0xFF) + "%";
             break;
         case 8:
-            data.total_energy = bytesToInt(bytes, 5, 4) / 3200 + "KWH";
-            data.energy_of_last_hour = bytesToInt(bytes, 9, 2) / 3200 + "KWH";
+            data.total_energy = Number(bytesToInt(bytes, 5, 4) / 3200).toFixed(2) + "KWH";
+            data.energy_of_last_hour = Number(bytesToInt(bytes, 9, 2) / 3200).toFixed(2) + "KWH";
             break;
         case 9:
             data.over_voltage_state = bytes[5];

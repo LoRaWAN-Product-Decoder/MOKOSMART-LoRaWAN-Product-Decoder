@@ -32,8 +32,11 @@ function decodeUplink(input) {
     var head = bytes[index++].toString(16);
     var protocolVersion = bytes[index++];
     var timestamp = bytesToInt(bytes, index, 4);
+    var date = new Date();
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.timezone = timezone_decode(offsetHours * 2);
     data.timestamp = timestamp;
-    data.time = parse_time(timestamp);
+    data.time = parse_time(timestamp, offsetHours);
     index += 4;
     var frameCount = bytesToInt(bytes, index, 2);
     index += 2
@@ -104,7 +107,8 @@ function decodeUplink(input) {
         data.magneticSensorAxisZ = bytesToInt(messageBytes, i + 4, 2);
       }
       else if (tag == 0x32) {
-        data.parkingStatus = bytesToInt(messageBytes, i, len) == 1 ? 'Parking space with car' : 'No car';
+        data.parkingStatusCode = bytesToInt(messageBytes, i, len);
+        data.parkingStatus = data.parkingStatusCode == 1 ? 'Parking space with car' : 'No car';
       }
       else if (tag == 0x0B) {
         data.temperature = bytesToInt(messageBytes, i, len) + "°C";
@@ -139,7 +143,39 @@ function bytesToHexString(bytes, start, len) {
   return char.join("");
 }
 
-function parse_time(timestamp) {
+function timezone_decode(tz) {
+    var tz_str = "UTC";
+    tz = tz > 128 ? tz - 256 : tz;
+    if (tz < 0) {
+        tz_str += "-";
+        tz = -tz;
+    } else {
+        tz_str += "+";
+    }
+
+    if (tz < 20) {
+        tz_str += "0";
+    }
+
+    tz_str += String(parseInt(tz / 2));
+    tz_str += ":"
+
+    if (tz % 2) {
+        tz_str += "30"
+    } else {
+        tz_str += "00"
+    }
+
+    return tz_str;
+}
+
+function parse_time(timestamp, timezone) {
+  timezone = timezone > 64 ? timezone - 128 : timezone;
+  timestamp = timestamp + timezone * 3600;
+  if (timestamp < 0) {
+    timestamp = 0;
+  }
+
   var d = new Date(timestamp * 1000);
 
   var time_str = "";
@@ -178,5 +214,5 @@ function getData(hex) {
 // console.log(getData("7E1165F027B20009001D010002010023031C003C29020DE92506F01DF040FD6F3201000B011635012600007E"));
 var input = {};
 input.fPort = 1;
-input.bytes = getData("7E1165F027B20009001D010002010023031C003C29020DE92506F01DF040FD6F3201000B011635012600007E");
+input.bytes = getData("7e1065fa32280004001c01000201002303dc012f2401642506f2098000719d3201010b011535011700007e");
 console.log(decodeUplink(input));

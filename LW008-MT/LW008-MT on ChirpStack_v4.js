@@ -91,12 +91,12 @@ function decodeUplink(input) {
     // data.positioning_type_code = positioningTypeCode;
     data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 
-    var timestamp = new Date().getTime();
-    timestamp = timestamp;
-    data.timestamp = timestamp;
-
     var date = new Date();
-    data.time = date.toJSON();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, offsetHours);
+    data.timezone = timezone_decode(offsetHours * 2);
 
     if (fPort == 12 && bytes.length == 11) {
         parse_port12_data(data, bytes, fPort);
@@ -113,6 +113,7 @@ function decodeUplink(input) {
     if (fPort == 1 && bytes.length == 9) {
         parse_port1_data(data, bytes.slice(3), fPort);
     } else if (fPort == 2 && bytes.length >= 7) {
+        data.payload_type = "Pos success info"
         parse_port2_data(data, bytes.slice(3), fPort);
     } else if (fPort == 4 && bytes.length >= 5) {
         parse_port4_data(data, bytes.slice(3), fPort);
@@ -121,6 +122,7 @@ function decodeUplink(input) {
         var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         // obj.shutdown_type_code = shutdownTypeCode;
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
+        data.payload_type = "Turn off info"
         data.obj = obj;
     } else if (fPort == 6 && bytes.length == 5) {
         var obj = {};
@@ -132,6 +134,7 @@ function decodeUplink(input) {
         data.obj = obj;
     } else if (fPort == 8 && bytes.length == 4) {
         var obj = {};
+        data.payload_type = "Event info"
         var eventTypeCode = bytesToInt(bytes, 3, 1);
         // obj.event_type_code = eventTypeCode;
         obj.event_type = eventTypeArray[eventTypeCode];
@@ -162,20 +165,18 @@ function parse_port1_data(data, bytes, port) {
 }
 
 function parse_port2_data(data, bytes, port) {
-    var obj = {};
     var age = bytesToInt(bytes, 0, 2);
-    obj.age = age + "s";
+    data.age = age + "s";
     var positionTypeCode = bytesToInt(bytes, 2, 1);
-    obj.position_type_code = positionTypeCode;
-    obj.position_success_type = positionTypeArray[positionTypeCode];
+    data.position_type_code = positionTypeCode;
+    data.position_success_type = positionTypeArray[positionTypeCode];
     if (positionTypeCode < 5) {
         var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
-        // obj.location_fixed_data_str = JSON.stringify(positionData);;
-        obj.location_fixed_data = positionData;
+        // obj.location_fixed_data_str = JSON.stringify(positionData);
+        data.location_fixed_data = positionData;
     } else {
-        obj.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
+        data.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
     }
-    data.obj = obj;
 }
 
 function parse_port4_data(data, bytes, port) {
@@ -347,9 +348,9 @@ function parse_time(timestamp, timezone) {
 
     var time_str = "";
     time_str += d.getUTCFullYear();
-    time_str += "/";
+    time_str += "-";
     time_str += formatNumber(d.getUTCMonth() + 1);
-    time_str += "/";
+    time_str += "-";
     time_str += formatNumber(d.getUTCDate());
     time_str += " ";
 

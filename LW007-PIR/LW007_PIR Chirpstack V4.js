@@ -11,21 +11,21 @@ var payloadTypeArray = ["Heartbeat", "Information", "Shut Down"];
 // - data = Object representing the decoded payload.
 
 function decodeUplink(input) {
-    var bytes = input.bytes;
-    var fPort = input.fPort;
+	var bytes = input.bytes;
+	var fPort = input.fPort;
 	var deviceInfo = {};
-    var data = {};
-    if (fPort == 0) {
-        deviceInfo.data = data;
-        return deviceInfo;
-    }
+	var data = {};
+	if (fPort == 0) {
+		deviceInfo.data = data;
+		return deviceInfo;
+	}
 	data.port = fPort;
-    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[fPort - 5];
 	if (command_format_check(bytes, fPort) == false) {
 		data.result = "Format wrong";
 		deviceInfo.data = data;
-        return deviceInfo;
+		return deviceInfo;
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
 	data.time = parse_time(timestamp, bytes[4] * 0.5);
@@ -46,6 +46,7 @@ function decodeUplink(input) {
 			} else {
 				data.pir_state = "Occupancy detection function is disable";
 			}
+			data.pir_state_code = temp_value;
 
 			temp_value = (bytes[5] >> 4) & 0x03;
 			if (temp_value == 0x00) {
@@ -55,6 +56,7 @@ function decodeUplink(input) {
 			} else {
 				data.door_state = "Door/window status detection function is disable";
 			}
+			data.door_state_code = temp_value;
 
 			temp_value = (bytes[5] >> 2) & 0x03;
 			if (temp_value == 0x00) {
@@ -64,6 +66,7 @@ function decodeUplink(input) {
 			} else {
 				data.temperature_state = "Temperature threshold alarm function is disable";
 			}
+			data.temperature_state_code = temp_value;
 
 			temp_value = bytes[5] & 0x03;
 			if (temp_value == 0x00) {
@@ -73,6 +76,7 @@ function decodeUplink(input) {
 			} else {
 				data.humidity_state = "Humidity threshold alarm function is disable";
 			}
+			data.humidity_state_code = temp_value;
 
 			temp_value = (bytesToInt(bytes, 6, 3) >> 14) & 0x03ff;
 			if (temp_value == 0x03ff) {
@@ -98,6 +102,7 @@ function decodeUplink(input) {
 			} else {
 				data.temperature_change_state = "Temperature change alarm function is disable";
 			}
+			data.temperature_change_state_code = temp_value;
 
 			temp_value = bytesToInt(bytes, 6, 3) & 0x03;
 			if (temp_value == 0x00) {
@@ -107,6 +112,8 @@ function decodeUplink(input) {
 			} else {
 				data.humidity_change_state = "Humidity change alarm function is disable";
 			}
+			data.humidity_change_state_code = temp_value;
+
 			data.low_battery_status = (bytesToInt(bytes, 9, 2) >> 15) == 1 ? "Battery level is low" : "Battery level is normal";
 			temp_value = bytesToInt(bytes, 9, 2) & 0x7FFF;
 			data.door_trigger_times = temp_value == 0x7FFF ? "Door/window status detection function is disable" : temp_value + "times";
@@ -116,36 +123,36 @@ function decodeUplink(input) {
 			if (temp_value == 0x00) {
 				data.low_battery_status = "Battery level is normal";
 				data.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
-			} 
+			}
 			else if (temp_value == 0x01) {
 				data.low_battery_status = "Battery is low";
 				data.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
-			} 
+			}
 			else if (temp_value == 0x02) {
 				data.low_battery_status = "Battery is normal";
 				data.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
-			} 
+			}
 			else if (temp_value == 0x03) {
 				data.low_battery_status = "Battery is low";
 				data.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
-			} 
+			}
 			//data.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";  
 			break;
 		default:
 			break;
 	}
 	deviceInfo.data = data;
-    return deviceInfo;
+	return deviceInfo;
 }
 
 function bytesToHexString(bytes, start, len) {
-    var char = [];
-    for (var i = 0; i < len; i++) {
-        var data = bytes[start + i].toString(16);
-        var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
-        char.push(dataHexStr);
-    }
-    return char.join("");
+	var char = [];
+	for (var i = 0; i < len; i++) {
+		var data = bytes[start + i].toString(16);
+		var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+		char.push(dataHexStr);
+	}
+	return char.join("");
 }
 
 
@@ -174,60 +181,60 @@ function command_format_check(bytes, port) {
 }
 
 function parse_time(timestamp, timezone) {
-    timezone = timezone > 64 ? timezone - 128 : timezone;
-    timestamp = timestamp + timezone * 3600;
-    if (timestamp < 0) {
-        timestamp = 0;
-    }
+	timezone = timezone > 64 ? timezone - 128 : timezone;
+	timestamp = timestamp + timezone * 3600;
+	if (timestamp < 0) {
+		timestamp = 0;
+	}
 
-    var d = new Date(timestamp * 1000);
-    //d.setUTCSeconds(1660202724);
+	var d = new Date(timestamp * 1000);
+	//d.setUTCSeconds(1660202724);
 
-    var time_str = "";
-    time_str += d.getUTCFullYear();
-    time_str += "-";
-    time_str += formatNumber(d.getUTCMonth() + 1);
-    time_str += "-";
-    time_str += formatNumber(d.getUTCDate());
-    time_str += " ";
+	var time_str = "";
+	time_str += d.getUTCFullYear();
+	time_str += "-";
+	time_str += formatNumber(d.getUTCMonth() + 1);
+	time_str += "-";
+	time_str += formatNumber(d.getUTCDate());
+	time_str += " ";
 
-    time_str += formatNumber(d.getUTCHours());
-    time_str += ":";
-    time_str += formatNumber(d.getUTCMinutes());
-    time_str += ":";
-    time_str += formatNumber(d.getUTCSeconds());
+	time_str += formatNumber(d.getUTCHours());
+	time_str += ":";
+	time_str += formatNumber(d.getUTCMinutes());
+	time_str += ":";
+	time_str += formatNumber(d.getUTCSeconds());
 
-    return time_str;
+	return time_str;
 }
 
 function formatNumber(number) {
-    return number < 10 ? "0" + number : number;
+	return number < 10 ? "0" + number : number;
 }
 
 function timezone_decode(tz) {
-    var tz_str = "UTC";
-    tz = tz > 128 ? tz - 256 : tz;
-    if (tz < 0) {
-        tz_str += "-";
-        tz = -tz;
-    } else {
-        tz_str += "+";
-    }
+	var tz_str = "UTC";
+	tz = tz > 128 ? tz - 256 : tz;
+	if (tz < 0) {
+		tz_str += "-";
+		tz = -tz;
+	} else {
+		tz_str += "+";
+	}
 
-    if (tz < 20) {
-        tz_str += "0";
-    }
+	if (tz < 20) {
+		tz_str += "0";
+	}
 
-    tz_str += String(parseInt(tz / 2));
-    tz_str += ":"
+	tz_str += String(parseInt(tz / 2));
+	tz_str += ":"
 
-    if (tz % 2) {
-        tz_str += "30"
-    } else {
-        tz_str += "00"
-    }
+	if (tz % 2) {
+		tz_str += "30"
+	} else {
+		tz_str += "00"
+	}
 
-    return tz_str;
+	return tz_str;
 }
 
 function bytesToInt(bytes, start, len) {
