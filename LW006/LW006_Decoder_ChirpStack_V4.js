@@ -124,11 +124,11 @@ function decodeUplink(input) {
         data.time = parse_time(timestamp, offsetHours);
         data.timezone = timezone_decode(offsetHours * 2);
         // Pos Success
-        data.payload_type = 'Pos Success';
+        // data.payload_type = 'Pos Success';
         data.age = bytesToInt(bytes, 1, 2) + "s";
         data.pos_type = posType[bytes[3] >> 4];
         var pos_data_sign = bytes[3] & 0x0F;
-        data.pos_data_sign = posDataSign[pos_data_sign];
+        data.payload_type = posDataSign[pos_data_sign];
         data.pos_data_sign_code = pos_data_sign;
         data.device_mode = deviceMode[bytes[4] >> 4];
         data.device_status_code = bytes[4] & 0x0F;
@@ -142,31 +142,35 @@ function decodeUplink(input) {
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var item = {};
-                item.rssi = bytes[index++];
+                item.rssi = bytes[index++] - 256 + "dBm";
                 item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
                 datas.push(item);
+                // datas.push(JSON.stringify(item));
             }
-            data.pos_data = datas;
+            data.mac_data = datas;
         }
         if (pos_data_sign == 3 && pos_data_length > 0) {
             // L76 GPS
             var datas = [];
             var count = pos_data_length / 9;
             var index = 6;
-            for (var i = 0; i < count; i++) {
-                var item = {};
-                var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
-                index += 4;
-                var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
-                index += 4;
-                var pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
-                item.latitude = latitude;
-                item.longitude = longitude;
-                item.pdop = pdop;
-                datas.push(item);
-            }
-            data.pos_data = datas;
+            // for (var i = 0; i < count; i++) {
+            // var item = {};
+            var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
+            index += 4;
+            var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
+            index += 4;
+            var pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
+            // item.latitude = latitude;
+            // item.longitude = longitude;
+            // item.pdop = pdop;
+            // datas.push(item);
+            // }
+            // data.pos_data = datas;
+            data.latitude = latitude;
+            data.longitude = longitude;
+            data.pdop = pdop;
         }
     } else if (fPort == 9) {
         // Pos Failed
@@ -383,5 +387,5 @@ function getData(hex) {
 // console.log(getData("5c000943240912278934443a9fcb0f"));
 // var input = {};
 // input.fPort = 8;
-// input.bytes = getData("5c000943240912278934443a9fcb0f");
+// input.bytes = getData("300000012015d9ed1cab8c5a5bd8f129904d3925d2cd47027d7f3c");
 // console.log(decodeUplink(input));

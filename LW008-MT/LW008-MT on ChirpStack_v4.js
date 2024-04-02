@@ -171,9 +171,21 @@ function parse_port2_data(data, bytes, port) {
     data.position_type_code = positionTypeCode;
     data.position_success_type = positionTypeArray[positionTypeCode];
     if (positionTypeCode < 5) {
-        var positionData = parse_position_data(bytes.slice(4), positionTypeCode);
-        // obj.location_fixed_data_str = JSON.stringify(positionData);
-        data.location_fixed_data = positionData;
+        var sub_bytes = bytes.slice(4);
+        if (positionTypeCode == 0 || positionTypeCode == 2) {
+            var positionData = parse_position_data(sub_bytes, positionTypeCode);
+            // obj.location_fixed_data_str = JSON.stringify(positionData);
+            data.mac_data = positionData;
+        } else if (positionTypeCode == 3) {
+            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
+            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
+            var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
+            data.latitude = latitude;
+            data.longitude = longitude;
+            data.pdop = pdop;
+        } else if (positionTypeCode == 4) {
+            data.bytes = sub_bytes;
+        }
     } else {
         data.location_fixed_data = "Latitude and longitude data will return by the LoRa Cloud server";
     }
@@ -243,42 +255,42 @@ function parse_port12_data(data, bytes, port) {
 }
 
 function parse_position_data(bytes, type) {
-    if ((type == 0) || (type == 2)) {
-        var number = (bytes.length / 7);
-        var data_list = [];
-        for (var i = 0; i < number; i++) {
-            var sub_bytes = bytes.slice((i * 7), (i * 7 + 8));
-            var mac_address = bytesToHexString(sub_bytes, 0, 6);
-            var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
-            var data_dic = {
-                'mac_address': mac_address,
-                'rssi': rssi
-            };
-            data_list.push(data_dic);
-        }
-        return data_list;
+    // if ((type == 0) || (type == 2)) {
+    var number = (bytes.length / 7);
+    var mac_data = [];
+    for (var i = 0; i < number; i++) {
+        var sub_bytes = bytes.slice((i * 7), (i * 7 + 8));
+        var mac_address = bytesToHexString(sub_bytes, 0, 6);
+        var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
+        var data_dic = {
+            'mac': mac_address,
+            'rssi': rssi
+        };
+        mac_data.push(data_dic);
     }
-    if (type == 3) {
-        var number = (bytes.length / 9);
-        var data_list = [];
-        for (var i = 0; i < number; i++) {
-            var sub_bytes = bytes.slice((i * 9), (i * 9 + 10));
-            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
-            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
-            var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
-            var data_dic = {
-                'latitude': latitude,
-                'longitude': longitude,
-                'pdop': pdop
-            };
-            data_list.push(data_dic);
-        }
-        return data_list;
-    }
-    if (type == 4) {
-        return bytes;
-    }
-    return [];
+    return mac_data;
+    // }
+    // if (type == 3) {
+    // var number = (bytes.length / 9);
+    // var data_list = [];
+    // for (var i = 0; i < number; i++) {
+    // var sub_bytes = bytes.slice(0, 10);
+    // var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
+    // var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
+    // var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
+    // var data_dic = {
+    //     'latitude': latitude,
+    //     'longitude': longitude,
+    //     'pdop': pdop
+    // };
+    // data_list.push(data_dic);
+    // }
+    // return data_list;
+    // }
+    // if (type == 4) {
+    //     return bytes;
+    // }
+    // return [];
 }
 /*********************Port Parse*************************/
 

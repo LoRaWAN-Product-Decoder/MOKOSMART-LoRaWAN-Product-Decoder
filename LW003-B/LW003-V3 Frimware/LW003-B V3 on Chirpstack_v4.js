@@ -72,11 +72,12 @@ function decodeUplink(input) {
                 data.message_type = "Turn on";
             }
         }
-        // var timestamp = new Date().getTime();
-        // data.timestamp = timestamp;
-
         var date = new Date();
-        data.time = date.toJSON();
+        var timestamp = Math.trunc(date.getTime() / 1000);
+        var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+        data.timestamp = timestamp;
+        data.time = parse_time(timestamp, offsetHours);
+        data.timezone = timezone_decode(offsetHours * 2);
     } else if (fPort == 2) {
         // Turn off info
         data.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
@@ -107,7 +108,7 @@ function decodeUplink(input) {
 
         // var date = new Date();
         // data.time = date.toJSON();
-        
+
         var parse_len = 7;
         var datas = [];
         for (var i = 0; i < data.beacon_number; i++) {

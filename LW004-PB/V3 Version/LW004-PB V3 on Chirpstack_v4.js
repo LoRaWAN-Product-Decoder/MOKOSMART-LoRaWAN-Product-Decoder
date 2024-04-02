@@ -94,7 +94,7 @@ function decodeUplink(input) {
 		var timestamp = Math.trunc(date.getTime() / 1000);
 		data.timestamp = timestamp;
 		data.payload_type = "Device info"
-		data.time = parse_time(data.timestamp, bytes[1] * 0.5);
+		data.time = parse_time(data.timestamp, bytes[7] * 0.5);
 	} else if (fPort == 3) {
 		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -102,7 +102,7 @@ function decodeUplink(input) {
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		data.shutdown_type = shutdownTypeArray[bytes[7]];
 		data.payload_type = "Turn off info"
-		data.time = parse_time(data.timestamp, bytes[1] * 0.5);
+		data.time = parse_time(data.timestamp, bytes[2] * 0.5);
 	} else if (fPort == 4) {
 		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -148,6 +148,13 @@ function decodeUplink(input) {
 		data.location_failure_cn2 = bytes[5];
 		data.location_failure_cn3 = bytes[6];
 	} else if (fPort == 8 || fPort == 12) {
+		var date = new Date();
+		var timestamp = Math.trunc(date.getTime() / 1000);
+		var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+		data.timestamp = timestamp;
+		data.time = parse_time(timestamp, offsetHours);
+		data.timezone = timezone_decode(offsetHours * 2);
+
 		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		var age = (bytes[2]) << 8 | bytes[3];
@@ -161,7 +168,7 @@ function decodeUplink(input) {
 			item.rssi = bytes[parse_len++] - 256 + "dBm";
 			datas.push(item);
 		}
-		data.bluetooth_data = datas;
+		data.mac_data = datas;
 
 	} else if (fPort == 9 || fPort == 13) {
 		var ble_fix_false_reason = ["none", "hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "ble_fix_timeout", "ble_adv", "motion_start_interrupt", "motion_stop_interrupt"];
@@ -177,7 +184,7 @@ function decodeUplink(input) {
 			ble_data.rssi = bytes[parse_len++] - 256 + "dBm";
 			datas.push(ble_data);
 		}
-		data.bluetooth_data = datas;
+		data.mac_data = datas;
 	}
 	dev_info.data = data;
 	return dev_info;
@@ -291,6 +298,6 @@ function getData(hex) {
 }
 
 // var input = {};
-// input.fPort = 1;
-// input.bytes = getData("631065f9132404");
+// input.fPort = 3;
+// input.bytes = getData("603010660665ef02");
 // console.log(decodeUplink(input));

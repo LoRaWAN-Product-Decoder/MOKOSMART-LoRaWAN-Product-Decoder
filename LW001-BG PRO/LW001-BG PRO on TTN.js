@@ -86,6 +86,7 @@ function decodeUplink(input) {
 		var datas = [];
 		var positionTypeCode = bytes[parse_len++];
 		data.position_success_type = positionTypeArray[positionTypeCode];
+		data.position_success_type_code = positionTypeCode;
 
 		var year = bytes[parse_len] * 256 + bytes[parse_len + 1];
 		parse_len += 2;
