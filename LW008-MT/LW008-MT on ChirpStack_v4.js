@@ -1,3 +1,13 @@
+var payloadTypeArray = [
+    "Heartbeat"
+    , "Location Fixed"
+    , "Location Failure"
+    , "Shutdown"
+    , "Shock"
+    , "Man Down detection"
+    , "Event Message"
+    , "Battery Consumption"
+    , "GPS Limit"];
 var operationModeArray = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode"];
 var rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off"];
 var positionTypeArray = [
@@ -111,35 +121,38 @@ function decodeUplink(input) {
     data.ack = bytes[2] & 0x0f;
 
     if (fPort == 1 && bytes.length == 9) {
+        data.payload_type = payloadTypeArray[0];
         parse_port1_data(data, bytes.slice(3), fPort);
     } else if (fPort == 2 && bytes.length >= 7) {
-        data.payload_type = "Pos success info"
+        data.payload_type = payloadTypeArray[1];
         parse_port2_data(data, bytes.slice(3), fPort);
     } else if (fPort == 4 && bytes.length >= 5) {
+        data.payload_type = payloadTypeArray[2];
         parse_port4_data(data, bytes.slice(3), fPort);
     } else if (fPort == 5 && bytes.length == 4) {
+        data.payload_type = payloadTypeArray[3];
         var obj = {};
         var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         // obj.shutdown_type_code = shutdownTypeCode;
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
-        data.payload_type = "Turn off info"
         data.obj = obj;
     } else if (fPort == 6 && bytes.length == 5) {
+        data.payload_type = payloadTypeArray[4];
         var obj = {};
         obj.number_of_shocks = bytesToInt(bytes, 3, 2);
         data.obj = obj;
     } else if (fPort == 7 && bytes.length == 5) {
+        data.payload_type = payloadTypeArray[5];
         var obj = {};
         obj.total_idle_time = bytesToInt(bytes, 3, 2);
         data.obj = obj;
     } else if (fPort == 8 && bytes.length == 4) {
-        var obj = {};
-        data.payload_type = "Event info"
+        data.payload_type = payloadTypeArray[6];
         var eventTypeCode = bytesToInt(bytes, 3, 1);
         // obj.event_type_code = eventTypeCode;
-        obj.event_type = eventTypeArray[eventTypeCode];
-        data.obj = obj;
+        data.event_type = eventTypeArray[eventTypeCode];
     } else if (fPort == 9 && bytes.length == 43) {
+        data.payload_type = payloadTypeArray[7];
         parse_port9_data(data, bytes.slice(3), fPort);
     }
     // data.obj = data_dic;

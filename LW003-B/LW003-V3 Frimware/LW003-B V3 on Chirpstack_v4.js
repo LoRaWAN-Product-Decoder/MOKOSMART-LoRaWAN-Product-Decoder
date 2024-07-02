@@ -42,7 +42,7 @@ function decodeUplink(input) {
         // port 1:Turn on info/port 3:Device info
         data.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
         data.battery_level = (bytes[0] & 0x7F) + "%";
-        data.battery_voltage = bytesToInt(bytes, 1, 2) + "mV";
+        data.battery_voltage = (bytesToInt(bytes, 1, 2) / 1000).toFixed(1) + "V";
         var firmware_ver_major = (bytes[3] >> 6) & 0x03;
         var firmware_ver_minor = (bytes[3] >> 4) & 0x03;
         var firmware_ver_patch = bytes[3] & 0x0f;
@@ -82,7 +82,7 @@ function decodeUplink(input) {
         // Turn off info
         data.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
         data.battery_level = (bytes[0] & 0x7F) + "%";
-        data.battery_voltage = bytesToInt(bytes, 1, 2) + "mV";
+        data.battery_voltage = (bytesToInt(bytes, 1, 2) / 1000).toFixed(1) + "V";
         data.time = parse_time(bytesToInt(bytes, 3, 4), bytes[7] * 0.5);
         data.timestamp = bytesToInt(bytes, 3, 4);
         data.timezone = timezone_decode(bytes[7]);
@@ -873,7 +873,7 @@ function decodeUplink(input) {
                     item.raw_data = bytesToHexString(bytes, parse_len, item.raw_data_length).toUpperCase();
                     parse_len += item.raw_data_length;
                 }
-                datas.push(item);
+                datas.push(JSON.stringify(item));
             }
         }
         data.scan_data = datas;
@@ -1017,7 +1017,7 @@ String.prototype.format = function () {
 function getData(hex) {
     var length = hex.length;
     var datas = [];
-    for (var i = 0; i < length; i += 3) {
+    for (var i = 0; i < length; i += 2) {
         var start = i;
         var end = i + 2;
         var data = parseInt("0x" + hex.substring(start, end));
@@ -1029,7 +1029,7 @@ function getData(hex) {
 // var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
 
 // console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
-// var input = {};
-// input.fPort = 5;
-// input.bytes = getData("03 65 70 2e c9 10 01 65 08 dc 68 be fc 35 c4 cf 65 70 2e c1 20 03 00 34 03 00 00 01 00 09 4d 4b 20 42 75 74 74 6f 6e 00 00 10 ff c8 00 10 fc 1c 00 67 00 0b dc 00 02 01 06 0c 16 e0 fe 20 03 00 34 00 00 01 00 00 0a 09 4d 4b 20 42 75 74 74 6f 6e 18 16 00 ea 00 00 00 10 ff c8 00 10 fc 1c 00 67 00 0b dc dc 68 be fc 35 c4 02 0a 00");
-// console.log(decodeUplink(input));
+var input = {};
+input.fPort = 5;
+input.bytes = getData("0066503f2010013f0ae75e188a22e5cb66503f1b000201041aff0a6202151900e75e188a22e5160412101b190e0a00cf1f9ad9020af810094d6b69426561636f6e5f3938373635");
+console.log(decodeUplink(input));

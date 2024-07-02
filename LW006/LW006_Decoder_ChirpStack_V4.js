@@ -48,6 +48,12 @@ function decodeUplink(input) {
     }
     if (fPort == 1) {
         // Device info
+        var date = new Date();
+        var timestamp = Math.trunc(date.getTime() / 1000);
+        var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+        data.timestamp = timestamp;
+        data.time = parse_time(timestamp, offsetHours);
+        data.timezone = timezone_decode(offsetHours * 2);
         data.payload_type = 'Device info';
         var temperature = bytes[1];
         if (temperature > 0x80)
@@ -62,7 +68,8 @@ function decodeUplink(input) {
         var hardware_ver_patch = bytes[3] & 0x0f;
         data.hardware_version = "V" + hardware_ver_major + "." + hardware_ver_patch;
         data.device_mode = deviceMode[bytes[4]];
-        data.device_status = deviceStatus[bytes[5]];
+        data.device_status_code = bytes[5];
+        data.device_status = deviceStatus[data.device_status_code];
         data.vibration_status = bytes[6] > 0 ? "Abnormal" : "Normal";
 
     } else if (fPort == 2 || fPort == 3 || fPort == 4) {
@@ -76,7 +83,7 @@ function decodeUplink(input) {
         data.timestamp = bytesToInt(bytes, 2, 4);
         data.timezone = timezone_decode(bytes[6]);
         data.device_mode = deviceMode[bytes[7]];
-        data.device_status_code = bytes[8] & 0x0F;
+        data.device_status_code = bytes[8];
         data.device_status = deviceStatus[data.device_status_code];
         if (fPort == 2) {
             data.payload_type = 'Turn off info';
@@ -91,6 +98,7 @@ function decodeUplink(input) {
         data.time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
         data.timestamp = bytesToInt(bytes, 1, 4);
         data.timezone = timezone_decode(bytes[5]);
+        data.event_type_code = bytes[6] & 0xFF;
         data.event_type = eventType[bytes[6]];
     } else if (fPort == 6) {
         // L76_GPS data
@@ -131,7 +139,7 @@ function decodeUplink(input) {
         data.payload_type = posDataSign[pos_data_sign];
         data.pos_data_sign_code = pos_data_sign;
         data.device_mode = deviceMode[bytes[4] >> 4];
-        data.device_status_code = bytes[4] & 0x0F;
+        data.device_status_code = bytes[4];
         data.device_status = deviceStatus[data.device_status_code];
         var pos_data_length = bytes[5] & 0xFF;
         data.pos_data_length = pos_data_length;
@@ -173,11 +181,18 @@ function decodeUplink(input) {
             data.pdop = pdop;
         }
     } else if (fPort == 9) {
+        var date = new Date();
+        var timestamp = Math.trunc(date.getTime() / 1000);
+        var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+        data.timestamp = timestamp;
+        data.time = parse_time(timestamp, offsetHours);
+        data.timezone = timezone_decode(offsetHours * 2);
         // Pos Failed
         data.payload_type = 'Pos Failed';
         data.pos_type = posType[bytes[1]];
         data.device_mode = deviceMode[bytes[2]];
-        data.device_status = deviceStatus[bytes[3]];
+        data.device_status_code = bytes[3];
+        data.device_status = deviceStatus[data.device_status_code];
         var pos_data_sign = bytes[4] & 0x0F;
         data.pos_data_sign = pos_data_sign;
         data.failed_reason = fixFailedReason[pos_data_sign];

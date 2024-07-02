@@ -22,15 +22,15 @@ var auxiliaryOperationArray = [
 	, "Alert alarm"
 	, "SOS alarm"];
 var eventTypeArray = [
-	"Start of movement"
-	, "In movement"
-	, "End of movement"
-	, "Start SOS alarm"
-	, "SOS alarm exit"
-	, "Start Alert alarm"
-	, "Alert alarm exit"
-	, "Come into Man Down status"
-	, "Exit Man Down status"
+	"Motion On Start"
+	, "Motion In Trip"
+	, "Motion On End"
+	, "SOS Start"
+	, "SOS End"
+	, "Alert Start"
+	, "Alert End"
+	, "Man Down Start"
+	, "Man Down End"
 ];
 var shutdownTypeArray = ["Bluetooth command or App", "LoRaWAN Command", "Power button", "Battery run out"];
 var posFailedReasonArray = [
@@ -84,7 +84,7 @@ function decodeUplink(input) {
 		data.event_type = eventTypeArray[eventTypeCode];		//event
 		data.payload_type = "Event info"
 	} else if (fPort == 2) {
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.firmware_version = "V" + bytes[2] + "." + bytes[3] + "." + bytes[4];
 		data.hardware_version = "V" + bytes[5] + "." + bytes[6];
@@ -96,7 +96,7 @@ function decodeUplink(input) {
 		data.payload_type = "Device info"
 		data.time = parse_time(data.timestamp, bytes[7] * 0.5);
 	} else if (fPort == 3) {
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.timezone = timezone_decode(bytes[2]);		//timezone
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
@@ -104,12 +104,12 @@ function decodeUplink(input) {
 		data.payload_type = "Turn off info"
 		data.time = parse_time(data.timestamp, bytes[2] * 0.5);
 	} else if (fPort == 4) {
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.timezone = timezone_decode(bytes[2]);		//timezone
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 	} else if (fPort == 5) {
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.timezone = timezone_decode(bytes[2]);		//timezone
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
@@ -121,8 +121,8 @@ function decodeUplink(input) {
 		data.timestamp = timestamp;
 		data.time = parse_time(timestamp, offsetHours);
 		data.timezone = timezone_decode(offsetHours * 2);
-		
-		data.device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07];	//work mode
+
+		data.device_mode = deviceModeArray[((bytes[1] >> 5) & 0x07) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] >> 2 & 0x07];	//device status
 
 		age = (bytes[1] & 0x01) << 8 | bytes[2];
@@ -140,9 +140,9 @@ function decodeUplink(input) {
 		data.longitude = lon / 10000000;
 	} else if (fPort == 7 || fPort == 11) {
 		var gps_fix_false_reason = ["hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "gps_fix_tech_timeout", "gps_fix_timeout", "alert_short_time", "sos_short_time", "pdop_limit", "motion_start_interrupt", "motion_stop_interrupt"];
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
-		data.reasons_for_positioning_failure = posFailedReasonArray[bytes[2]];
+		data.reasons_for_positioning_failure = posFailedReasonArray[bytes[2] - 1];
 		data.location_failure_cn0 = bytes[3];
 		data.location_failure_cn1 = bytes[4];
 		data.location_failure_cn2 = bytes[5];
@@ -155,7 +155,7 @@ function decodeUplink(input) {
 		data.time = parse_time(timestamp, offsetHours);
 		data.timezone = timezone_decode(offsetHours * 2);
 
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		var age = (bytes[2]) << 8 | bytes[3];
 		data.age = age + "s";	//age
@@ -172,7 +172,7 @@ function decodeUplink(input) {
 
 	} else if (fPort == 9 || fPort == 13) {
 		var ble_fix_false_reason = ["none", "hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "ble_fix_timeout", "ble_adv", "motion_start_interrupt", "motion_stop_interrupt"];
-		data.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2]];
 
