@@ -139,7 +139,7 @@ function decodeUplink(input) {
         data.payload_type = posDataSign[pos_data_sign];
         data.pos_data_sign_code = pos_data_sign;
         data.device_mode = deviceMode[bytes[4] >> 4];
-        data.device_status_code = bytes[4];
+        data.device_status_code = bytes[4] & 0xf;
         data.device_status = deviceStatus[data.device_status_code];
         var pos_data_length = bytes[5] & 0xFF;
         data.pos_data_length = pos_data_length;
