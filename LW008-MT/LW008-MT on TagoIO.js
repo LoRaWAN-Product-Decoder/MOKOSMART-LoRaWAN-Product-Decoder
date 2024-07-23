@@ -1,4 +1,4 @@
-var payloadTypeArray = [
+const payloadTypeArray = [
     "Heartbeat"
     , "Location Fixed"
     , "Location Failure"
@@ -8,9 +8,9 @@ var payloadTypeArray = [
     , "Event Message"
     , "Battery Consumption"
     , "GPS Limit"];
-var operationModeArray = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode"];
-var rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off"];
-var positionTypeArray = [
+const operationModeArray = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode"];
+const rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off"];
+const positionTypeArray = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
     , "Bluetooth positioning success"
@@ -18,7 +18,7 @@ var positionTypeArray = [
     , "GPS positioning success (LW008-MT Customized Format)"
     , "GPS positioning success (LW008-MT LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
 ];
-var posFailedReasonArray = [
+const posFailedReasonArray = [
     "WIFI positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
     , "WIFI positioning strategies timeout (Please increase the WIFI positioning timeout via MKLoRa app)"
     , "WIFI module is not detected, the WIFI module itself works abnormally"
@@ -34,8 +34,8 @@ var posFailedReasonArray = [
     , "Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)"
     , "Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)"
 ];
-var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device", "The battery run out"];
-var eventTypeArray = [
+const shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device", "The battery run out"];
+const eventTypeArray = [
     "Start of movement"
     , "In movement"
     , "End of movement"
@@ -45,33 +45,33 @@ var eventTypeArray = [
 ];
 
 function Decoder(bytes) {
-    var fPort = port.value;
-    var data = [];
+    const fPort = port.value;
+    const data = [];
     if (fPort == 0 || fPort == 10 || fPort == 11) {
         return;
     }
-    var operationModeCode = bytes[0] & 0x03;
+    const operationModeCode = bytes[0] & 0x03;
     // const operation_mode_code = operationModeCode;
     const operation_mode = operationModeArray[operationModeCode];
     addPayloadArray("operation_mode", operation_mode);
 
-    var batteryLevelCode = bytes[0] & 0x04;
+    const batteryLevelCode = bytes[0] & 0x04;
     // const battery_level_code = batteryLevelCode;
     const battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
     addPayloadArray("battery_level", battery_level);
 
-    var manDownStatusCode = bytes[0] & 0x08;
+    const manDownStatusCode = bytes[0] & 0x08;
     // const mandown_status_code = manDownStatusCode;
     const mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
     addPayloadArray("mandown_status", mandown_status);
 
-    var motionStateSinceLastPaylaodCode = bytes[0] & 0x10;
+    const motionStateSinceLastPaylaodCode = bytes[0] & 0x10;
     // const motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
     const motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
     addPayloadArray("motion_state_since_last_paylaod", motion_state_since_last_paylaod);
 
 
-    var positioningTypeCode = bytes[0] & 0x20;
+    const positioningTypeCode = bytes[0] & 0x20;
     // const positioning_type_code = positioningTypeCode;
     const positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
     addPayloadArray("positioning_type", positioning_type);
@@ -87,7 +87,7 @@ function Decoder(bytes) {
         parse_port12_data(bytes);
         return;
     }
-    var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
+    const temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
     addPayloadArray("temperature", temperature);
 
     addPayloadArray("ack", bytes[2] & 0x0f);
@@ -102,7 +102,7 @@ function Decoder(bytes) {
         parse_port4_data(bytes.slice(3));
     } else if (fPort == 5 && bytes.length == 4) {
         addPayloadArray("payload_type", payloadTypeArray[3]);
-        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
+        const shutdownTypeCode = bytesToInt(bytes, 3, 1);
         //addPayloadArray("shutdown_type_code",shutdownTypeCode);
         addPayloadArray("shutdown_type", shutdownTypeArray[shutdownTypeCode]);
     } else if (fPort == 6 && bytes.length == 5) {
@@ -113,7 +113,7 @@ function Decoder(bytes) {
         addPayloadArray("total_idle_time", bytesToInt(bytes, 3, 2));
     } else if (fPort == 8 && bytes.length == 4) {
         addPayloadArray("payload_type", payloadTypeArray[6]);
-        var eventTypeCode = bytesToInt(bytes, 3, 1);
+        const eventTypeCode = bytesToInt(bytes, 3, 1);
         //addPayloadArray("event_type_code = eventTypeCode;
         addPayloadArray("event_type", eventTypeArray[eventTypeCode]);
     } else if (fPort == 9 && bytes.length == 43) {
@@ -123,34 +123,34 @@ function Decoder(bytes) {
 }
 /*********************Port Parse*************************/
 function parse_port1_data(bytes) {
-    var rebootReasonCode = bytesToInt(bytes, 0, 1);
+    const rebootReasonCode = bytesToInt(bytes, 0, 1);
     // data.obj.reboot_reason_code = rebootReasonCode;
     addPayloadArray("reboot_reason", rebootReasonArray[rebootReasonCode]);
-    var majorVersion = (bytes[1] >> 6) & 0x03;
-    var minorVersion = (bytes[1] >> 4) & 0x03;
-    var patchVersion = bytes[1] & 0x0f;
-    var firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
+    const majorVersion = (bytes[1] >> 6) & 0x03;
+    const minorVersion = (bytes[1] >> 4) & 0x03;
+    const patchVersion = bytes[1] & 0x0f;
+    const firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
     addPayloadArray("firmware_version", firmwareVersion);
-    var activityCount = bytesToInt(bytes, 2, 4);
+    const activityCount = bytesToInt(bytes, 2, 4);
     addPayloadArray("activity_count", activityCount);
 }
 
 function parse_port2_data(bytes) {
-    var age = bytesToInt(bytes, 0, 2);
+    const age = bytesToInt(bytes, 0, 2);
     addPayloadArray("age", age + "s");
-    var positionTypeCode = bytesToInt(bytes, 2, 1);
+    const positionTypeCode = bytesToInt(bytes, 2, 1);
     addPayloadArray("position_type_code", positionTypeCode);
     addPayloadArray("position_success_type", positionTypeArray[positionTypeCode]);
     if (positionTypeCode < 5) {
-        var sub_bytes = bytes.slice(4);
+        const sub_bytes = bytes.slice(4);
         if (positionTypeCode == 0 || positionTypeCode == 2) {
-            var positionData = parse_position_data(sub_bytes, positionTypeCode);
+            const positionData = parse_position_data(sub_bytes, positionTypeCode);
             // obj.location_fixed_data_str = JSON.stringify(positionData);
             addPayloadArray("mac_data", positionData);
         } else if (positionTypeCode == 3) {
-            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
-            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
-            var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
+            const latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
+            const longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
+            const pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
             addPayloadArray("latitude", latitude);
             addPayloadArray("longitude", longitude);
             addPayloadArray("pdop", pdop);
@@ -163,26 +163,26 @@ function parse_port2_data(bytes) {
 }
 
 function parse_port4_data(bytes) {
-    var failedTypeCode = bytesToInt(bytes, 0, 1);
-    var dataLen = bytesToInt(bytes, 1, 1);
-    var dataBytes = bytes.slice(2);
+    const failedTypeCode = bytesToInt(bytes, 0, 1);
+    const dataLen = bytesToInt(bytes, 1, 1);
+    const dataBytes = bytes.slice(2);
     if (failedTypeCode == 0 || failedTypeCode == 1 || failedTypeCode == 2
         || failedTypeCode == 3 || failedTypeCode == 4 || failedTypeCode == 5) {
-        var number = (dataLen / 7);
-        for (var i = 0; i < number; i++) {
-            var item = {};
-            var sub_bytes = dataBytes.slice((i * 7), (i * 7 + 8));
-            var mac_address = bytesToHexString(sub_bytes, 0, 6);
-            var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
+        const number = (dataLen / 7);
+        for (let i = 0; i < number; i++) {
+            const item = {};
+            const sub_bytes = dataBytes.slice((i * 7), (i * 7 + 8));
+            const mac_address = bytesToHexString(sub_bytes, 0, 6);
+            const rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
             addPayloadArray("mac_address" + i, mac_address);
             addPayloadArray("rssi" + i, rssi);
         }
         addPayloadArray("reasons_for_positioning_failure_code", failedTypeCode);
         addPayloadArray("reasons_for_positioning_failure", posFailedReasonArray[failedTypeCode]);
     } else {
-        var data_list = [];
-        for (var i = 0; i < dataLen; i++) {
-            var stringValue = bytesToHexString(dataBytes, (i * 1), 1);
+        const data_list = [];
+        for (let i = 0; i < dataLen; i++) {
+            const stringValue = bytesToHexString(dataBytes, (i * 1), 1);
             // data_list.push(stringValue);
             addPayloadArray("stringValue" + i, stringValue);
         }
@@ -215,35 +215,35 @@ function parse_port12_data(bytes) {
 }
 
 function bytesToHexString(bytes, start, len) {
-    var char = [];
-    for (var i = 0; i < len; i++) {
-        var data = bytes[start + i].toString(16);
-        var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+    const char = [];
+    for (let i = 0; i < len; i++) {
+        const data = bytes[start + i].toString(16);
+        const dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
         char.push(dataHexStr);
     }
     return char.join("");
 }
 
 function bytesToString(bytes, start, len) {
-    var char = [];
-    for (var i = 0; i < len; i++) {
+    const char = [];
+    for (let i = 0; i < len; i++) {
         char.push(String.fromCharCode(bytes[start + i]));
     }
     return char.join("");
 }
 
 function bytesToInt(bytes, start, len) {
-    var value = 0;
-    for (var i = 0; i < len; i++) {
-        var m = ((len - 1) - i) * 8;
+    const value = 0;
+    for (const i = 0; i < len; i++) {
+        const m = ((len - 1) - i) * 8;
         value = value | bytes[start + i] << m;
     }
-    // var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
+    // const value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
     return value;
 }
 
 function timezone_decode(tz) {
-    var tz_str = "UTC";
+    let tz_str = "UTC";
     tz = tz > 128 ? tz - 256 : tz;
     if (tz < 0) {
         tz_str += "-";
@@ -275,10 +275,10 @@ function parse_time(timestamp, timezone) {
         timestamp = 0;
     }
 
-    var d = new Date(timestamp * 1000);
+    const d = new Date(timestamp * 1000);
     //d.setUTCSeconds(1660202724);
 
-    var time_str = "";
+    let time_str = "";
     time_str += d.getUTCFullYear();
     time_str += "-";
     time_str += formatNumber(d.getUTCMonth() + 1);
@@ -300,8 +300,8 @@ function formatNumber(number) {
 }
 
 function signedHexToInt(hexStr) {
-    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
-    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    let twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
+    const bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
     if (twoStr.length < bitNum) {
         while (twoStr.length < bitNum) {
             twoStr = "0" + twoStr;
@@ -313,7 +313,7 @@ function signedHexToInt(hexStr) {
         return twoStr;
     }
     // 负数
-    var twoStr_unsign = "";
+    let twoStr_unsign = "";
     twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
     twoStr = twoStr.toString(2);
     twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
@@ -328,14 +328,14 @@ function signedHexToInt(hexStr) {
 String.prototype.format = function () {
     if (arguments.length == 0)
         return this;
-    for (var s = this, i = 0; i < arguments.length; i++)
+    for (let s = this, i = 0; i < arguments.length; i++)
         s = s.replace(new RegExp("\\{" + i + "\\}", "g"), arguments[i]);
     return s;
 };
 
 // convert a byte value to signed int8
 function int8(byte) {
-    var sign = byte & (1 << 7);
+    const sign = byte & (1 << 7);
     if (sign) {
         return 0xFFFFFF00 | byte;
     }
@@ -343,7 +343,7 @@ function int8(byte) {
 }
 
 function addPayloadArray(variable, value) {
-    return payload.push({ variable: variable, value: value, group: String(payload_raw.group), serie: String(payload_raw.serie), });
+    return payload.push({ variable: variable, value: value, group: String(payload_raw.group)});
 }
 
 const payload_raw = payload.find((x) => x.variable === "payload");
