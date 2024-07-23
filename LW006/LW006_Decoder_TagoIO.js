@@ -387,7 +387,7 @@ function getData(hex) {
 
 }
 function addPayloadArray(variable, value) {
-    return payload.push({ variable: variable, value: value, group: String(payload_raw.group), serie: String(payload_raw.serie), });
+    return payload.push({ variable: variable, value: value, group: String(payload_raw.group)});
 }
 const payload_raw = payload.find((x) => x.variable === "payload");
 const port = payload.find((x) => x.variable === "fport");
