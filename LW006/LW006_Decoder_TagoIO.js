@@ -159,7 +159,7 @@ function Decoder(bytes) {
             // WIFI BLE
             const datas = [];
             const count = pos_data_length / 7;
-            const index = 6;
+            let index = 6;
             for (let i = 0; i < count; i++) {
                 const item = {};
                 item.rssi = bytes[index++] - 256 + "dBm";
@@ -173,7 +173,7 @@ function Decoder(bytes) {
             // L76 GPS
             const datas = [];
             const count = pos_data_length / 9;
-            const index = 6;
+            let index = 6;
             // for (let i = 0; i < count; i++) {
             // const item = {};
             const latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
@@ -214,10 +214,10 @@ function Decoder(bytes) {
             // WIFI/BLE Failed
             const datas = [];
             const count = pos_data_length / 7;
-            const index = 6;
+            let index = 6;
             for (let i = 0; i < count; i++) {
                 const item = {};
-                item.rssi = bytes[index++];
+                item.rssi = bytes[index++] - 256 + "dBm";
                 item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
                 addPayloadArray("mac_address"+i , item.mac);
@@ -232,7 +232,7 @@ function Decoder(bytes) {
                 addPayloadArray("pdop" ,'unknow');
             }
             const datas = [];
-            const index = 7;
+            let index = 7;
             for (let i = 0; i < 4; i++) {
                 const item = bytesToHexString(bytes, index++, 1).toLowerCase();
                 datas.push(item);
@@ -241,7 +241,7 @@ function Decoder(bytes) {
         } else if (pos_data_length == 4) {
             // LR1110 GPS Failed
             const datas = [];
-            const index = 6;
+            let index = 6;
             for (let i = 0; i < 4; i++) {
                 const item = bytesToHexString(bytes, index++, 1).toLowerCase();
                 datas.push(item);

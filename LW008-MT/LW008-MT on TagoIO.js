@@ -233,8 +233,8 @@ function bytesToString(bytes, start, len) {
 }
 
 function bytesToInt(bytes, start, len) {
-    const value = 0;
-    for (const i = 0; i < len; i++) {
+    let value = 0;
+    for (let i = 0; i < len; i++) {
         const m = ((len - 1) - i) * 8;
         value = value | bytes[start + i] << m;
     }

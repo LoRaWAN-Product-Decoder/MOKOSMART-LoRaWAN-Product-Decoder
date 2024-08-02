@@ -205,7 +205,7 @@ function decodeUplink(input) {
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var item = {};
-                item.rssi = bytes[index++];
+                item.rssi = bytes[index++] - 256 + "dBm";
                 item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
                 datas.push(item);
