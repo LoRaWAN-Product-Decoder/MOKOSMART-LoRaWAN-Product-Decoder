@@ -175,7 +175,8 @@ function parse_port2_data(deviceInfo, bytes, port) {
         data.longitude = longitude;
         data.pdop = pdop;
     }
-    const date = new Date(bytesToInt(bytes, 4 + bytes[3], 4));
+    const dateArr = bytes.slice(-4);
+    const date = new Date(1000 * bytesToInt(dateArr, 0, dateArr.length));
     data.time = date.toLocaleString();
     deviceInfo.data = data;
 }
@@ -241,12 +242,12 @@ function parse_port9_data(data, bytes, port) {
 function parse_port12_data(data, bytes, port) {
     var obj = {};
     obj.ack = bytes[1] & 0x0f;
-    obj.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
+    obj.battery_value = (((bytes[1] >> 4) & 0xf) * 0.1 + 2.2).toFixed(1).toString() + "V";
     obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';
     obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
         + '°';
-    obj.pdop = bytesToInt(bytes, 10, 1);
+    obj.pdop = (bytesToInt(bytes, 10, 1) * 0.1).toFixed(1).toString();
     data.obj = obj;
 }
 

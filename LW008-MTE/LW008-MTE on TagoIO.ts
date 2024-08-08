@@ -73,12 +73,12 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 
     if (fPort == 12 && bytes.length == 11) { 
         payloadList.push(getPayloadData("ack", bytes[1] & 0x0f, groupID));
-        payloadList.push(getPayloadData("battery_value", (2.2 + (bytes[1] & 0xf0) * 0.1).toString() + "V", groupID));
+        payloadList.push(getPayloadData("battery_value", (((bytes[1] >> 4) & 0xf) * 0.1 + 2.2).toFixed(1).toString() + "V", groupID));
         payloadList.push(getPayloadData("latitude", Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°', groupID));
         payloadList.push(getPayloadData("longitude", Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
         + '°', groupID));
-        payloadList.push(getPayloadData("pdop", bytesToInt(bytes, 10, 1), groupID));
+        payloadList.push(getPayloadData("pdop", (bytesToInt(bytes, 10, 1) * 0.1).toFixed(1).toString(), groupID));
         return payloadList;
     }
 
@@ -179,7 +179,8 @@ function parse_port2_data(bytes:number[], groupID:string):{ [key: string]: any }
         tempList.push(getPayloadData("pdop", pdop, groupID));
     }
 
-    const date = new Date(bytesToInt(bytes, 4 + bytes[3], 4));
+    const dateArr = bytes.slice(-4);
+    const date = new Date(1000 * bytesToInt(dateArr, 0, dateArr.length));
 
     payloadList.push(getPayloadData("time", date.toLocaleString(), groupID));
 

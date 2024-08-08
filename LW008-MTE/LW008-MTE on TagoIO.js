@@ -73,12 +73,12 @@ function Decoder(bytes, fPort, groupID) {
     payloadList.push(getPayloadData("positioning_type", positioning_type, groupID));
     if (fPort == 12 && bytes.length == 11) {
         payloadList.push(getPayloadData("ack", bytes[1] & 0x0f, groupID));
-        payloadList.push(getPayloadData("battery_value", (2.2 + (bytes[1] & 0xf0) * 0.1).toString() + "V", groupID));
+        payloadList.push(getPayloadData("battery_value", (((bytes[1] >> 4) & 0xf) * 0.1 + 2.2).toFixed(1).toString() + "V", groupID));
         payloadList.push(getPayloadData("latitude", Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
             + '°', groupID));
         payloadList.push(getPayloadData("longitude", Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
             + '°', groupID));
-        payloadList.push(getPayloadData("pdop", bytesToInt(bytes, 10, 1), groupID));
+        payloadList.push(getPayloadData("pdop", (bytesToInt(bytes, 10, 1) * 0.1).toFixed(1).toString(), groupID));
         return payloadList;
     }
     var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)).toString() + '°C';
@@ -164,8 +164,15 @@ function parse_port2_data(bytes, groupID) {
         tempList.push(getPayloadData("longitude", longitude, groupID));
         tempList.push(getPayloadData("pdop", pdop, groupID));
     }
-    var date = new Date(bytesToInt(bytes, 4 + bytes[3], 4));
+    var dateArr = bytes.slice(-4);
+    var date = new Date(1000 * bytesToInt(dateArr, 0, dateArr.length));
     payloadList.push(getPayloadData("time", date.toLocaleString(), groupID));
+    return tempList;
+}
+function parse_port3_data(bytes, groupID) {
+    var tempList = [];
+    tempList.push(getPayloadData("low_power_percent", bytesToInt(bytes, 0, 1), groupID));
+    tempList.push(getPayloadData("current_cicle_battery_total_consumer", bytesToInt(bytes, 1, 4), groupID));
     return tempList;
 }
 function parse_port4_data(bytes, groupID) {
@@ -197,12 +204,6 @@ function parse_port4_data(bytes, groupID) {
         tempList.push(getPayloadData("reasons_for_positioning_failure_code", failedTypeCode, groupID));
         tempList.push(getPayloadData("reasons_for_positioning_failure", posFailedReasonArray[failedTypeCode], groupID));
     }
-    return tempList;
-}
-function parse_port3_data(bytes, groupID) {
-    var tempList = [];
-    tempList.push(getPayloadData("low_power_percent", bytesToInt(bytes, 0, 1), groupID));
-    tempList.push(getPayloadData("current_cicle_battery_total_consumer", bytesToInt(bytes, 1, 4), groupID));
     return tempList;
 }
 function parse_port9_data(bytes, groupID) {
