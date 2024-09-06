@@ -99,7 +99,7 @@ function Decoder(bytes, port) {
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var data = {};
-                data.rssi = bytes[index++];
+                data.rssi = bytes[index++] - 256 + "dBm";
                 data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
                 datas.push(data);
@@ -142,7 +142,7 @@ function Decoder(bytes, port) {
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var data = {};
-                data.rssi = bytes[index++];
+                data.rssi = bytes[index++] - 256 + "dBm";
                 data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
                 datas.push(data);
@@ -157,7 +157,7 @@ function Decoder(bytes, port) {
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var data = {};
-                data.rssi = bytes[index++];
+                data.rssi = bytes[index++] - 256 + "dBm";
                 data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
                 datas.push(data);
