@@ -290,20 +290,23 @@ function getPayloadData(type: string, value: any, groupID: string): { [key: stri
     };
 }
 
-const payload_raw = payload.find((x) => x.variable === 'payload');
-const port = payload.find((x) => x.variable === 'fport');
-if (payload_raw && port) {
-    try {
-        // Convert the data from Hex to Javascript Buffer.
-        const buffer = hexToNumberArray(payload_raw.value as string);
-        // payload.push(...Decoder(buffer, port.value, payload_raw.group));
-        payload.concat(Decoder(buffer, port.value, payload_raw.group))
-    } catch (e) {
-        // Print the error to the Live Inspector.
-        console.error(e);
-        // Return the variable parse_error for debugging.
-        // payload = [{ variable: 'parse_error', value: e.message }];
-    }
+const payloadd = payload.find((x) => ["payload_raw", "payload", "data"].includes(x.variable));
+const portt = payload.find((x) => ["port", "fport", "f_port"].includes(x.variable));
+
+if (payloadd.value && portt.value) {
+
+  try {
+    // Convert the data from Hex to Javascript Buffer.
+    var buffer = hexToNumberArray(payloadd.value);
+    // payload.push(...Decoder(buffer, port.value, payload_raw.group));
+    payload = payload.concat(Decoder(buffer, portt.value, payloadd.group));
+  }
+  catch (e) {
+    // Print the error to the Live Inspector.
+    console.error(e);
+    // Return the variable parse_error for debugging.
+    // payload = [{ variable: 'parse_error', value: e.message }];
+  }
 }
 
 function hexToNumberArray(hexString: string): number[] {
