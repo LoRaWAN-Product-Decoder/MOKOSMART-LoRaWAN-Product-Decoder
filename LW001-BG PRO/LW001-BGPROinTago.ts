@@ -87,7 +87,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		var activityCount = bytesToInt(bytes, 5, 4);
 		const activity_count = activityCount;
         payloadList.push(getPayloadData('activity_count', activity_count, groupID));
-	} else if (port == 2) {
+	} else if (fPort == 2) {
 		var parse_len = 3; // common head is 3 byte
 		const positionTypeCode = bytes[parse_len++];
 		const position_success_type = positionTypeArray[positionTypeCode];
@@ -145,7 +145,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
             payloadList.push(getPayloadData('pdop', pdop, groupID));
 
 		}
-	} else if (port == 3) {
+	} else if (fPort == 3) {
 		var parse_len = 3;
 		var failedTypeCode = bytesToInt(bytes, parse_len++, 1);
 		const reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
@@ -177,17 +177,17 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 			const gps_satellite_cn = bytes[parse_len].toString() + '-' + bytes[parse_len + 1].toString() + '-' + bytes[parse_len + 2].toString() + '-' + bytes[parse_len + 3].toString();
             payloadList.push(getPayloadData('gps_satellite_cn', gps_satellite_cn, groupID));
         }
-	} else if (port == 4) {
+	} else if (fPort == 4) {
 		var shutdownTypeCode = bytesToInt(bytes, 3, 1);
 		const shutdown_type = shutdownTypeArray[shutdownTypeCode];
         payloadList.push(getPayloadData('shutdown_type', shutdown_type, groupID));
-	} else if (port == 5) {
+	} else if (fPort == 5) {
 		const number_of_shocks = bytesToInt(bytes, 3, 2);
         payloadList.push(getPayloadData('number_of_shocks', number_of_shocks, groupID));
-	} else if (port == 6) {
+	} else if (fPort == 6) {
 		const total_idle_time = bytesToInt(bytes, 3, 2);
         payloadList.push(getPayloadData('total_idle_time', total_idle_time, groupID));
-	} else if (port == 7) {
+	} else if (fPort == 7) {
 		var parse_len = 3; // common head is 3 byte
 		const year = bytesToInt(bytes, parse_len, 1).toString();
 		parse_len += 2;
@@ -208,11 +208,11 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 			timestamp = year + '-' + mon + '-' + days + ' ' + hour + ':' + minute + ':' + sec + '  TZ:' + timezone;
 		}
         payloadList.push(getPayloadData('timestamp', timestamp, groupID));
-	} else if (port == 8) {
+	} else if (fPort == 8) {
 		var eventTypeCode = bytesToInt(bytes, 3, 1);
 		const event_type = eventTypeArray[eventTypeCode];
         payloadList.push(getPayloadData('event_type', event_type, groupID));
-	} else if (port == 9) {
+	} else if (fPort == 9) {
 		var parse_len = 3;
 		const gps_work_time = bytesToInt(bytes, parse_len, 4);
         payloadList.push(getPayloadData('gps_work_time', gps_work_time, groupID));
@@ -229,7 +229,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		const lora_work_time = bytesToInt(bytes, parse_len, 4);
         payloadList.push(getPayloadData('lora_work_time', lora_work_time, groupID));
 		parse_len += 4;
-	}else if (port == 12) {
+	}else if (fPort == 12) {
 
 		var operationModeCode = bytes[0] & 0x03;
 		const operation_mode = operationModeArray[operationModeCode];

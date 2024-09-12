@@ -68,7 +68,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 	const battery_charging_status = bytes[0] & 0x80 ? 'in charging' : 'no charging';	//Parse  Battery charging state 
     payloadList.push(getPayloadData('battery_charging_status', battery_charging_status, groupID));
 
-	const battery_level = (bytes[0] & 0x7F) + '%';  //Parse  Battery Level
+	const battery_level = (bytes[0] & 0x7F).toString() + '%';  //Parse  Battery Level
     payloadList.push(getPayloadData('battery_level', battery_level, groupID));
     
 
