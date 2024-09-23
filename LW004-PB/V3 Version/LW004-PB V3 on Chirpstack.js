@@ -146,7 +146,7 @@ function Decode(fPort, bytes) {
 		var ble_fix_false_reason = ["none", "hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "ble_fix_timeout", "ble_adv", "motion_start_interrupt", "motion_stop_interrupt"];
 		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
-		dev_info.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2]];
+		dev_info.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2] - 1];
 
 		parse_len = 3;
 		for (var j = 0; j < ((bytes.length - 3) / 7); j++) {
