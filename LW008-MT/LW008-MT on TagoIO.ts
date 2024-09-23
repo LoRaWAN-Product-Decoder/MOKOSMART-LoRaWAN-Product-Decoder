@@ -232,7 +232,7 @@ function parse_port4_data(bytes:number[], groupID:string):{ [key: string]: any }
         for (let i = 0; i < dataLen; i++) {
             const stringValue = bytesToHexString(dataBytes, (i * 1), 1);
             // data_list.push(stringValue);
-            tempList.push(getPayloadData("stringValue" + i.toString(), stringValue, groupID));
+            tempList.push(getPayloadData("satellite" + i.toString(), stringValue, groupID));
         }
         tempList.push(getPayloadData("reasons_for_positioning_failure_code", failedTypeCode, groupID));
         tempList.push(getPayloadData("reasons_for_positioning_failure", posFailedReasonArray[failedTypeCode], groupID));
