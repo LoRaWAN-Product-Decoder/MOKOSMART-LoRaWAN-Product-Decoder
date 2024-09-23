@@ -42,6 +42,8 @@ function Decoder(bytes, port) {
 				dev_info.temperature_state = "Current environment temperature is lower than minimum temperature alarm threshold value";
 			} else if (temp_value == 0x01) {
 				dev_info.temperature_state = "Current environment temperature is higher than maximum temperature alarm threshold value";
+			} else if (temp_value == 0x02) {
+				dev_info.temperature_state = "Current environment temperature is normal";
 			} else if (temp_value == 0x11) {
 				dev_info.temperature_state = "Temperature threshold alarm function is disable";
 			}
@@ -51,6 +53,8 @@ function Decoder(bytes, port) {
 				dev_info.humidity_state = "Current environment humidity is lower than minimum humidity alarm threshold value";
 			} else if (temp_value == 0x01) {
 				dev_info.humidity_state = "Current environment humidity is higher than maximum humidity alarm threshold value";
+			} else if (temp_value == 0x02) {
+				dev_info.humidity_state = "Current environment humidity is normal";
 			} else if (temp_value == 0x11) {
 				dev_info.humidity_state = "Humidity threshold alarm function is disable";
 			}
@@ -76,6 +80,8 @@ function Decoder(bytes, port) {
 				dev_info.temperature_change_state = "Current environment temperature rises faster than temperature change alarm condition";
 			} else if (temp_value == 0x01) {
 				dev_info.temperature_change_state = "Current environment temperature drops faster than temperature change alarm condition";
+			} else if (temp_value == 0x02) {
+				dev_info.temperature_change_state = 'Current environment temperature change is normal';
 			} else if (temp_value == 0x11) {
 				dev_info.temperature_change_state = "Temperature change alarm function is disable";
 			}
@@ -85,6 +91,8 @@ function Decoder(bytes, port) {
 				dev_info.humidity_change_state = "Current environment humidity rises faster than humidity change alarm condition";
 			} else if (temp_value == 0x01) {
 				dev_info.humidity_change_state = "Current environment humidity drops faster than humidity change alarm condition";
+			} else if (temp_value == 0x02) {
+				dev_info.humidity_change_state = 'Current environment humidity change is normal';
 			} else if (temp_value == 0x11) {
 				dev_info.humidity_change_state = "Humidity change alarm function is disable";
 			}
@@ -96,19 +104,19 @@ function Decoder(bytes, port) {
 			temp_value = bytes[5];
 			if (temp_value == 0x00) {
 				dev_info.low_battery_status = "Battery level is normal";
-				dev_info.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
+				dev_info.low_battery_alarm = "low power alarm function is enabled";
 			} 
 			else if (temp_value == 0x01) {
 				dev_info.low_battery_status = "Battery is low";
-				dev_info.low_battery_prompt = "Device won’t send Heartbeat Payload to server when device’s battery level is low";
+				dev_info.low_battery_alarm = "low power alarm function is enabled";
 			} 
 			else if (temp_value == 0x02) {
 				dev_info.low_battery_status = "Battery is normal";
-				dev_info.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
+				dev_info.low_battery_alarm = "low power alarm function is enabled";
 			} 
 			else if (temp_value == 0x03) {
 				dev_info.low_battery_status = "Battery is low";
-				dev_info.low_battery_prompt = "Device will send Heartbeat Payload to server when device’s battery level is low";
+				dev_info.low_battery_alarm = "low power alarm function is enabled";
 			} 
 			//dev_info.current_battery_voltage = ((bytes[6] & 0xFF) + 22) / 10 + "V";  
 			break;
