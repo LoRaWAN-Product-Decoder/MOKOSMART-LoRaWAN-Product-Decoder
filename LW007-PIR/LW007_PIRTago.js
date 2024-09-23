@@ -51,6 +51,9 @@ function Decoder(bytes, fPort, groupID) {
         else if (temp_value == 0x01) {
             temperature_state = 'Current environment temperature is higher than maximum temperature alarm threshold value';
         }
+        else if (temp_value == 0x10) {
+            temperature_state = 'Current environment temperature is normal';
+        }
         else {
             temperature_state = 'Temperature threshold alarm function is disable';
         }
@@ -62,6 +65,9 @@ function Decoder(bytes, fPort, groupID) {
         }
         else if (temp_value == 0x01) {
             humidity_state = 'Current environment humidity is higher than maximum humidity alarm threshold value';
+        }
+        else if (temp_value == 0x10) {
+            humidity_state = 'Current environment humidity is normal';
         }
         else {
             humidity_state = 'Humidity threshold alarm function is disable';

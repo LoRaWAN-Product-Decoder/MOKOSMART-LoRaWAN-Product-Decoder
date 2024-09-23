@@ -58,6 +58,8 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
             temperature_state = 'Current environment temperature is lower than minimum temperature alarm threshold value';
         } else if (temp_value == 0x01) {
             temperature_state = 'Current environment temperature is higher than maximum temperature alarm threshold value';
+        } else if (temp_value == 0x10) {
+            temperature_state = 'Current environment temperature is normal';
         } else {
             temperature_state = 'Temperature threshold alarm function is disable';
         }
@@ -69,6 +71,8 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
             humidity_state = 'Current environment humidity is lower than minimum humidity alarm threshold value';
         } else if (temp_value == 0x01) {
             humidity_state = 'Current environment humidity is higher than maximum humidity alarm threshold value';
+        } else if (temp_value == 0x10) {
+            humidity_state = 'Current environment humidity is normal';
         } else {
             humidity_state = 'Humidity threshold alarm function is disable';
         }
