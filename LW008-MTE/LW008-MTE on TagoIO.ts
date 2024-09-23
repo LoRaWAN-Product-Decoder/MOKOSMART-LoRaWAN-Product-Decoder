@@ -74,10 +74,32 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
     if (fPort == 12 && bytes.length == 11) { 
         payloadList.push(getPayloadData("ack", bytes[1] & 0x0f, groupID));
         payloadList.push(getPayloadData("battery_value", (((bytes[1] >> 4) & 0xf) * 0.1 + 2.2).toFixed(1).toString() + "V", groupID));
-        payloadList.push(getPayloadData("latitude", Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
-        + '°', groupID));
-        payloadList.push(getPayloadData("longitude", Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
-        + '°', groupID));
+
+        var lat = bytesToInt(bytes, 2, 4);
+		var lon = bytesToInt(bytes, 6, 4);
+
+		if (lat > 0x80000000)
+            lat = lat - 0x100000000;
+        if (lon > 0x80000000)
+            lon = lon - 0x100000000;
+
+        const latitude = (lat / 10000000);
+
+        const longitude = (lon / 10000000);
+
+        const location = {
+            'variable': 'location',
+            'value': 'My Address',
+            'location':{
+                'lat': latitude,
+                'lng': longitude,
+            },
+            'group': groupID,
+            'metadata': {
+                'color': '#add8e6'
+            },
+        }
+
         payloadList.push(getPayloadData("pdop", (bytesToInt(bytes, 10, 1) * 0.1).toFixed(1).toString(), groupID));
         return payloadList;
     }
