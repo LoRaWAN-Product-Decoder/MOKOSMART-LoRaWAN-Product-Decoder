@@ -74,31 +74,31 @@ function Decoder(bytes, port) {
 		var eventTypeCode = bytes[6] & 0xFF;
 		dev_info.event_type = eventTypeArray[eventTypeCode];		//event
 	} else if (port == 2) {
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.firmware_version = "V" + bytes[2] + "." + bytes[3] + "." + bytes[4];
 		dev_info.hardware_version = "V" + bytes[5] + "." + bytes[6];
 		dev_info.timezone = timezone_decode(bytes[7]);		//timezone
 		// dev_info.alarm_error = bytes[8];	//error state
 	} else if (port == 3) {
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.timezone = timezone_decode(bytes[2]);		//timezone
 		dev_info.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		dev_info.shutdown_type = shutdownTypeArray[bytes[7]];
 	} else if (port == 4) {
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.timezone = timezone_decode(bytes[2]);		//timezone
 		dev_info.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 	} else if (port == 5) {
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		dev_info.timezone = timezone_decode(bytes[2]);		//timezone
 		dev_info.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
 		dev_info.low_power_prompt_percent = (bytes[7] & 0xFF) + "%";		//low power level
 	} else if (port == 6 || port == 10) {
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07 - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] >> 2 & 0x07];	//device status
 
 		age = (bytes[1] & 0x01) << 8 | bytes[2];
@@ -116,15 +116,15 @@ function Decoder(bytes, port) {
 		dev_info.longitude = lon / 10000000;
 	} else if (port == 7 || port == 11) {
 		var gps_fix_false_reason = ["hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "gps_fix_tech_timeout", "gps_fix_timeout", "alert_short_time", "sos_short_time", "pdop_limit", "motion_start_interrupt", "motion_stop_interrupt"];
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
-		dev_info.reasons_for_positioning_failure = posFailedReasonArray[bytes[2]];
+		dev_info.reasons_for_positioning_failure = posFailedReasonArray[bytes[2] - 1];
 		dev_info.location_failure_cn0 = bytes[3];
 		dev_info.location_failure_cn1 = bytes[4];
 		dev_info.location_failure_cn2 = bytes[5];
 		dev_info.location_failure_cn3 = bytes[6];
 	} else if (port == 8 || port == 12) {
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		var age = (bytes[2]) << 8 | bytes[3];
 		dev_info.age = age + "s";	//age
@@ -141,9 +141,9 @@ function Decoder(bytes, port) {
 
 	} else if (port == 9 || port == 13) {
 		var ble_fix_false_reason = ["none", "hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "ble_fix_timeout", "ble_adv", "motion_start_interrupt", "motion_stop_interrupt"];
-		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		dev_info.device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
 		dev_info.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
-		dev_info.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2]];
+		dev_info.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2] - 1];
 
 		parse_len = 3;
 		for (var j = 0; j < ((bytes.length - 3) / 7); j++) {

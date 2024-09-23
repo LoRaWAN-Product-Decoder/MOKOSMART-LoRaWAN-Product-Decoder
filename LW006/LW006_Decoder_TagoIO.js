@@ -37,7 +37,7 @@ function Decoder(bytes, fPort, groupID) {
     if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
         || fPort == 5 || fPort == 8 || fPort == 9) {
         var chargingstatus = bytes[0] & 0x80;
-        var charging_status = chargingstatus == 1 ? "charging" : "no charging";
+        var charging_status = (chargingstatus == 0x80) ? "charging" : "no charging";
         payloadList.push(getPayloadData("charging_status", charging_status, groupID));
         var batt_level = (bytes[0] & 0x7F).toString() + "%";
         payloadList.push(getPayloadData("battery_level", batt_level, groupID));

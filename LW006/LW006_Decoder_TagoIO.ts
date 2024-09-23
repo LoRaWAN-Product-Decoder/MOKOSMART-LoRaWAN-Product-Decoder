@@ -38,7 +38,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
     if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
         || fPort == 5 || fPort == 8 || fPort == 9) {
         const chargingstatus = bytes[0] & 0x80;
-        const charging_status = chargingstatus == 1 ? "charging" : "no charging";
+        const charging_status = (chargingstatus == 0x80) ? "charging" : "no charging";
         payloadList.push(getPayloadData("charging_status", charging_status, groupID));
 
         const batt_level = (bytes[0] & 0x7F).toString() + "%";
@@ -184,13 +184,36 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
             const datas = [];
             const count = pos_data_length / 9;
             let index = 6;
-            const latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
-            index += 4;
-            const longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
-            index += 4;
+
+            var lat = bytesToInt(bytes, index, 4);
+			index += 4;
+			var lon = bytesToInt(bytes, index, 4);
+			index += 4;
+
+            if (lat > 0x80000000)
+				lat = lat - 0x100000000;
+			if (lon > 0x80000000)
+				lon = lon - 0x100000000;
+
+			const latitude = (lat / 10000000);
+
+			const longitude = (lon / 10000000);
+
+			const location = {
+				'variable': 'location',
+				'value': 'My Address',
+				'location':{
+					'lat': latitude,
+					'lng': longitude,
+				},
+				'group': groupID,
+				'metadata': {
+					'color': '#add8e6'
+				},
+			}
+			
+			payloadList.push(location);
             const pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
-            payloadList.push(getPayloadData("latitude", latitude, groupID));
-            payloadList.push(getPayloadData("longitude", longitude, groupID));
             payloadList.push(getPayloadData("pdop", pdop, groupID));
         }
 

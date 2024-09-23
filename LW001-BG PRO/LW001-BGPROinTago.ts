@@ -135,11 +135,24 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 			if (lon > 0x80000000)
 				lon = lon - 0x100000000;
 
-			const latitude = (lat / 10000000).toString();
-            payloadList.push(getPayloadData('latitude', latitude, groupID));
+			const latitude = (lat / 10000000);
 
-			const longitude = (lon / 10000000).toString();
-            payloadList.push(getPayloadData('longitude', longitude, groupID));
+			const longitude = (lon / 10000000);
+
+			const location = {
+				'variable': 'location',
+				'value': 'My Address',
+				'location':{
+					'lat': latitude,
+					'lng': longitude,
+				},
+				'group': groupID,
+				'metadata': {
+					'color': '#add8e6'
+				},
+			}
+			
+			payloadList.push(location);
 
 			const pdop = (bytes[parse_len] / 10).toFixed(1).toString();
             payloadList.push(getPayloadData('pdop', pdop, groupID));

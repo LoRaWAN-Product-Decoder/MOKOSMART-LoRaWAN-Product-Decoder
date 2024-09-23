@@ -83,7 +83,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		const event_type = eventTypeArray[eventTypeCode];		//event
         payloadList.push(getPayloadData('event_type', event_type, groupID));
 	} else if (fPort == 2) {
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -99,7 +99,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         payloadList.push(getPayloadData('timezone', timezone, groupID));
 		// const alarm_error = bytes[8];	//error state
 	} else if (fPort == 3) {
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -115,7 +115,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         payloadList.push(getPayloadData('shutdown_type', shutdown_type, groupID));
 
 	} else if (fPort == 4) {
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -127,7 +127,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		const timestamp = bytesToInt(bytes, 3, 4);		//timestamp
         payloadList.push(getPayloadData('timestamp', timestamp, groupID));
 	} else if (fPort == 5) {
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -142,7 +142,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		const low_power_prompt_percent = (bytes[7] & 0xFF) + '%';		//low power level
         payloadList.push(getPayloadData('low_power_prompt_percent', low_power_prompt_percent, groupID));
 	} else if (fPort == 6 || fPort == 10) {
-		const device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 5) & 0x07 - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] >> 2 & 0x07];	//device status
@@ -159,19 +159,33 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		if (lon > 0x80000000)
 			lon = lon - 0x100000000;
 
-		const latitude = lat / 10000000;
-        payloadList.push(getPayloadData('latitude', latitude, groupID));
-		const longitude = lon / 10000000;
-        payloadList.push(getPayloadData('longitude', longitude, groupID));
+        const latitude = (lat / 10000000);
+
+        const longitude = (lon / 10000000);
+
+        const location = {
+            'variable': 'location',
+            'value': 'My Address',
+            'location':{
+                'lat': latitude,
+                'lng': longitude,
+            },
+            'group': groupID,
+            'metadata': {
+                'color': '#add8e6'
+            },
+        }
+        
+        payloadList.push(location);
 	} else if (fPort == 7 || fPort == 11) {
 		var gps_fix_false_reason = ['hardware_error', 'down_request_fix_interrupt', 'mandown_fix_interrupt', 'alarm_fix_interrupt', 'gps_fix_tech_timeout', 'gps_fix_timeout', 'alert_short_time', 'sos_short_time', 'pdop_limit', 'motion_start_interrupt', 'motion_stop_interrupt'];
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
         payloadList.push(getPayloadData('auxiliary_operation', auxiliary_operation, groupID));
 
-		const reasons_for_positioning_failure = posFailedReasonArray[bytes[2]];
+		const reasons_for_positioning_failure = posFailedReasonArray[bytes[2] - 1];
         payloadList.push(getPayloadData('reasons_for_positioning_failure', reasons_for_positioning_failure, groupID));
 
 		const location_failure_cn0 = bytes[3];
@@ -186,7 +200,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 		const location_failure_cn3 = bytes[6];
         payloadList.push(getPayloadData('location_failure_cn3', location_failure_cn3, groupID));
 	} else if (fPort == 8 || fPort == 12) {
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -206,13 +220,13 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 
 	} else if (fPort == 9 || fPort == 13) {
 		var ble_fix_false_reason = ['none', 'hardware_error', 'down_request_fix_interrupt', 'mandown_fix_interrupt', 'alarm_fix_interrupt', 'ble_fix_timeout', 'ble_adv', 'motion_start_interrupt', 'motion_stop_interrupt'];
-		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F];	//work mode
+		const device_mode = deviceModeArray[(bytes[1] >> 4) & 0x0F - 1];	//work mode
         payloadList.push(getPayloadData('device_mode', device_mode, groupID));
 
 		const auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
         payloadList.push(getPayloadData('auxiliary_operation', auxiliary_operation, groupID));
 
-		const reasons_for_positioning_failure = posFailedReasonArray2[bytes[2]];
+		const reasons_for_positioning_failure = posFailedReasonArray2[bytes[2] - 1];
         payloadList.push(getPayloadData('reasons_for_positioning_failure', reasons_for_positioning_failure, groupID));
 
 		parse_len = 3;

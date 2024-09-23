@@ -116,10 +116,21 @@ function Decoder(bytes, fPort, groupID) {
                 lat = lat - 0x100000000;
             if (lon > 0x80000000)
                 lon = lon - 0x100000000;
-            var latitude = (lat / 10000000).toString();
-            payloadList.push(getPayloadData('latitude', latitude, groupID));
-            var longitude = (lon / 10000000).toString();
-            payloadList.push(getPayloadData('longitude', longitude, groupID));
+            var latitude = (lat / 10000000);
+            var longitude = (lon / 10000000);
+            var location_1 = {
+                'variable': 'location',
+                'value': 'My Address',
+                'location': {
+                    'lat': latitude,
+                    'lng': longitude,
+                },
+                'group': groupID,
+                'metadata': {
+                    'color': '#add8e6'
+                },
+            };
+            payloadList.push(location_1);
             var pdop_1 = (bytes[parse_len] / 10).toFixed(1).toString();
             payloadList.push(getPayloadData('pdop', pdop_1, groupID));
         }
