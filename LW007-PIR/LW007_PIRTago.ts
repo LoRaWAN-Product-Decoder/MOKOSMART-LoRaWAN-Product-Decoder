@@ -23,12 +23,12 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 	const time = parse_time(timestamp, bytes[4] * 0.5);
     payloadList.push(getPayloadData('time', time, groupID));
 
-	const timezone = timezone_decode(bytes[4])
+	const timezone = timezone_decode(bytes[5])
     payloadList.push(getPayloadData('timezone', timezone, groupID));
 
     if (fPort == 6) {
         var temp_value = 0;
-        temp_value = (bytes[5] >> 6) & 0x03;
+        temp_value = (bytes[6] >> 6) & 0x03;
 
         var pir_state = '';
 		if (temp_value == 0x00) {
@@ -41,7 +41,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('pir_state', pir_state, groupID));
 
-        temp_value = (bytes[5] >> 4) & 0x03;
+        temp_value = (bytes[6] >> 4) & 0x03;
         var door_state = '';
         if (temp_value == 0x00) {
             door_state = 'Door/window is close';
@@ -52,7 +52,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('door_state', door_state, groupID));
 
-        temp_value = (bytes[5] >> 2) & 0x03;
+        temp_value = (bytes[6] >> 2) & 0x03;
         var temperature_state = '';
         if (temp_value == 0x00) {
             temperature_state = 'Current environment temperature is lower than minimum temperature alarm threshold value';
@@ -63,7 +63,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('temperature_state', temperature_state, groupID));
 
-        temp_value = bytes[5] & 0x03;
+        temp_value = bytes[6] & 0x03;
         var humidity_state = '';
         if (temp_value == 0x00) {
             humidity_state = 'Current environment humidity is lower than minimum humidity alarm threshold value';
@@ -74,7 +74,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('humidity_state', humidity_state, groupID));
 
-        temp_value = (bytesToInt(bytes, 6, 3) >> 14) & 0x03ff;
+        temp_value = (bytesToInt(bytes, 7, 3) >> 14) & 0x03ff;
         var temperature = '';
         if (temp_value == 0x03ff) {
             temperature = 'Temperature monitoring function is disable';
@@ -84,7 +84,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('temperature', temperature, groupID));
 
-        temp_value = (bytesToInt(bytes, 6, 3) >> 4) & 0x03ff;
+        temp_value = (bytesToInt(bytes, 7, 3) >> 4) & 0x03ff;
         var humidity = '';
         if (temp_value == 0x03ff) {
             humidity = 'Humidity monitoring function is disable';
@@ -94,7 +94,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('humidity', humidity, groupID));
 
-        temp_value = (bytesToInt(bytes, 6, 3) >> 2) & 0x03;
+        temp_value = (bytesToInt(bytes, 7, 3) >> 2) & 0x03;
         var temperature_change_state = '';
         if (temp_value == 0x00) {
             temperature_change_state = 'Current environment temperature rises faster than temperature change alarm condition';
@@ -105,7 +105,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         }
         payloadList.push(getPayloadData('temperature_change_state', temperature_change_state, groupID));
 
-        temp_value = bytesToInt(bytes, 6, 3) & 0x03;
+        temp_value = bytesToInt(bytes, 7, 3) & 0x03;
         var humidity_change_state = '';
         if (temp_value == 0x00) {
             humidity_change_state = 'Current environment humidity rises faster than humidity change alarm condition';
@@ -119,25 +119,25 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         const low_battery_status = (bytesToInt(bytes, 9, 2) >> 15) == 1 ? 'Battery level is low' : 'Battery level is normal';
         payloadList.push(getPayloadData('low_battery_status', low_battery_status, groupID));
 
-        temp_value = bytesToInt(bytes, 9, 2) & 0x7FFF;
+        temp_value = bytesToInt(bytes, 10, 2) & 0x7FFF;
         const door_trigger_times = temp_value == 0x7FFF ? 'Door/window status detection function is disable' : temp_value.toString() + 'times';
         payloadList.push(getPayloadData('door_trigger_times', door_trigger_times, groupID));
     } else if (fPort == 7) {
         var low_battery_status = '';
         var low_battery_prompt = '';
-		if (bytes[5] == 0x00) {
+		if (bytes[6] == 0x00) {
             low_battery_status = 'Battery level is normal';
             low_battery_prompt = 'Device won’t send Heartbeat Payload to server when device’s battery level is low';
         } 
-        else if (bytes[5] == 0x01) {
+        else if (bytes[6] == 0x01) {
             low_battery_status = 'Battery is low';
             low_battery_prompt = 'Device won’t send Heartbeat Payload to server when device’s battery level is low';
         } 
-        else if (bytes[5] == 0x02) {
+        else if (bytes[6] == 0x02) {
             low_battery_status = 'Battery is normal';
             low_battery_prompt = 'Device will send Heartbeat Payload to server when device’s battery level is low';
         } 
-        else if (bytes[5] == 0x03) {
+        else if (bytes[6] == 0x03) {
             low_battery_status = 'Battery is low';
             low_battery_prompt = 'Device will send Heartbeat Payload to server when device’s battery level is low';
         } 
