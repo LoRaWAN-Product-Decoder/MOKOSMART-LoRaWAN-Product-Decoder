@@ -101,6 +101,9 @@ function Decoder(bytes, fPort, groupID) {
         else if (temp_value == 0x01) {
             temperature_change_state = 'Current environment temperature drops faster than temperature change alarm condition';
         }
+        else if (temp_value == 0x10) {
+            temperature_change_state = 'Current environment temperature change is normal';
+        }
         else {
             temperature_change_state = 'Temperature change alarm function is disable';
         }
@@ -112,6 +115,9 @@ function Decoder(bytes, fPort, groupID) {
         }
         else if (temp_value == 0x01) {
             humidity_change_state = 'Current environment humidity drops faster than humidity change alarm condition';
+        }
+        else if (temp_value == 0x10) {
+            humidity_change_state = 'Current environment humidity change is normal';
         }
         else {
             humidity_change_state = 'Humidity change alarm function is disable';
