@@ -186,20 +186,20 @@ function decodeUplink(input) {
 		data.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (fPort == 7) {
 		var parse_len = 3; // common head is 3 byte
-		year = bytesToInt(bytes, parse_len, 1);
+		year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
-		mon = bytes[parse_len++];
-		days = bytes[parse_len++];
-		hour = bytes[parse_len++];
-		minute = bytes[parse_len++];
-		sec = bytes[parse_len++];
+		mon = formatNumber(bytes[parse_len++]);
+		days = formatNumber(bytes[parse_len++]);
+		hour = formatNumber(bytes[parse_len++]);
+		minute = formatNumber(bytes[parse_len++]);
+		sec = formatNumber(bytes[parse_len++]);
 		timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
-			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + " TZ:" + (timezone - 0x100);
 		}
 		else {
-			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + " TZ:" + timezone;
 		}
 	} else if (fPort == 8) {
 		var eventTypeCode = bytesToInt(bytes, 3, 1);
@@ -404,6 +404,6 @@ function getData(hex) {
 }
 
 // var input = {};
-// input.fPort = 2;
-// input.bytes = getData("0118D00107E8031A1033010807D90B0786212FB3");
+// input.fPort = 7;
+// input.bytes = getData("091ce107e8090a08043600");
 // console.log(decodeUplink(input));
