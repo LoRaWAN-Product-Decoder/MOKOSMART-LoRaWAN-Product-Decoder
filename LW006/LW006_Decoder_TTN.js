@@ -117,7 +117,7 @@ function Decoder(bytes, port) {
                 index += 4;
                 var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
                 index += 4;
-                var podp = (bytes[index++] & 0xFF) * 0.1;
+                var pdop =  Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
                 data.latitude = latitude;
                 data.longitude = longitude;
                 data.podp = podp;

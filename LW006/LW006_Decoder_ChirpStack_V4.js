@@ -102,11 +102,18 @@ function decodeUplink(input) {
         data.event_type = eventType[bytes[6]];
     } else if (fPort == 6) {
         // L76_GPS data
-        data.pos_type = posType[bytesToInt(bytes, 0, 2) >> 12];
-        data.age = bytesToInt(bytes, 0, 2) + "s";
+        var date = new Date();
+        var timestamp = Math.trunc(date.getTime() / 1000);
+        var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+        data.pos_type = posType[bytesToInt(bytes, 0, 2) >> 11];
+        var age = bytesToInt(bytes, 0, 2) & 0x7FF
+        data.age = age + "s";
+        data.timestamp = timestamp - age;
+        data.time = parse_time(timestamp, offsetHours);
+        data.timezone = timezone_decode(offsetHours * 2);
         var latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7) + '°';
         var longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7) + '°';
-        var pdop = (bytes[10] & 0xFF) * 0.1;
+        var pdop =  Number(bytes[10] & 0xFF * 0.1).toFixed(1);
         data.latitude = latitude;
         data.longitude = longitude;
         data.pdop = pdop;
@@ -128,12 +135,13 @@ function decodeUplink(input) {
         var date = new Date();
         var timestamp = Math.trunc(date.getTime() / 1000);
         var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
-        data.timestamp = timestamp;
+        var age = bytesToInt(bytes, 1, 2)
+        data.age = age + "s";
+        data.timestamp = timestamp - age;
         data.time = parse_time(timestamp, offsetHours);
         data.timezone = timezone_decode(offsetHours * 2);
         // Pos Success
         // data.payload_type = 'Pos Success';
-        data.age = bytesToInt(bytes, 1, 2) + "s";
         data.pos_type = posType[bytes[3] >> 4];
         var pos_data_sign = bytes[3] & 0x0F;
         data.payload_type = posDataSign[pos_data_sign];

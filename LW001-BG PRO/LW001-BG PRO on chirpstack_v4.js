@@ -153,17 +153,18 @@ function decodeUplink(input) {
 		var parse_len = 3;
 		var datas = [];
 		var failedTypeCode = bytesToInt(bytes, parse_len++, 1);
+		data.reasons_for_positioning_failure_code = failedTypeCode;
 		data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
 		datalen = bytes[parse_len++];
 		if (failedTypeCode <= 5) //wifi and ble reason
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
-					var data = {};
-					data.mac = substringBytes(bytes, parse_len, 6);
+					var item = {};
+					item.mac = substringBytes(bytes, parse_len, 6);
 					parse_len += 6;
-					data.rssi = bytes[parse_len++] - 256 + "dBm";
-					datas.push(data);
+					item.rssi = bytes[parse_len++] - 256 + "dBm";
+					datas.push(item);
 				}
 				data.mac_data = datas;
 			}
@@ -186,20 +187,20 @@ function decodeUplink(input) {
 		data.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (fPort == 7) {
 		var parse_len = 3; // common head is 3 byte
-		year = bytesToInt(bytes, parse_len, 1);
+		year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
-		mon = bytes[parse_len++];
-		days = bytes[parse_len++];
-		hour = bytes[parse_len++];
-		minute = bytes[parse_len++];
-		sec = bytes[parse_len++];
+		mon = formatNumber(bytes[parse_len++]);
+		days = formatNumber(bytes[parse_len++]);
+		hour = formatNumber(bytes[parse_len++]);
+		minute = formatNumber(bytes[parse_len++]);
+		sec = formatNumber(bytes[parse_len++]);
 		timezone = bytes[parse_len++];
 
 		if (timezone > 0x80) {
-			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + (timezone - 0x100);
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + " TZ:" + (timezone - 0x100);
 		}
 		else {
-			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + "  TZ:" + timezone;
+			data.time_str = year + "-" + mon + "-" + days + " " + hour + ":" + minute + ":" + sec + " TZ:" + timezone;
 		}
 	} else if (fPort == 8) {
 		var eventTypeCode = bytesToInt(bytes, 3, 1);
@@ -403,7 +404,7 @@ function getData(hex) {
 	return datas;
 }
 
-// var input = {};
-// input.fPort = 2;
-// input.bytes = getData("0118D00107E8031A1033010807D90B0786212FB3");
-// console.log(decodeUplink(input));
+var input = {};
+input.fPort = 3;
+input.bytes = getData("011CE0040ED4701AB00318D2FFB3FC98A622CA");
+console.log(decodeUplink(input));

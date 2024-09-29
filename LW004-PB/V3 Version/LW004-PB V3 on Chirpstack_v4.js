@@ -108,6 +108,7 @@ function decodeUplink(input) {
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
 		data.timezone = timezone_decode(bytes[2]);		//timezone
 		data.timestamp = bytesToInt(bytes, 3, 4);		//timestamp
+		data.time = parse_time(data.timestamp, bytes[2] * 0.5);
 	} else if (fPort == 5) {
 		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -139,6 +140,12 @@ function decodeUplink(input) {
 		data.latitude = lat / 10000000;
 		data.longitude = lon / 10000000;
 	} else if (fPort == 7 || fPort == 11) {
+		var date = new Date();
+		var timestamp = Math.trunc(date.getTime() / 1000);
+		var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+		data.timestamp = timestamp;
+		data.time = parse_time(timestamp, offsetHours);
+		data.timezone = timezone_decode(offsetHours * 2);
 		var gps_fix_false_reason = ["hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "gps_fix_tech_timeout", "gps_fix_timeout", "alert_short_time", "sos_short_time", "pdop_limit", "motion_start_interrupt", "motion_stop_interrupt"];
 		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
@@ -171,10 +178,16 @@ function decodeUplink(input) {
 		data.mac_data = datas;
 
 	} else if (fPort == 9 || fPort == 13) {
+		var date = new Date();
+		var timestamp = Math.trunc(date.getTime() / 1000);
+		var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+		data.timestamp = timestamp;
+		data.time = parse_time(timestamp, offsetHours);
+		data.timezone = timezone_decode(offsetHours * 2);
 		var ble_fix_false_reason = ["none", "hardware_error", "down_request_fix_interrupt", "mandown_fix_interrupt", "alarm_fix_interrupt", "ble_fix_timeout", "ble_adv", "motion_start_interrupt", "motion_stop_interrupt"];
 		data.device_mode = deviceModeArray[((bytes[1] >> 4) & 0x0F) - 1];	//work mode
 		data.auxiliary_operation = auxiliaryOperationArray[bytes[1] & 0x0F];	//device status
-		data.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2]];
+		data.reasons_for_positioning_failure = posFailedReasonArray2[bytes[2] - 1];
 
 		parse_len = 3;
 		for (var j = 0; j < ((bytes.length - 3) / 7); j++) {
@@ -298,6 +311,6 @@ function getData(hex) {
 }
 
 // var input = {};
-// input.fPort = 3;
-// input.bytes = getData("603010660665ef02");
+// input.fPort = 9;
+// input.bytes = getData("d43006");
 // console.log(decodeUplink(input));

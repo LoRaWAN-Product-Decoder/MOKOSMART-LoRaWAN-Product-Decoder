@@ -258,7 +258,7 @@ function parse_port9_data(data, bytes, port) {
 function parse_port12_data(data, bytes, port) {
     var obj = {};
     obj.ack = bytes[1] & 0x0f;
-    obj.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
+    obj.battery_value = (2.2 + (bytes[1] & 0xf0) * 0.1) + "V";
     obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';
     obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
@@ -434,3 +434,20 @@ function int8(byte) {
     }
     return byte;
 }
+
+function getData(hex) {
+	var length = hex.length;
+	var datas = [];
+	for (var i = 0; i < length; i += 2) {
+		var start = i;
+		var end = i + 2;
+		var data = parseInt("0x" + hex.substring(start, end));
+		datas.push(data);
+	}
+	return datas;
+}
+
+var input = {};
+input.fPort = 2;
+input.bytes = getData("0122000031030912278808443a9d6228");
+console.log(decodeUplink(input));
