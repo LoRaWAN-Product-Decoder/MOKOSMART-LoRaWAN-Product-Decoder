@@ -178,13 +178,30 @@ function Decoder(bytes, fPort, groupID) {
             var datas = [];
             var count = pos_data_length / 9;
             var index = 6;
-            var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
+            var lat = bytesToInt(bytes, index, 4);
             index += 4;
-            var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
+            var lon = bytesToInt(bytes, index, 4);
             index += 4;
+            if (lat > 0x80000000)
+                lat = lat - 0x100000000;
+            if (lon > 0x80000000)
+                lon = lon - 0x100000000;
+            var latitude = (lat / 10000000);
+            var longitude = (lon / 10000000);
+            var location_1 = {
+                'variable': 'location',
+                'value': 'My Address',
+                'location': {
+                    'lat': latitude,
+                    'lng': longitude,
+                },
+                'group': groupID,
+                'metadata': {
+                    'color': '#add8e6'
+                },
+            };
+            payloadList.push(location_1);
             var pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
-            payloadList.push(getPayloadData("latitude", latitude, groupID));
-            payloadList.push(getPayloadData("longitude", longitude, groupID));
             payloadList.push(getPayloadData("pdop", pdop, groupID));
         }
         return payloadList;
