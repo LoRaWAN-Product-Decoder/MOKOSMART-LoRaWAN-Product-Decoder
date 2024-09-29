@@ -873,7 +873,7 @@ function decodeUplink(input) {
                     item.raw_data = bytesToHexString(bytes, parse_len, item.raw_data_length).toUpperCase();
                     parse_len += item.raw_data_length;
                 }
-                datas.push(JSON.stringify(item));
+                datas.push(item);
             }
         }
         data.scan_data = datas;
@@ -1031,5 +1031,5 @@ function getData(hex) {
 // console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
 var input = {};
 input.fPort = 5;
-input.bytes = getData("0066503f2010013f0ae75e188a22e5cb66503f1b000201041aff0a6202151900e75e188a22e5160412101b190e0a00cf1f9ad9020af810094d6b69426561636f6e5f3938373635");
+input.bytes = getData("4e66cd2e9a10060d0ac424b6de3a2abd66f60ba8000d0aa309748aafa9af66f60ba8009505d9111e793ce7b966f60ba800000a0bb30001300a9505d275202b7325b366f60ba800bf0a0baa000120010d0a6cdf52b222a1b666f60ba8000d0af401d415f2b4c266f60ba800");
 console.log(decodeUplink(input));

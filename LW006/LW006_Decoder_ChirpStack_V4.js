@@ -113,7 +113,7 @@ function decodeUplink(input) {
         data.timezone = timezone_decode(offsetHours * 2);
         var latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7) + '°';
         var longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7) + '°';
-        var pdop = (bytes[10] & 0xFF) * 0.1;
+        var pdop =  Number(bytes[10] & 0xFF * 0.1).toFixed(1);
         data.latitude = latitude;
         data.longitude = longitude;
         data.pdop = pdop;

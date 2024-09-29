@@ -153,17 +153,18 @@ function decodeUplink(input) {
 		var parse_len = 3;
 		var datas = [];
 		var failedTypeCode = bytesToInt(bytes, parse_len++, 1);
+		data.reasons_for_positioning_failure_code = failedTypeCode;
 		data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
 		datalen = bytes[parse_len++];
 		if (failedTypeCode <= 5) //wifi and ble reason
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
-					var data = {};
-					data.mac = substringBytes(bytes, parse_len, 6);
+					var item = {};
+					item.mac = substringBytes(bytes, parse_len, 6);
 					parse_len += 6;
-					data.rssi = bytes[parse_len++] - 256 + "dBm";
-					datas.push(data);
+					item.rssi = bytes[parse_len++] - 256 + "dBm";
+					datas.push(item);
 				}
 				data.mac_data = datas;
 			}
@@ -403,7 +404,7 @@ function getData(hex) {
 	return datas;
 }
 
-// var input = {};
-// input.fPort = 7;
-// input.bytes = getData("091ce107e8090a08043600");
-// console.log(decodeUplink(input));
+var input = {};
+input.fPort = 3;
+input.bytes = getData("011CE0040ED4701AB00318D2FFB3FC98A622CA");
+console.log(decodeUplink(input));
