@@ -34,6 +34,20 @@ function decodeUplink(input) {
     data.port = port;
 	data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 	data.payload_type = payloadTypeArray[port - 1];
+	if (port == 11) {
+		var tempIndex = 2;
+		var current_time = (bytes[tempIndex++]*256 + bytes[tempIndex++])+ '/' + bytes[tempIndex++] + '/' + bytes[tempIndex++] + ' ' + bytes[tempIndex++] + ':' + bytes[tempIndex++] + ':' + bytes[tempIndex++];
+		var timezone = signedHexToInt(bytesToHexString(bytes, tempIndex, 1));
+		tempIndex += 1;
+
+		data.current_time = current_time;
+		data.timezone = timezone;
+
+		port = bytesToInt(bytes, tempIndex, 1);
+		tempIndex += 1;
+
+		bytes = bytes.slice(tempIndex);
+	}
 	//common frame head
 	if (port <= 10) {
 		var operationModeCode = bytes[0] & 0x03;
@@ -199,8 +213,6 @@ function decodeUplink(input) {
 		data.lora_work_time = bytesToInt(bytes, parse_len, 4);
 		parse_len += 4;
 	} else if (port == 10) {
-		//
-	} else if (port == 11) {
 		//
 	} else if (port == 12) {
 
