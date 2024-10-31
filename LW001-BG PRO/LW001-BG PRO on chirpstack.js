@@ -102,11 +102,11 @@ function Decode(fPort, bytes) {
 
 		if (positionTypeCode == 0 || positionTypeCode == 1) {
 			for (var i = 0; i < (datalen / 7); i++) {
-				var data = {};
-				data.mac = substringBytes(bytes, parse_len, 6);
+				var tempData = {};
+				tempData.mac = substringBytes(bytes, parse_len, 6);
 				parse_len += 6;
-				data.rssi = bytes[parse_len++] - 256 + "dBm";
-				datas.push(data);
+				tempData.rssi = bytes[parse_len++] - 256 + "dBm";
+				datas.push(tempData);
 			}
 			dev_info.mac_data = datas;
 		} else {
