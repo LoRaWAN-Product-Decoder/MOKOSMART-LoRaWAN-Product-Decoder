@@ -9,7 +9,7 @@ const payloadTypeArray:string[] = [
     , "Battery Consumption"
     , "GPS Limit"];
 const operationModeArray:string[] = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode"];
-const rebootReasonArray:string[] = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off"];
+const rebootReasonArray:string[] = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off","Factory reset"];
 const positionTypeArray:string[] = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
@@ -51,23 +51,23 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         return payloadList;
     }
 
-    const operationModeCode = bytes[0] & 0x03;
+    const operationModeCode = bytes[0] & 0x07;
     const operation_mode = operationModeArray[operationModeCode];
     payloadList.push(getPayloadData("operation_mode", operation_mode, groupID));
 
-    const batteryLevelCode = bytes[0] & 0x04;
+    const batteryLevelCode = bytes[0] & 0x08;
     const battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
     payloadList.push(getPayloadData("battery_level", battery_level, groupID));
 
-    const manDownStatusCode = bytes[0] & 0x08;
+    const manDownStatusCode = bytes[0] & 0x10;
     const mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
     payloadList.push(getPayloadData("mandown_status", mandown_status, groupID));
 
-    const motionStateSinceLastPaylaodCode = bytes[0] & 0x10;
+    const motionStateSinceLastPaylaodCode = bytes[0] & 0x20;
     const motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
     payloadList.push(getPayloadData("motion_state_since_last_paylaod", motion_state_since_last_paylaod, groupID));
 
-    const positioningTypeCode = bytes[0] & 0x20;
+    const positioningTypeCode = bytes[0] & 0x40;
     const positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
     payloadList.push(getPayloadData("positioning_type", positioning_type, groupID));
 
@@ -174,16 +174,12 @@ function parse_port1_data(bytes:number[], groupID:string):{ [key: string]: any }
     const patchVersion = bytes[1] & 0x0f;
     const firmwareVersion = 'V' + majorVersion.toString() + '.' + minorVersion.toString() + '.' + patchVersion.toString();
     tempList.push(getPayloadData("firmware_version", firmwareVersion, groupID));
-    const activityCount = bytesToInt(bytes, 2, 4);
-    tempList.push(getPayloadData("activity_count", activityCount, groupID));
 
     return tempList;
 }
 
 function parse_port2_data(bytes:number[], groupID:string):{ [key: string]: any }[] {
     const tempList: { [key: string]: any }[] = []; 
-    const age = bytesToInt(bytes, 0, 2);
-    tempList.push(getPayloadData("age", age.toString() + 's', groupID));
     const positionTypeCode = bytesToInt(bytes, 2, 1);
     tempList.push(getPayloadData("position_type_code", positionTypeCode, groupID));
     tempList.push(getPayloadData("position_success_type", positionTypeArray[positionTypeCode], groupID));

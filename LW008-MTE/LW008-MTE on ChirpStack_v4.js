@@ -8,8 +8,8 @@ var payloadTypeArray = [
     , "Event Message"
     , "Battery Consumption"
     , "GPS Limit"];
-var operationModeArray = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode"];
-var rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off"];
+var operationModeArray = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode", "Time-Segmented Mode"];
+var rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off","Factory reset"];
 var positionTypeArray = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
@@ -65,23 +65,23 @@ function decodeUplink(input) {
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
-    var operationModeCode = bytes[0] & 0x03;
+    var operationModeCode = bytes[0] & 0x07;
     // data.operation_mode_code = operationModeCode;
     data.operation_mode = operationModeArray[operationModeCode];
 
-    var batteryLevelCode = bytes[0] & 0x04;
+    var batteryLevelCode = bytes[0] & 0x08;
     // data.battery_level_code = batteryLevelCode;
     data.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
 
-    var manDownStatusCode = bytes[0] & 0x08;
+    var manDownStatusCode = bytes[0] & 0x10;
     // data.mandown_status_code = manDownStatusCode;
     data.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
 
-    var motionStateSinceLastPaylaodCode = bytes[0] & 0x10;
+    var motionStateSinceLastPaylaodCode = bytes[0] & 0x20;
     // data.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
     data.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
 
-    var positioningTypeCode = bytes[0] & 0x20;
+    var positioningTypeCode = bytes[0] & 0x40;
     // data.positioning_type_code = positioningTypeCode;
     data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 
@@ -159,14 +159,10 @@ function parse_port1_data(data, bytes) {
     var patchVersion = bytes[1] & 0x0f;
     var firmwareVersion = 'V' + majorVersion + '.' + minorVersion + '.' + patchVersion;
     obj.firmware_version = firmwareVersion;
-    var activityCount = bytesToInt(bytes, 2, 4);
-    obj.activity_count = activityCount;
     data.obj = obj;
 }
 
 function parse_port2_data(data, bytes) {
-    var age = bytesToInt(bytes, 0, 2);
-    data.age = age + "s";
     var positionTypeCode = bytesToInt(bytes, 2, 1);
     data.position_type_code = positionTypeCode;
     data.position_success_type = positionTypeArray[positionTypeCode];
@@ -232,10 +228,8 @@ function parse_port9_data(data, bytes, port) {
     var obj = {};
     obj.work_times = bytesToInt(bytes, 0, 4);
     obj.adv_times = bytesToInt(bytes, 4, 4);
-    obj.flash_write_times = bytesToInt(bytes, 8, 4);
     obj.axis_wakeup_times = bytesToInt(bytes, 12, 4);
     obj.ble_position_times = bytesToInt(bytes, 16, 4);
-    obj.wifi_position_times = bytesToInt(bytes, 20, 4);
     obj.gps_position_times = bytesToInt(bytes, 24, 4);
     obj.lora_send_times = bytesToInt(bytes, 28, 4);
     obj.lora_power = bytesToInt(bytes, 32, 4);
