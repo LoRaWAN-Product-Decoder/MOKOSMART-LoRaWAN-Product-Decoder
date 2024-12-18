@@ -108,22 +108,12 @@ function Decoder(bytes, port) {
         }
         if (pos_data_sign == 3 && pos_data_length > 0) {
             // L76 GPS
-            var datas = [];
-            var count = pos_data_length / 9;
             var index = 6;
-            for (var i = 0; i < count; i++) {
-                var data = {};
-                var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
-                index += 4;
-                var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
-                index += 4;
-                var pdop =  Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
-                data.latitude = latitude;
-                data.longitude = longitude;
-                data.podp = podp;
-                datas.push(data);
-            }
-            dev_info.pos_data = datas;
+            var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+            index += 4;
+            var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+            index += 4;
+            dev_info.Location = [latitude,longitude];
         }
     } else if (port == 9) {
         // Pos Failed
