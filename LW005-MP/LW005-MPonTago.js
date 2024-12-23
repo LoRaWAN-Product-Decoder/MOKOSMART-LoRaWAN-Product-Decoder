@@ -20,6 +20,10 @@ function Decoder(bytes, fPort, groupID) {
         return payloadList;
     }
     var timestamp = bytesToInt(bytes, 0, 4);
+    if (timestamp < 1000000000){
+        payloadList.push(getPayloadData('result', 'Tomestamp wrong', groupID));
+        return payloadList;
+    }
     payloadList.push(getPayloadData('timestamp', timestamp, groupID));
     var time = parse_time(timestamp, bytes[4] * 0.5);
     payloadList.push(getPayloadData('time', time, groupID));

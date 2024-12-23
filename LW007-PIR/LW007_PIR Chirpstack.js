@@ -13,6 +13,10 @@ function Decode(fPort, bytes) {
 		return dev_info;
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
+	if (timestamp < 1000000000){
+        dev_info.result = "Timestamp wrong";
+        return dev_info;
+    }
 	dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
 	dev_info.timestamp = timestamp;
 	dev_info.timezone = timezone_decode(bytes[4])
