@@ -28,6 +28,11 @@ function decodeUplink(input) {
 		return deviceInfo;
 	}
 	var timestamp = bytesToInt(bytes, 0, 4);
+	if (timestamp < 1000000000){
+        data.result = "Timestamp wrong";
+		deviceInfo.data = data;
+        return deviceInfo;
+    }
 	data.time = parse_time(timestamp, bytes[4] * 0.5);
 	data.timestamp = timestamp;
 

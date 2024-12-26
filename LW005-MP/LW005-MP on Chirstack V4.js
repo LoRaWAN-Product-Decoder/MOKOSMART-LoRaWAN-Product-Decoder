@@ -44,6 +44,11 @@ function decodeUplink(input) {
         return deviceInfo;
     }
     var timestamp = bytesToInt(bytes, 0, 4);
+    if (timestamp < 1000000000){
+        data.result = "Timestamp wrong";
+		deviceInfo.data = data;
+        return deviceInfo;
+    }
     data.time = parse_time(timestamp, bytes[4] * 0.5);
 	data.timestamp = timestamp;
     data.timezone = timezone_decode(bytes[4])
@@ -249,6 +254,23 @@ function bytesToInt(bytes, start, len) {
 	// var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
 	return value;
 }
+
+// function getData(hex) {
+// 	var length = hex.length;
+// 	var datas = [];
+// 	for (var i = 0; i < length; i += 2) {
+// 		var start = i;
+// 		var end = i + 2;
+// 		var data = parseInt("0x" + hex.substring(start, end));
+// 		datas.push(data);
+// 	}
+// 	return datas;
+// }
+
+// var input = {};
+// input.fPort = 8;
+// input.bytes = getData("0000000010000216eb0000");
+// console.log(decodeUplink(input));
 
 //deviceInfo = Decoder([0x62, 0xF4, 0xBA, 0xDA, 0x10, 0x00, 0x00], 5);
 //deviceInfo = Decoder([0x61, 0xAD, 0x6C, 0x62, 0x10, 0x09, 0x2D, 0xF2, 0x0F, 0xC3, 0x65], 6);

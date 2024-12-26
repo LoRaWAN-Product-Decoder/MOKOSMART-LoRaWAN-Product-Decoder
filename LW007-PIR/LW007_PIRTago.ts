@@ -18,6 +18,10 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 	}
 
     const timestamp = bytesToInt(bytes, 0, 4);
+    if (timestamp < 1000000000){
+        payloadList.push(getPayloadData('result', 'Timestamp wrong', groupID));
+        return payloadList;
+    }
     payloadList.push(getPayloadData('timestamp', timestamp, groupID));
 
 	const time = parse_time(timestamp, bytes[4] * 0.5);
