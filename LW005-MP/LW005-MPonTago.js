@@ -100,6 +100,9 @@ function Decoder(bytes, fPort, groupID) {
     return payloadList;
 }
 function command_format_check(length, fPort) {
+    if (fPort >= 1 || fPort <= 4) {
+        return true;
+    }
     if (fPort == 5 && length === 7) {
         return true;
     }

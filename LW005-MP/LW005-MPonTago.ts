@@ -115,6 +115,9 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 }
 
 function command_format_check(length:number, fPort:number) {
+    if (fPort >= 1 || fPort <= 4) {
+        return true;
+    }
     if (fPort == 5 && length === 7) {
         return true;
     } 

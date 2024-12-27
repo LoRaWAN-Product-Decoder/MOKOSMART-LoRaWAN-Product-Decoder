@@ -92,6 +92,9 @@ function Decoder(bytes, port, uplink_info) {
 }
 
 function command_format_check(bytes, port) {
+    if (port >= 1 || port <= 4) {
+        return true;
+    }
     switch (port) {
         case 5:
             if (bytes.length === 7)
