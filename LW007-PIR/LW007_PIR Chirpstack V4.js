@@ -121,7 +121,7 @@ function decodeUplink(input) {
 			} else if (temp_value == 0x01) {
 				data.humidity_change_state = "Current environment humidity drops faster than humidity change alarm condition";
 			} else if (temp_value == 0x02) {
-				data.temperature_change_state = 'Current environment humidity change is normal';
+				data.humidity_change_state = 'Current environment humidity change is normal';
 			} else {
 				data.humidity_change_state = "Humidity change alarm function is disable";
 			}
@@ -261,11 +261,19 @@ function bytesToInt(bytes, start, len) {
 }
 
 
-// res_data1 = Decoder([0x62, 0x30, 0xC2, 0xC1, 0x10, 0x0A, 0x8A, 0xAD, 0x1A, 0x10, 0xA5], 5);
-// res_data2 = Decoder([0x62, 0x31, 0x33, 0xE1, 0x10, 0x4A, 0x8A, 0x2F, 0x5A, 0x10, 0xB5], 6);
-// res_data3 = Decoder([0x62, 0x2F, 0xF8, 0x53, 0x10, 0x02, 0x0D], 7);
-
-// console.log(res_data1);
-// console.log(res_data2);
-// console.log(res_data3);
+// function getData(hex) {
+//     var length = hex.length;
+//     var datas = [];
+//     for (var i = 0; i < length; i += 2) {
+//         var start = i;
+//         var end = i + 2;
+//         var data = parseInt("0x" + hex.substring(start, end));
+//         datas.push(data);
+//     }
+//     return datas;
+// }
+// var input = {};
+// input.fPort = 6;
+// input.bytes = getData("6780ecda105a82d4ea0000");
+// console.log(decodeUplink(input));
 
