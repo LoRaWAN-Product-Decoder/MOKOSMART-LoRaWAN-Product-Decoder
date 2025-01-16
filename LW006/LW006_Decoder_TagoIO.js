@@ -118,7 +118,7 @@ function Decoder(bytes, fPort, groupID) {
         payloadList.push(getPayloadData("age", bytesToInt(bytes, 0, 2).toString() + "s", groupID));
         var latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7) + '°';
         var longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7) + '°';
-        var pdop = (bytes[10] & 0xFF) * 0.1;
+        var pdop = Number((bytes[10] & 0xFF) * 0.1).toFixed(1);
         payloadList.push(getPayloadData("latitude", latitude, groupID));
         payloadList.push(getPayloadData("longitude", longitude, groupID));
         payloadList.push(getPayloadData("pdop", pdop, groupID));
@@ -201,7 +201,7 @@ function Decoder(bytes, fPort, groupID) {
                 },
             };
             payloadList.push(location_1);
-            var pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
+            var pdop = Number((bytes[index++] & 0xFF) * 0.1).toFixed(1);
             payloadList.push(getPayloadData("pdop", pdop, groupID));
         }
         return payloadList;
@@ -242,7 +242,7 @@ function Decoder(bytes, fPort, groupID) {
         }
         else if (pos_data_length == 5) {
             // L76 GPS Failed
-            var pdop = Number(bytes[6] & 0xFF * 0.1).toFixed(1);
+            var pdop = Number((bytes[6] & 0xFF) * 0.1).toFixed(1);;
             payloadList.push(getPayloadData("pdop", pdop, groupID));
             if (parseFloat(pdop) == 0xFF) {
                 payloadList.push(getPayloadData("pdop", 'unknow', groupID));

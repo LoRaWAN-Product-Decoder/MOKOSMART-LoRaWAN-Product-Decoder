@@ -123,7 +123,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         payloadList.push(getPayloadData("age", bytesToInt(bytes, 0, 2).toString() + "s", groupID));
         const latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7) + '°';
         const longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7) + '°';
-        const pdop = (bytes[10] & 0xFF) * 0.1;
+        const pdop = Number((bytes[10] & 0xFF) * 0.1).toFixed(1);
         payloadList.push(getPayloadData("latitude", latitude, groupID));
         payloadList.push(getPayloadData("longitude", longitude, groupID));
         payloadList.push(getPayloadData("pdop", pdop, groupID));
@@ -213,7 +213,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 			}
 			
 			payloadList.push(location);
-            const pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
+            const pdop = Number((bytes[index++] & 0xFF) * 0.1).toFixed(1);
             payloadList.push(getPayloadData("pdop", pdop, groupID));
         }
 
@@ -254,7 +254,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
             //data.pos_data = datas;
         } else if (pos_data_length == 5) {
             // L76 GPS Failed
-            const pdop = Number(bytes[6] & 0xFF * 0.1).toFixed(1);
+            const pdop = Number((bytes[6] & 0xFF) * 0.1).toFixed(1);
             payloadList.push(getPayloadData("pdop", pdop, groupID));
             if (parseFloat(pdop) == 0xFF) {
                 payloadList.push(getPayloadData("pdop", 'unknow', groupID));

@@ -64,7 +64,7 @@ function Decoder(bytes, port) {
         dev_info.age = bytesToInt(bytes, 0, 2) + "s";
         var latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7) + '°';
         var longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7) + '°';
-        var podp = (bytes[10] & 0xFF) * 0.1;
+        var pdop = Number((bytes[10] & 0xFF) * 0.1).toFixed(1);
         dev_info.latitude = latitude;
         dev_info.longitude = longitude;
     } else if (port == 7) {
@@ -155,7 +155,7 @@ function Decoder(bytes, port) {
             dev_info.pos_data = datas;
         } else if (pos_data_sign < 8) {
             // L76 GPS Failed
-            var pdop = bytes[5] & 0xFF * 0.1;
+            var pdop = Number((bytes[5] & 0xFF) * 0.1).toFixed(1);
             dev_info.pdop = pdop;
             if (pdop == 0xFF) {
                 dev_info.pdop == "unknow";

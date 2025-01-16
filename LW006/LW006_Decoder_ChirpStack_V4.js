@@ -113,7 +113,7 @@ function decodeUplink(input) {
         data.timezone = timezone_decode(offsetHours * 2);
         var latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7) + '°';
         var longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7) + '°';
-        var pdop =  Number(bytes[10] & 0xFF * 0.1).toFixed(1);
+        var pdop =  Number((bytes[10] & 0xFF) * 0.1).toFixed(1);
         data.latitude = latitude;
         data.longitude = longitude;
         data.pdop = pdop;
@@ -177,7 +177,7 @@ function decodeUplink(input) {
             index += 4;
             var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
             index += 4;
-            var pdop = Number(bytes[index++] & 0xFF * 0.1).toFixed(1);
+            var pdop = Number((bytes[index++] & 0xFF) * 0.1).toFixed(1);
             // item.latitude = latitude;
             // item.longitude = longitude;
             // item.pdop = pdop;
@@ -221,7 +221,7 @@ function decodeUplink(input) {
             data.pos_data = datas;
         } else if (pos_data_length == 5) {
             // L76 GPS Failed
-            var pdop = Number(bytes[6] & 0xFF * 0.1).toFixed(1);
+            var pdop = Number((bytes[6] & 0xFF) * 0.1).toFixed(1);
             data.pdop = pdop;
             if (pdop == 0xFF) {
                 data.pdop == "unknow";
@@ -369,17 +369,17 @@ function signedHexToInt(hexStr) {
 }
 
 
-function getData(hex) {
-    var length = hex.length;
-    var datas = [];
-    for (var i = 0; i < length; i += 2) {
-        var start = i;
-        var end = i + 2;
-        var data = parseInt("0x" + hex.substring(start, end));
-        datas.push(data);
-    }
-    return datas;
-}
+// function getData(hex) {
+//     var length = hex.length;
+//     var datas = [];
+//     for (var i = 0; i < length; i += 2) {
+//         var start = i;
+//         var end = i + 2;
+//         var data = parseInt("0x" + hex.substring(start, end));
+//         datas.push(data);
+//     }
+//     return datas;
+// }
 
 // Encode downlink function.
 //
@@ -410,5 +410,5 @@ function getData(hex) {
 // console.log(getData("5c000943240912278934443a9fcb0f"));
 // var input = {};
 // input.fPort = 8;
-// input.bytes = getData("300000012015d9ed1cab8c5a5bd8f129904d3925d2cd47027d7f3c");
+// input.bytes = getData("c9006b03200912278808443a9ed120");
 // console.log(decodeUplink(input));
