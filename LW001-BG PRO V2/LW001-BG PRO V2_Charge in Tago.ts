@@ -19,7 +19,7 @@ var posFailedReasonArray: string[] = [
 	, 'Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)'
 	, 'Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)'
 ];
-var shutdownTypeArray: string[] = ['Bluetooth command to turn off the device', 'LoRaWAN command to turn off the device', 'Magnetic to turn off the device'];
+var shutdownTypeArray: string[] = ['Bluetooth command to turn off the device', 'LoRaWAN command to turn off the device', 'Magnetic to turn off the device', "Battery run out"];
 var eventTypeArray: string[] = [
 	'Start of movement'
 	, 'In movement'
@@ -67,8 +67,13 @@ function Decoder(bytes: number[], fPort: number, groupID: string): { [key: strin
 		const temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)).toString() + '°C';
 		payloadList.push(getPayloadData('temperature', temperature, groupID));
 		
-		const humidity = (bytes[2] & 0xff).toString() + "%";
-        payloadList.push(getPayloadData('humidity', humidity, groupID));
+		var humidity = (bytes[2] & 0xff);
+		if (humidity == 255) {
+			payloadList.push(getPayloadData('humidity', "invalid", groupID));
+		} else {
+			const humidityStr = (bytes[2] & 0xff).toString() + "%"
+			payloadList.push(getPayloadData('humidity', humidityStr, groupID));
+		}
 
 		const ack = bytes[3] & 0x0f;
 		payloadList.push(getPayloadData('ack', ack, groupID));
@@ -204,14 +209,14 @@ function Decoder(bytes: number[], fPort: number, groupID: string): { [key: strin
 		const shutdown_type = shutdownTypeArray[shutdownTypeCode];
 		payloadList.push(getPayloadData('shutdown_type', shutdown_type, groupID));
 	} else if (fPort == 5) {
-		const number_of_shocks = bytesToInt(bytes, 5, 2);
+		const number_of_shocks = bytesToInt(bytes, 5, 1);
 		payloadList.push(getPayloadData('number_of_shocks', number_of_shocks, groupID));
 	} else if (fPort == 6) {
 		const total_idle_time = bytesToInt(bytes, 5, 2);
 		payloadList.push(getPayloadData('total_idle_time', total_idle_time, groupID));
 	} else if (fPort == 7) {
 		var parse_len = 5; // common head is 5 byte
-		const year = bytesToInt(bytes, parse_len, 1).toString();
+		const year = bytesToInt(bytes, parse_len, 2).toString();
 		parse_len += 2;
 		const mon = bytes[parse_len++].toString();
 		const days = bytes[parse_len++].toString();

@@ -161,7 +161,7 @@ function Decoder(bytes, port, uplink_info) {
 		dev_info.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (port == 7) {
 		var parse_len = 3; // common head is 3 byte
-		year = bytesToInt(bytes, parse_len, 1);
+		year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
 		mon = bytes[parse_len++];
 		days = bytes[parse_len++];

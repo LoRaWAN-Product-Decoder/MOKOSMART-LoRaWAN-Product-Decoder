@@ -19,7 +19,7 @@ var posFailedReasonArray = [
 	, "Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)"
 	, "Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)"
 ];
-var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device"];
+var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device", "Battery run out"];
 var eventTypeArray = [
 	"Start of movement"
 	, "In movement"
@@ -182,7 +182,7 @@ function decodeUplink(input) {
 		// data.shutdown_type_code = shutdownTypeCode;
 		data.shutdown_type = shutdownTypeArray[shutdownTypeCode];
 	} else if (fPort == 5) {
-		data.number_of_shocks = bytesToInt(bytes, 3, 2);
+		data.number_of_shocks = bytesToInt(bytes, 3, 1);
 	} else if (fPort == 6) {
 		data.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (fPort == 7) {

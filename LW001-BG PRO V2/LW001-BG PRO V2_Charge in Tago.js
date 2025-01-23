@@ -19,7 +19,7 @@ var posFailedReasonArray = [
     'Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)',
     'Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)'
 ];
-var shutdownTypeArray = ['Bluetooth command to turn off the device', 'LoRaWAN command to turn off the device', 'Magnetic to turn off the device'];
+var shutdownTypeArray = ['Bluetooth command to turn off the device', 'LoRaWAN command to turn off the device', 'Magnetic to turn off the device', "Battery run out"];
 var eventTypeArray = [
     'Start of movement',
     'In movement',
@@ -57,8 +57,13 @@ function Decoder(bytes, fPort, groupID) {
         var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)).toString() + '°C';
         payloadList.push(getPayloadData('temperature', temperature, groupID));
 
-        var humidity = bytes[2] & 0xff + "%";
-        payloadList.push(getPayloadData('humidity', humidity, groupID));
+        var humidity = (bytes[2] & 0xff);
+		if (humidity == 255) {
+			payloadList.push(getPayloadData('humidity', "invalid", groupID));
+		} else {
+			var humidityStr = (bytes[2] & 0xff).toString() + "%"
+			payloadList.push(getPayloadData('humidity', humidityStr, groupID));
+		}
 
         var ack = bytes[3] & 0x0f;
         payloadList.push(getPayloadData('ack', ack, groupID));
@@ -66,7 +71,7 @@ function Decoder(bytes, fPort, groupID) {
         var battery_voltage = ((28 + ((bytes[3] >> 4) & 0x0f)) / 10).toString() + 'V';
         payloadList.push(getPayloadData('battery_voltage', battery_voltage, groupID));
 
-        var battery_percent = bytes[4] & 0xff + "%";
+        var battery_percent = (bytes[4] & 0xff) + "%";
         payloadList.push(getPayloadData('battery_percent', battery_percent, groupID));
     }
     if (fPort == 1) {
@@ -183,7 +188,7 @@ function Decoder(bytes, fPort, groupID) {
         payloadList.push(getPayloadData('shutdown_type', shutdown_type, groupID));
     }
     else if (fPort == 5) {
-        var number_of_shocks = bytesToInt(bytes, 5, 2);
+        var number_of_shocks = bytesToInt(bytes, 5, 1);
         payloadList.push(getPayloadData('number_of_shocks', number_of_shocks, groupID));
     }
     else if (fPort == 6) {
@@ -192,7 +197,7 @@ function Decoder(bytes, fPort, groupID) {
     }
     else if (fPort == 7) {
         var parse_len = 5; // common head is 5 byte
-        var year = bytesToInt(bytes, parse_len, 1).toString();
+        var year = bytesToInt(bytes, parse_len, 2).toString();
         parse_len += 2;
         var mon = bytes[parse_len++].toString();
         var days = bytes[parse_len++].toString();

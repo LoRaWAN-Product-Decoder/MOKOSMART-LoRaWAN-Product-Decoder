@@ -155,11 +155,11 @@ function decodeUplink(input) {
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
-					var data = {};
-					data.mac = substringBytes(bytes, parse_len, 6);
+					var item = {};
+					item.mac = substringBytes(bytes, parse_len, 6);
 					parse_len += 6;
-					data.rssi = bytes[parse_len++] - 256 + "dBm";
-					datas.push(data);
+					item.rssi = bytes[parse_len++] - 256 + "dBm";
+					datas.push(item);
 				}
 				data.mac_data = datas;
 			}
@@ -182,7 +182,7 @@ function decodeUplink(input) {
 		data.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (port == 7) {
 		var parse_len = 3; // common head is 3 byte
-		var year = bytesToInt(bytes, parse_len, 1);
+		var year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
 		var mon = bytes[parse_len++];
 		var days = bytes[parse_len++];

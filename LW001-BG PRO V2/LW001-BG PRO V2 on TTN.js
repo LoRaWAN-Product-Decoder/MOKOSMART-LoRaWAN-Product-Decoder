@@ -19,7 +19,7 @@ var posFailedReasonArray = [
 	, "Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)"
 	, "Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)"
 ];
-var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device"];
+var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device", "Battery run out"];
 var eventTypeArray = [
 	"Start of movement"
 	, "In movement"
@@ -155,11 +155,11 @@ function decodeUplink(input) {
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
-					var data = {};
-					data.mac = substringBytes(bytes, parse_len, 6);
+					var item = {};
+					item.mac = substringBytes(bytes, parse_len, 6);
 					parse_len += 6;
-					data.rssi = bytes[parse_len++] - 256 + "dBm";
-					datas.push(data);
+					item.rssi = bytes[parse_len++] - 256 + "dBm";
+					datas.push(item);
 				}
 				data.mac_data = datas;
 			}
@@ -177,12 +177,12 @@ function decodeUplink(input) {
 		// data.shutdown_type_code = shutdownTypeCode;
 		data.shutdown_type = shutdownTypeArray[shutdownTypeCode];
 	} else if (port == 5) {
-		data.number_of_shocks = bytesToInt(bytes, 3, 2);
+		data.number_of_shocks = bytesToInt(bytes, 3, 1);
 	} else if (port == 6) {
 		data.total_idle_time = bytesToInt(bytes, 3, 2);
 	} else if (port == 7) {
 		var parse_len = 3; // common head is 3 byte
-		var year = bytesToInt(bytes, parse_len, 1);
+		var year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
 		var mon = bytes[parse_len++];
 		var days = bytes[parse_len++];

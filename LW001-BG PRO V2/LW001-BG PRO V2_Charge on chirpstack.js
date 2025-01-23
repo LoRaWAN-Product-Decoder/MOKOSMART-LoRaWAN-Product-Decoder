@@ -19,7 +19,7 @@ var posFailedReasonArray = [
 	, "Interrupted positioning at start of movement(the movement ends too quickly, resulting in not enough time to complete the positioning)"
 	, "Interrupted positioning at end of movement(the movement restarted too quickly, resulting in not enough time to complete the positioning)"
 ];
-var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device"];
+var shutdownTypeArray = ["Bluetooth command to turn off the device", "LoRaWAN command to turn off the device", "Magnetic to turn off the device", "Battery run out"];
 var eventTypeArray = [
 	"Start of movement"
 	, "In movement"
@@ -64,12 +64,17 @@ function Decode(fPort, bytes) {
 		var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
 		dev_info.temperature = temperature;
 
-		var humidity = bytes[2] & 0xff + "%";
+		var humidity = (bytes[2] & 0xff);
+		if (humidity == 255) {
+			humidity = "invalid"
+		} else {
+			humidity = humidity + "%"
+		}
 		dev_info.humidity = humidity;
 
 		dev_info.ack = bytes[3] & 0x0f;
 		dev_info.battery_voltage = (28 + ((bytes[3] >> 4) & 0x0f)) / 10 + "V";
-		dev_info.battery_percent = bytes[4] & 0xff + "%";
+		dev_info.battery_percent = (bytes[4] & 0xff) + "%";
 	}
 	if (fPort == 1) {
 		var rebootReasonCode = bytesToInt(bytes, 5, 1);
@@ -141,11 +146,11 @@ function Decode(fPort, bytes) {
 		{
 			if (datalen) {
 				for (var i = 0; i < (datalen / 7); i++) {
-					var data = {};
-					data.mac = substringBytes(bytes, parse_len, 6);
+					var item = {};
+					item.mac = substringBytes(bytes, parse_len, 6);
 					parse_len += 6;
-					data.rssi = bytes[parse_len++] - 256 + "dBm";
-					datas.push(data);
+					item.rssi = bytes[parse_len++] - 256 + "dBm";
+					datas.push(item);
 				}
 				dev_info.mac_data = datas;
 			}
@@ -163,12 +168,12 @@ function Decode(fPort, bytes) {
 		// data.shutdown_type_code = shutdownTypeCode;
 		dev_info.shutdown_type = shutdownTypeArray[shutdownTypeCode];
 	} else if (fPort == 5) {
-		dev_info.number_of_shocks = bytesToInt(bytes, 5, 2);
+		dev_info.number_of_shocks = bytesToInt(bytes, 5, 1);
 	} else if (fPort == 6) {
 		dev_info.total_idle_time = bytesToInt(bytes, 5, 2);
 	} else if (fPort == 7) {
-		var parse_len = 5; // common head is 3 byte
-		year = bytesToInt(bytes, parse_len, 1);
+		var parse_len = 5; // common head is 5 byte
+		year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
 		mon = bytes[parse_len++];
 		days = bytes[parse_len++];

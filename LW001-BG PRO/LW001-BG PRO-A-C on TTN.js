@@ -181,7 +181,7 @@ function decodeUplink(input) {
 		data.total_idle_time = bytesToInt(bytes, 4, 2);
 	} else if (port == 7) {
 		var parse_len = 4; // common head is 3 byte
-		var year = bytesToInt(bytes, parse_len, 1);
+		var year = bytesToInt(bytes, parse_len, 2);
 		parse_len += 2;
 		var mon = bytes[parse_len++];
 		var days = bytes[parse_len++];

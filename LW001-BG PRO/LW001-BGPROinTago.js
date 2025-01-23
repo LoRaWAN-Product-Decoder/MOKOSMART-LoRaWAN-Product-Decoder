@@ -181,7 +181,7 @@ function Decoder(bytes, fPort, groupID) {
     }
     else if (fPort == 7) {
         var parse_len = 3; // common head is 3 byte
-        var year = bytesToInt(bytes, parse_len, 1).toString();
+        var year = bytesToInt(bytes, parse_len, 2).toString();
         parse_len += 2;
         var mon = bytes[parse_len++].toString();
         var days = bytes[parse_len++].toString();

@@ -202,7 +202,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         payloadList.push(getPayloadData('total_idle_time', total_idle_time, groupID));
 	} else if (fPort == 7) {
 		var parse_len = 3; // common head is 3 byte
-		const year = bytesToInt(bytes, parse_len, 1).toString();
+		const year = bytesToInt(bytes, parse_len, 2).toString();
 		parse_len += 2;
 		const mon = bytes[parse_len++].toString();
 		const days = bytes[parse_len++].toString();
