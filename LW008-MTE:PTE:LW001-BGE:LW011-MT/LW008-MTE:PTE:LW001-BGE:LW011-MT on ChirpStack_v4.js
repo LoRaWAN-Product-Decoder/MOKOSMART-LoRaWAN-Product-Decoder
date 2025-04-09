@@ -14,9 +14,7 @@ var positionTypeArray = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
     , "Bluetooth positioning success"
-    , "GPS positioning success (LW008-MTP)"
-    , "GPS positioning success (LW008-MT Customized Format)"
-    , "GPS positioning success (LW008-MT LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
+    , "GPS positioning success"
 ];
 var posFailedReasonArray = [
     "WIFI positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
@@ -119,7 +117,7 @@ function decodeUplink(input) {
     } else if (fPort == 5 && bytes.length == 4) {
         data.payload_type = payloadTypeArray[3];
         var obj = {};
-        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
         // obj.shutdown_type_code = shutdownTypeCode;
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         data.obj = obj;
@@ -210,11 +208,13 @@ function parse_port4_data(data, bytes, port) {
         obj.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
         obj.location_failure_data = data_list;
         data.obj = obj;
-        return;
+        return;  
     } else {
         var data_list = [];
-        for (var i = 0; i < dataLen; i++) {
-            var stringValue = bytesToHexString(dataBytes, (i * 1), 1);
+        obj.pdop = bytesToInt(dataBytes, 0, 1) / 10;
+        var temp_sub = dataBytes.slice(1);
+        for (var i = 0; i < dataLen - 1; i++) {
+            var stringValue = bytesToInt(temp_sub, (i * 1), 1);
             data_list.push(stringValue);
         }
         obj.reasons_for_positioning_failure_code = failedTypeCode;
@@ -226,14 +226,24 @@ function parse_port4_data(data, bytes, port) {
 
 function parse_port9_data(data, bytes, port) {
     var obj = {};
-    obj.work_times = bytesToInt(bytes, 0, 4);
-    obj.adv_times = bytesToInt(bytes, 4, 4);
-    obj.axis_wakeup_times = bytesToInt(bytes, 12, 4);
-    obj.ble_position_times = bytesToInt(bytes, 16, 4);
-    obj.gps_position_times = bytesToInt(bytes, 24, 4);
-    obj.lora_send_times = bytesToInt(bytes, 28, 4);
-    obj.lora_power = bytesToInt(bytes, 32, 4);
-    obj.battery_value = bytesToInt(bytes, 36, 4);
+    var index = 0;
+    obj.work_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.adv_times = bytesToInt(bytes, index, 4);
+    index += 4;
+    index += 4;
+    obj.axis_wakeup_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.ble_position_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    index += 4;
+    obj.gps_position_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.lora_send_times = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.lora_power = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.total_power = bytesToInt(bytes, 36, 4);
     data.obj = obj;
 }
 

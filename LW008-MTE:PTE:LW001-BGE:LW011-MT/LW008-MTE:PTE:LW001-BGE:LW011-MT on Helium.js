@@ -14,9 +14,7 @@ var positionTypeArray = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
     , "Bluetooth positioning success"
-    , "GPS positioning success (LW008-MTP)"
-    , "GPS positioning success (LW008-MT Customized Format)"
-    , "GPS positioning success (LW008-MT LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
+    , "GPS positioning success"
 ];
 var posFailedReasonArray = [
     "WIFI positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
@@ -94,7 +92,7 @@ function Decoder(bytes, port, uplink_info) {
         parse_port4_data(deviceInfo, bytes.slice(3), port);
     } else if (port == 5 && bytes.length == 4) {
         var data = {};
-        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
         // data.shutdown_type_code = shutdownTypeCode;
         data.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         deviceInfo.data = data;
@@ -190,10 +188,13 @@ function parse_port4_data(deviceInfo, bytes, port) {
         return;
     } else {
         var data_list = [];
-        for (var i = 0; i < dataLen; i++) {
-            var stringValue = bytesToHexString(dataBytes, (i * 1), 1);
+        data.pdop = bytesToInt(dataBytes, 0, 1) / 10;
+        var temp_sub = dataBytes.slice(1);
+        for (var i = 0; i < dataLen - 1; i++) {
+            var stringValue = bytesToInt(temp_sub, (i * 1), 1);
             data_list.push(stringValue);
         }
+
         // data.reasons_for_positioning_failure_code = failedTypeCode;
         data.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
         data.location_failure_data = data_list;
@@ -202,18 +203,26 @@ function parse_port4_data(deviceInfo, bytes, port) {
 }
 
 function parse_port9_data(deviceInfo, bytes, port) {
-    var data = {};
-    data.work_times = bytesToInt(bytes, 0, 4);
-    data.adv_times = bytesToInt(bytes, 4, 4);
-    data.flash_write_times = bytesToInt(bytes, 8, 4);
-    data.axis_wakeup_times = bytesToInt(bytes, 12, 4);
-    data.ble_postion_times = bytesToInt(bytes, 16, 4);
-    data.wifi_postion_times = bytesToInt(bytes, 20, 4);
-    data.gps_postion_times = bytesToInt(bytes, 24, 4);
-    data.lora_send_times = bytesToInt(bytes, 28, 4);
-    data.lora_power = bytesToInt(bytes, 32, 4);
-    data.battery_value = bytesToInt(bytes, 36, 4);
-    deviceInfo.data = data;
+    var obj = {};
+    var index = 0;
+    obj.work_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.adv_times = bytesToInt(bytes, index, 4);
+    index += 4;
+    index += 4;
+    obj.axis_wakeup_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.ble_position_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    index += 4;
+    obj.gps_position_time = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.lora_send_times = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.lora_power = bytesToInt(bytes, index, 4);
+    index += 4;
+    obj.total_power = bytesToInt(bytes, 36, 4);
+    deviceInfo.data = obj;
 }
 
 function parse_port12_data(deviceInfo, bytes, port) {

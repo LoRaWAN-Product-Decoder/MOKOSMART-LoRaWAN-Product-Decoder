@@ -14,7 +14,7 @@ const positionTypeArray:string[] = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
     , "Bluetooth positioning success"
-    , "GPS positioning success (L76C)"
+    , "GPS positioning success"
 ];
 const posFailedReasonArray:string[] = [
     "WIFI positioning time is not enough (The location payload reporting interval is set too short, please increase the report interval of the current working mode via MKLoRa app)"
@@ -46,10 +46,12 @@ const eventTypeArray:string[] = [
 function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string]: any }[] {
     const payloadList: { [key: string]: any }[] = [];
 
-    if (fPort == 11) {
-
+    if (bytes.length < 4 || fPort == 0 || fPort == 10 || fPort == 11) {
         return payloadList;
     }
+
+    payloadList.push(getPayloadData("port", fPort, groupID));
+    payloadList.push(getPayloadData("hex_format_payload", bytesToHexString(bytes, 0, bytes.length), groupID));
 
     const operationModeCode = bytes[0] & 0x07;
     const operation_mode = operationModeArray[operationModeCode];
@@ -137,6 +139,13 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
     if (fPort == 4 && bytes.length >= 5) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[2], groupID));
         return [...payloadList, ...parse_port4_data(bytes.slice(3),groupID)];
+    } 
+
+    if (fPort == 5 && bytes.length == 4) {
+        payloadList.push(getPayloadData("payload_type", payloadTypeArray[3], groupID));
+        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
+        payloadList.push(getPayloadData("shutdown_type", shutdownTypeArray[shutdownTypeCode], groupID));
+        return payloadList;
     } 
 
     if (fPort == 6 && bytes.length == 5) {
@@ -232,8 +241,10 @@ function parse_port4_data(bytes:number[], groupID:string):{ [key: string]: any }
         tempList.push(getPayloadData("reasons_for_positioning_failure", posFailedReasonArray[failedTypeCode], groupID));
     } else {
         const data_list = [];
+        tempList.push(getPayloadData("pdop", bytesToInt(dataBytes, 0, 1) / 10, groupID));
+        var temp_sub = dataBytes.slice(1);
         for (let i = 0; i < dataLen; i++) {
-            const stringValue = bytesToHexString(dataBytes, (i * 1), 1);
+            const stringValue = bytesToInt(temp_sub, (i * 1), 1);
             // data_list.push(stringValue);
             tempList.push(getPayloadData("satellite" + i.toString(), stringValue, groupID));
         }
@@ -245,16 +256,24 @@ function parse_port4_data(bytes:number[], groupID:string):{ [key: string]: any }
 
 function parse_port9_data(bytes:number[], groupID:string):{ [key: string]: any }[] {
     const tempList: { [key: string]: any }[] = []; 
-    tempList.push(getPayloadData("work_times", bytesToInt(bytes, 0, 4), groupID));
-    tempList.push(getPayloadData("adv_times", bytesToInt(bytes, 4, 4), groupID));
-    tempList.push(getPayloadData("flash_write_times", bytesToInt(bytes, 8, 4), groupID));
-    tempList.push(getPayloadData("axis_wakeup_times", bytesToInt(bytes, 12, 4), groupID));
-    tempList.push(getPayloadData("ble_position_times", bytesToInt(bytes, 16, 4), groupID));
-    tempList.push(getPayloadData("wifi_position_times", bytesToInt(bytes, 20, 4), groupID));
-    tempList.push(getPayloadData("gps_position_times", bytesToInt(bytes, 24, 4), groupID));
-    tempList.push(getPayloadData("lora_send_times", bytesToInt(bytes, 28, 4), groupID));
-    tempList.push(getPayloadData("lora_power", bytesToInt(bytes, 32, 4), groupID));
-    tempList.push(getPayloadData("battery_value", bytesToInt(bytes, 36, 4), groupID));
+    var index = 0;
+    tempList.push(getPayloadData("work_time", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    tempList.push(getPayloadData("adv_times", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    index += 4;
+    tempList.push(getPayloadData("axis_wakeup_time", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    tempList.push(getPayloadData("ble_position_time", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    index += 4;
+    tempList.push(getPayloadData("gps_position_time", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    tempList.push(getPayloadData("lora_send_times", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    tempList.push(getPayloadData("lora_power", bytesToInt(bytes, index, 4), groupID));
+    index += 4;
+    tempList.push(getPayloadData("total_power", bytesToInt(bytes, index, 4), groupID));
     return tempList;
 }
 
