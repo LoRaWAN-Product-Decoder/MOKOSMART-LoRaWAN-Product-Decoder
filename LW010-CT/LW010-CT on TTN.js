@@ -11,12 +11,14 @@ var deviceStatusArray = ["No auxiliary"
     ,"Downlink for positioning"
     ,"Alert alarm"
     ,"SOS alarm"];
-var shutdownTypeArray = ["Bluetooth command to turn off the device"
+var shutdownTypeArray = [
+    "Bluetooth command to turn off the device"
     , "LoRaWAN command to turn off the device"
     , "Magnetic to turn off the device"
     , "The battery run out"];
 var lowPowerPercentArray = ["10%","20%","30%","40%","50%","60%"];
-var eventTypeArray = ["Start movement"
+var eventTypeArray = [
+    "Start movement"
     ,"In movement"
     ,"End of movement"
     ,"Man Down start"
