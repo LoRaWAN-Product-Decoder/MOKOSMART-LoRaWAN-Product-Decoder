@@ -119,8 +119,6 @@ function decodeUplink(input) {
         data.event_type = eventTypeList[bytes[index]];
     }else if (fPort == 2 && bytes.length == 9) {
         data.event_type = eventTypeList[bytes[index]];
-    }else if (fPort == 3 && bytes.length == 9) {
-        data.battery_percent = bytesToInt(bytes,index,1) + '%';
     }else if (fPort == 4 && bytes.length == 9) {
         data.shutdown_type = powerOffTypeList[bytes[index]];
     }else if (fPort == 5 && bytes.length == 9) {

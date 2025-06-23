@@ -129,9 +129,6 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         payloadList.push(getPayloadData("event_type", eventTypeList[bytes[index]], groupID));
     }else if (fPort == 2 && bytes.length == 9) {
         payloadList.push(getPayloadData("event_type", eventTypeList[bytes[index]], groupID));
-    }else if (fPort == 3 && bytes.length == 9) {
-        const battery_percent = bytesToInt(bytes, index, 1).toString() + '%';
-        payloadList.push(getPayloadData("battery_percent", battery_percent, groupID));
     }else if (fPort == 4 && bytes.length == 9) {
         payloadList.push(getPayloadData("shutdown_type", powerOffTypeList[bytes[index]], groupID));
     }else if (fPort == 5 && bytes.length == 9) {

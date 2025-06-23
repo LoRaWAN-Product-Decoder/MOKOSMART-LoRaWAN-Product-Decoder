@@ -1,89 +1,84 @@
-const deviceInfoTypeList = ['Hearbeat','Parking information','Parking beacon information','Low power','Power off','Event information'];
+const dataTypeList = ['Hearbeat','Parking information','Parking beacon information','Low power','Power off','Event information'];
 const parkingDetectMode = ['Magnetic detection','Radar detection','Magnetic & Radar detection'];
 const parkingInfo = ['Heartbeat','No parking','Occupied','Strong magnetic interference','Magnetic hardware destroyed','Radar mode destroyed'];
 const powerOffMode = ['Bluetooth command','LoRaWAN command'];
 
 
-function Decode(fPort, bytes) {
+function decodeUplink(input) {
+    var bytes = input.bytes;
+    var fPort = input.fPort;
     var deviceInfo = {};
+    var data = {};
     if (fPort == 0) {
+        deviceInfo.data = data;
         return deviceInfo;
     }
 
-    deviceInfo.port = fPort;
-    deviceInfo.payload_type = deviceInfoTypeList[fPort - 1];
+    data.port = fPort;
+    data.payload_type = dataTypeList[fPort - 1];
     if (command_format_check(bytes, fPort) == false) {
-        deviceInfo.result = "Format wrong";
-		deviceInfo.deviceInfo = deviceInfo;
+        data.result = "Format wrong";
+		deviceInfo.data = data;
         return deviceInfo;
     }
     var index = 0;
     
-    deviceInfo.low_power_state = (bytes[index] == 1) ? 'Low power' : 'Normal';
+    data.low_power_state = (bytes[index] == 1) ? 'Low power' : 'Normal';
     index ++;
 
-    deviceInfo.battery_voltage = bytesToInt(bytes,index,2).toString() + 'mV';
+    data.battery_voltage = bytesToInt(bytes,index,2).toString() + 'mV';
     index += 2;
 
-	deviceInfo.timestamp = bytesToInt(bytes, index, 4);		//timestamp
+	data.timestamp = bytesToInt(bytes, index, 4);		//timestamp
     index += 4;
 
-    deviceInfo.timezone = timezone_decode(bytes[index]);		//timezone
+    data.timezone = timezone_decode(bytes[index]);		//timezone
     index ++;
 
-    deviceInfo.time = parse_time(timestamp, bytes[index] * 0.5);
+    data.time = parse_time(data.timestamp, bytes[index] * 0.5);
 
     const temperature = bytes[index];
     if (temperature == 0xff) {
         //无效数据
-        deviceInfo.temperature = 'FF';
+        data.temperature = 'FF';
     }else {
-        deviceInfo.temperature = signedHexToInt(bytesToHexString(bytes, index, 1)).toString() + '°C';
-    }
-    index ++;
-
-    const humidity = bytes[index];
-    if (humidity == 0xff) {
-        //无效数据
-        deviceInfo.humidity = 'FF';
-    }else {
-        deviceInfo.humidity = bytesToInt(bytes,index,1).toString() + '%';
+        data.temperature = signedHexToInt(bytesToHexString(bytes, index, 1)).toString() + '°C';
     }
     index ++;
 
     if (fPort == 1) {
-        deviceInfo.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
+        data.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
     } else if (fPort == 2 || fPort == 3) {
-        deviceInfo.parking_detect_mode = parkingDetectMode[bytes[index]];
+        data.parking_detect_mode = parkingDetectMode[bytes[index]];
         index ++;
 
-        deviceInfo.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
+        data.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
         index ++;
 
-        deviceInfo.parking_information = parkingInfo[bytes[index]];
+        data.parking_information = parkingInfo[bytes[index]];
         index ++;
 
-        deviceInfo.radar_deviceInfo = bytesToHexString(bytes,index,2);
+        data.radar_data = bytesToHexString(bytes,index,2);
         index += 2;
 
-        const x_deviceInfo = '0x' + bytesToHexString(bytes,index,2);
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
         index += 2;
 
-        const y_deviceInfo = '0x' + bytesToHexString(bytes,index,2);
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
         index += 2;
 
-        const z_deviceInfo = '0x' + bytesToHexString(bytes,index,2);
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
         index += 2;
 
-        deviceInfo.axis_deviceInfo = 'X:' + x_deviceInfo + ' Y:' + y_deviceInfo + ' Z:' + z_deviceInfo;
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
 
-        deviceInfo.parking_timestamp = bytesToInt(bytes, index, 4);		//timestamp
+        data.parking_timestamp = bytesToInt(bytes, index, 4);		//timestamp
         index += 4;
 
         if (fPort == 3 && bytes.length > 25) {
             const beacon_number = bytesToInt(bytes,index,1);
             index ++;
-            var tempList = [];
+            var tempDatas = [];
             for (var i = 0; i < beacon_number; i ++) {
                 var item = {};
                 item.mac_address = bytesToHexString(bytes,index,6);
@@ -95,27 +90,54 @@ function Decode(fPort, bytes) {
                 item.beacon_timestamp = bytesToInt(bytes, index, 4);		//timestamp
                 index += 4;
 
-                tempList.push(item);
+                tempDatas.push(item);
             }
-            deviceInfo.beacon_deviceInfo = tempList;
+            data.beacon_data = tempDatas;
         }
     } else if (fPort == 5) {
-        deviceInfo.power_off_mode = powerOffMode[bytes[index]];
+        data.power_off_mode = powerOffMode[bytes[index]];
     }else if (fPort == 6) {
-        deviceInfo.event = 'Downlink frame trigger reporting';
+        data.event = 'Downlink frame trigger reporting';
     }
     
+	deviceInfo.data = data;
     return deviceInfo;
 }
 
 function bytesToHexString(bytes, start, len) {
 	var char = [];
 	for (var i = 0; i < len; i++) {
-		var deviceInfo = bytes[start + i].toString(16);
-		var deviceInfoHexStr = ("0x" + deviceInfo) < 0x10 ? ("0" + deviceInfo) : deviceInfo;
-		char.push(deviceInfoHexStr);
+		var data = bytes[start + i].toString(16);
+		var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+		char.push(dataHexStr);
 	}
 	return char.join("");
+}
+
+function signedHexToInt(hexStr) {
+    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
+    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    if (twoStr.length < bitNum) {
+        while (twoStr.length < bitNum) {
+            twoStr = "0" + twoStr;
+        }
+    }
+    if (twoStr.substring(0, 1) == "0") {
+        // 正数
+        twoStr = parseInt(twoStr, 2); // 二进制转十进制
+        return twoStr;
+    }
+    // 负数
+    var twoStr_unsign = "";
+    twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
+    twoStr = twoStr.toString(2);
+    twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
+    // 去除首字符，将0转为1，将1转为0   反码
+    twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
+    twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
+    twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
+    twoStr = -parseInt(twoStr_unsign, 2);
+    return twoStr;
 }
 
 
@@ -127,7 +149,7 @@ function command_format_check(bytes, port) {
 			break;
 
 		case 2:
-			if (bytes.length === 25)
+			if (bytes.length === 24)
 				return true;
 			break;
 
@@ -227,3 +249,23 @@ function bytesToInt(bytes, start, len) {
 	// var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
 	return value;
 }
+
+function getData(hex) {
+    var length = hex.length;
+    var datas = [];
+    for (var i = 0; i < length; i += 2) {
+        var start = i;
+        var end = i + 2;
+        var data = parseInt("0x" + hex.substring(start, end));
+        datas.push(data);
+    }
+    return datas;
+}
+
+// var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
+
+// console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
+var input = {};
+input.fPort = 2;
+input.bytes = getData("000E7C68555B9D041C020102019D00000CD5F04F68555B98");
+console.log(decodeUplink(input));

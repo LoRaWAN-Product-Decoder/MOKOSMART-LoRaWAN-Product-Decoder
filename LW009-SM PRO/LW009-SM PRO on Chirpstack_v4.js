@@ -35,7 +35,7 @@ function decodeUplink(input) {
     data.timezone = timezone_decode(bytes[index]);		//timezone
     index ++;
 
-    data.time = parse_time(timestamp, bytes[index] * 0.5);
+    data.time = parse_time(data.timestamp, bytes[index] * 0.5);
 
     const temperature = bytes[index];
     if (temperature == 0xff) {
@@ -43,15 +43,6 @@ function decodeUplink(input) {
         data.temperature = 'FF';
     }else {
         data.temperature = signedHexToInt(bytesToHexString(bytes, index, 1)).toString() + '°C';
-    }
-    index ++;
-
-    const humidity = bytes[index];
-    if (humidity == 0xff) {
-        //无效数据
-        data.humidity = 'FF';
-    }else {
-        data.humidity = bytesToInt(bytes,index,1).toString() + '%';
     }
     index ++;
 
@@ -123,6 +114,32 @@ function bytesToHexString(bytes, start, len) {
 	return char.join("");
 }
 
+function signedHexToInt(hexStr) {
+    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
+    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    if (twoStr.length < bitNum) {
+        while (twoStr.length < bitNum) {
+            twoStr = "0" + twoStr;
+        }
+    }
+    if (twoStr.substring(0, 1) == "0") {
+        // 正数
+        twoStr = parseInt(twoStr, 2); // 二进制转十进制
+        return twoStr;
+    }
+    // 负数
+    var twoStr_unsign = "";
+    twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
+    twoStr = twoStr.toString(2);
+    twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
+    // 去除首字符，将0转为1，将1转为0   反码
+    twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
+    twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
+    twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
+    twoStr = -parseInt(twoStr_unsign, 2);
+    return twoStr;
+}
+
 
 function command_format_check(bytes, port) {
 	switch (port) {
@@ -132,7 +149,7 @@ function command_format_check(bytes, port) {
 			break;
 
 		case 2:
-			if (bytes.length === 25)
+			if (bytes.length === 24)
 				return true;
 			break;
 
@@ -232,3 +249,23 @@ function bytesToInt(bytes, start, len) {
 	// var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
 	return value;
 }
+
+function getData(hex) {
+    var length = hex.length;
+    var datas = [];
+    for (var i = 0; i < length; i += 2) {
+        var start = i;
+        var end = i + 2;
+        var data = parseInt("0x" + hex.substring(start, end));
+        datas.push(data);
+    }
+    return datas;
+}
+
+// var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
+
+// console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
+var input = {};
+input.fPort = 2;
+input.bytes = getData("000E7C68555B9D041C020102019D00000CD5F04F68555B98");
+console.log(decodeUplink(input));

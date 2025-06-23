@@ -121,7 +121,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
     payloadList.push(getPayloadData("battery_voltage", battery_voltage, groupID));
 
 
-    if (fPort == 1 && bytes.length == 9) {
+    if (fPort == 1 && bytes.length == 5) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[0], groupID));
         return [...payloadList, ...parse_port1_data(bytes.slice(3),groupID)];
     } else if (fPort == 2 && bytes.length >= 7) {
@@ -135,10 +135,10 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
         return [...payloadList, ...parse_port4_data(bytes.slice(3),(contain_vlotage == 1),groupID)];
     } else if (fPort == 5 && bytes.length == 4) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[4], groupID));
-        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         payloadList.push(getPayloadData("shutdown_type", shutdownTypeArray[shutdownTypeCode], groupID));
         return payloadList;
-    } else if (fPort == 6 && bytes.length == 5) {
+    } else if (fPort == 6 && bytes.length == 4) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[5], groupID));
         payloadList.push(getPayloadData("number_of_shocks", bytesToInt(bytes, 3, 2), groupID));
         return payloadList;
@@ -286,7 +286,7 @@ function parse_port9_data(bytes:number[], groupID:string):{ [key: string]: any }
     const lora_power = bytesToInt(bytes, index, 4);
     tempList.push(getPayloadData("lora_power", lora_power, groupID));
     index += 4;
-    const total_power = bytesToInt(bytes, 36, 4);
+    const total_power = bytesToInt(bytes, index, 4);
     tempList.push(getPayloadData("total_power", total_power, groupID));
     index += 4;
     const position_report_times_during_stationary_in_motion_mode = bytesToInt(bytes, index, 4);

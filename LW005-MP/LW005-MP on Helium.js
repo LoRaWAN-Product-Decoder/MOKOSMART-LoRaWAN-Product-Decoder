@@ -37,7 +37,7 @@ function Decoder(bytes, port, uplink_info) {
         return dev_info;
     }
     dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
-    dev_info.timezone = timezone_decode(bytes[4])
+    dev_info.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1));
     switch (port) {
         case 5:
             dev_info.ac_output_state = bytes[5] == 1 ? "ON" : "OFF";
@@ -153,32 +153,40 @@ function command_format_check(bytes, port) {
     return false;
 }
 
-function timezone_decode(tz) {
-    var tz_str = "UTC";
-
-    if (tz < 0) {
-        tz_str += "-";
-        tz = -tz;
+function signedHexToInt(hexStr) {
+    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
+    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    if (twoStr.length < bitNum) {
+        while (twoStr.length < bitNum) {
+            twoStr = "0" + twoStr;
+        }
     }
-    else {
-        tz_str += "+";
+    if (twoStr.substring(0, 1) == "0") {
+        // 正数
+        twoStr = parseInt(twoStr, 2); // 二进制转十进制
+        return twoStr;
     }
+    // 负数
+    var twoStr_unsign = "";
+    twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
+    twoStr = twoStr.toString(2);
+    twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
+    // 去除首字符，将0转为1，将1转为0   反码
+    twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
+    twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
+    twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
+    twoStr = -parseInt(twoStr_unsign, 2);
+    return twoStr;
+}
 
-    if (tz < 20) {
-        tz_str += "0";
+function bytesToHexString(bytes, start, len) {
+    var char = [];
+    for (var i = 0; i < len; i++) {
+        var data = bytes[start + i].toString(16);
+        var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+        char.push(dataHexStr);
     }
-
-    tz_str += String(parseInt(tz / 2));
-    tz_str += ":"
-
-    if (tz % 2) {
-        tz_str += "30"
-    }
-    else {
-        tz_str += "00"
-    }
-
-    return tz_str;
+    return char.join("");
 }
 
 function parse_int16(num) {

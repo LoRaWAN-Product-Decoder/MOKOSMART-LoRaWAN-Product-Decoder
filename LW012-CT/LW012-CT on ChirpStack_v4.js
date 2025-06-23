@@ -96,7 +96,7 @@ function decodeUplink(input) {
     data.battery_voltage = (28 + ((bytes[2] >> 4) & 0x0f)) / 10 + "V";
 
 
-    if (fPort == 1 && bytes.length == 9) {
+    if (fPort == 1 && bytes.length == 5) {
         data.payload_type = payloadTypeArray[0];
         parse_port1_data(data, bytes.slice(3));
     } else if (fPort == 2 && bytes.length >= 7) {
@@ -111,11 +111,11 @@ function decodeUplink(input) {
     } else if (fPort == 5 && bytes.length == 4) {
         data.payload_type = payloadTypeArray[4];
         var obj = {};
-        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         // obj.shutdown_type_code = shutdownTypeCode;
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         data.obj = obj;
-    } else if (fPort == 6 && bytes.length == 5) {
+    } else if (fPort == 6 && bytes.length == 4) {
         data.payload_type = payloadTypeArray[5];
         var obj = {};
         obj.number_of_shocks = bytesToInt(bytes, 3, 1);
@@ -164,15 +164,15 @@ function parse_port2_data(data, bytes,contain_vlotage) {
     data.position_success_type = (positionTypeCode == 1) ? "Bluetooth positioning success" : "GPS positioning success";
     index ++;
 
-    const date = new Date(1000 * bytesToInt(bytes, index, 4));
-    data.time = date.toLocaleString();
-    index += 4;
+    var len = bytes[index];
+    index ++;
 
-    var sub_bytes = bytes.slice(index);
+    var sub_bytes = bytes.slice(index,index + len);
+
     if (positionTypeCode == 1) {
         //蓝牙
         var positionData = parse_position_data(sub_bytes, contain_vlotage);
-        data.mac_data = positionData;
+        data.mac_data = JSON.stringify(positionData);
     } else if (positionTypeCode == 3) {
         //GPS
         var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
@@ -182,6 +182,12 @@ function parse_port2_data(data, bytes,contain_vlotage) {
         data.longitude = longitude;
         data.pdop = pdop;
     }
+
+    index += len;
+
+    const date = new Date(1000 * bytesToInt(bytes, index, 4));
+    data.time = date.toLocaleString();
+    index += 4;
 }
 
 function parse_port3_data(data, bytes) {
@@ -248,11 +254,11 @@ function parse_port9_data(data, bytes, port) {
     index += 4;
     obj.lora_power = bytesToInt(bytes, index, 4);
     index += 4;
-    obj.total_power = bytesToInt(bytes, 36, 4);
+    obj.total_power = bytesToInt(bytes, index, 4);
     index += 4;
-    data.position_report_times_during_stationary_in_motion_mode = bytesToInt(bytes, index, 4);
+    obj.position_report_times_during_stationary_in_motion_mode = bytesToInt(bytes, index, 4);
     index += 4;
-    data.position_report_times_during_movement_in_motion_mode = bytesToInt(bytes, index, 4);
+    obj.position_report_times_during_movement_in_motion_mode = bytesToInt(bytes, index, 4);
     
     data.obj = obj;
 }
@@ -416,3 +422,20 @@ function int8(byte) {
     }
     return byte;
 }
+
+function getData(hex) {
+	var length = hex.length;
+	var datas = [];
+	for (var i = 0; i < length; i += 2) {
+		var start = i;
+		var end = i + 2;
+		var data = parseInt("0x" + hex.substring(start, end));
+		datas.push(data);
+	}
+	return datas;
+}
+
+var input = {};
+input.fPort = 2;
+input.bytes = getData("011d600107dd4b9c105f47b9684f9088");
+console.log(decodeUplink(input));

@@ -27,7 +27,7 @@ function Decoder(bytes, fPort, groupID) {
     payloadList.push(getPayloadData('timestamp', timestamp, groupID));
     var time = parse_time(timestamp, bytes[4] * 0.5);
     payloadList.push(getPayloadData('time', time, groupID));
-    var timezone = timezone_decode(bytes[4]);
+    var timezone = signedHexToInt(bytesToHexString(bytes, 4, 1));
     payloadList.push(getPayloadData('timezone', timezone, groupID));
     if (fPort == 5) {
         var ac_output_state = bytes[5] == 1 ? "ON" : "OFF";

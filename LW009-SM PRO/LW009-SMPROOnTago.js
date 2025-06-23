@@ -32,16 +32,6 @@ function Decoder(bytes, fPort, groupID) {
         payloadList.push(getPayloadData('temperature', temp_value, groupID));
     }
     index++;
-    var humidity = bytes[index];
-    if (humidity == 0xff) {
-        //无效数据
-        payloadList.push(getPayloadData('humidity', 'FF', groupID));
-    }
-    else {
-        var temp_value = bytesToInt(bytes, index, 1).toString() + '%';
-        payloadList.push(getPayloadData('humidity', temp_value, groupID));
-    }
-    index++;
     if (fPort == 1) {
         var car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking';
         payloadList.push(getPayloadData('car_parking_state', car_parking_state, groupID));
