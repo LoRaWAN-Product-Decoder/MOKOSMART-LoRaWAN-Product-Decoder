@@ -99,7 +99,7 @@ function decodeUplink(input) {
         }
         index += 2;
 
-        data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
+        data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1)) / 2;
         index += 1;
 
         data.charging_type = chargingTypeArray[bytes[index]];
@@ -116,7 +116,7 @@ function decodeUplink(input) {
             data.time = date.toLocaleString();
             index += 4;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
+            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1) / 2);
             index += 1;
 
             data.shutdown_type = shutDownTypeArray[bytes[index]];

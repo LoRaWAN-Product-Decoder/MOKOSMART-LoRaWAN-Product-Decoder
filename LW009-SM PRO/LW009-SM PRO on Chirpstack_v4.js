@@ -1,7 +1,8 @@
-const dataTypeList = ['Hearbeat','Parking information','Parking beacon information','Low power','Power off','Event information'];
+const dataTypeList = ['Heartbeat','Parking information','Parking beacon information','Low power','Power off','Event information','Pakring detection times report'];
 const parkingDetectMode = ['Magnetic detection','Radar detection','Magnetic & Radar detection'];
 const parkingInfo = ['Heartbeat','No parking','Occupied','Strong magnetic interference','Magnetic hardware destroyed','Radar mode destroyed'];
 const powerOffMode = ['Bluetooth command','LoRaWAN command'];
+const eventInfoUploadList = ["Downlink trigger","Calibration Successfully","Calibration Fail"];
 
 
 function decodeUplink(input) {
@@ -38,9 +39,9 @@ function decodeUplink(input) {
     data.time = parse_time(data.timestamp, bytes[index] * 0.5);
 
     const temperature = bytes[index];
-    if (temperature == 0xff) {
+    if (temperature == 0x7f) {
         //无效数据
-        data.temperature = 'FF';
+        data.temperature = 'None';
     }else {
         data.temperature = signedHexToInt(bytesToHexString(bytes, index, 1)).toString() + '°C';
     }
@@ -55,10 +56,14 @@ function decodeUplink(input) {
         data.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
         index ++;
 
-        data.parking_information = parkingInfo[bytes[index]];
+        var info_index = bytes[index]
+        if (fPort == 3) {
+            info_index ++
+        }
+        data.parking_information = parkingInfo[info_index];
         index ++;
 
-        data.radar_data = bytesToHexString(bytes,index,2);
+        data.radar_data = '0x' + bytesToHexString(bytes,index,2);
         index += 2;
 
         const x_data = '0x' + bytesToHexString(bytes,index,2);
@@ -84,7 +89,7 @@ function decodeUplink(input) {
                 item.mac_address = bytesToHexString(bytes,index,6);
                 index += 6;
 
-                item.rssi = (bytes[index] - 256).toString() + 'dBm';
+                item.rssi = signedHexToInt(bytesToHexString(bytes, index, 1)) + 'dBm';
                 index ++;
 
                 item.beacon_timestamp = bytesToInt(bytes, index, 4);		//timestamp
@@ -97,7 +102,9 @@ function decodeUplink(input) {
     } else if (fPort == 5) {
         data.power_off_mode = powerOffMode[bytes[index]];
     }else if (fPort == 6) {
-        data.event = 'Downlink frame trigger reporting';
+        data.event = eventInfoUploadList[bytes[index]];
+    }else if (fPort == 7) {
+        data.parking_detect_count = bytesToInt(bytes,index,4);
     }
     
 	deviceInfo.data = data;
@@ -144,7 +151,7 @@ function signedHexToInt(hexStr) {
 function command_format_check(bytes, port) {
 	switch (port) {
 		case 1:
-			if (bytes.length === 11)
+			if (bytes.length === 10)
 				return true;
 			break;
 
@@ -154,24 +161,30 @@ function command_format_check(bytes, port) {
 			break;
 
 		case 3:
-			if (bytes.length >= 26)
+			if (bytes.length >= 25)
 				return true;
 			break;
 
         case 4:
-            if (bytes.length == 10) {
-                return true;
-            }
-            break;
-
-        case 5: 
             if (bytes.length == 9) {
                 return true;
             }
             break;
 
+        case 5: 
+            if (bytes.length == 10) {
+                return true;
+            }
+            break;
+
         case 6:
-            if (bytes.length == 11) {
+            if (bytes.length == 10) {
+                return true;
+            }
+            break;
+
+        case 7:
+            if (bytes.length == 13) {
                 return true;
             }
             break;
@@ -241,13 +254,12 @@ function timezone_decode(tz) {
 }
 
 function bytesToInt(bytes, start, len) {
-	var value = 0;
-	for (var i = 0; i < len; i++) {
-		var m = ((len - 1) - i) * 8;
-		value = value | bytes[start + i] << m;
-	}
-	// var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
-	return value;
+    var value = 0;
+    for (var i = 0; i < len; i++) {
+        var m = ((len - 1) - i) * 8;
+        value = value | (bytes[start + i] << m >>> 0);
+    }
+    return value >>> 0; // 确保结果是无符号的
 }
 
 function getData(hex) {
@@ -265,7 +277,7 @@ function getData(hex) {
 // var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
 
 // console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
-var input = {};
-input.fPort = 2;
-input.bytes = getData("000E7C68555B9D041C020102019D00000CD5F04F68555B98");
-console.log(decodeUplink(input));
+// var input = {};
+// input.fPort = 7;
+// input.bytes = getData("000E00667788991000FFFFFFFF");
+// console.log(decodeUplink(input));

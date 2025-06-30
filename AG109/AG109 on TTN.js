@@ -71,7 +71,7 @@ function decodeUplink(input) {
 
     var index = 0;
 
-    if (fPort == 1 && bytes.length == 11) {
+    if (fPort == 1 && bytes.length == 24) {
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();
         index += 4;
@@ -100,7 +100,57 @@ function decodeUplink(input) {
         index += 1;
 
         data.event_type = eventTypeList[bytes[index]];
-    }else if (fPort == 2 && bytes.length > 9) {
+        index += 1
+
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
+
+        var temperature = bytesToInt(bytes, index, 2);
+        if (temperature > 0x8000) {
+            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
+        }else {
+            data.temperature = temperature / 100 + "°C";
+        }
+        index += 2   
+        
+        data.humility = bytesToInt(bytes, index, 2) / 100 + "%";
+        index += 2
+
+        data.air_pressure = bytesToInt(bytes, index, 3)
+    }else if (fPort == 2 && bytes.length > 22) {
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
+
+        var temperature = bytesToInt(bytes, index, 2);
+        if (temperature > 0x8000) {
+            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
+        }else {
+            data.temperature = temperature / 100 + "°C";
+        }
+        index += 2   
+        
+        data.humility = bytesToInt(bytes, index, 2) / 100 + "%";
+        index += 2
+
+        data.air_pressure = bytesToInt(bytes, index, 3)
+        index += 3
+
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();
         index += 4;
@@ -145,7 +195,32 @@ function decodeUplink(input) {
             }
             data.position_data = data_list;
         }
-    }else if (fPort == 3 && bytes.length > 9) {
+    }else if (fPort == 3 && bytes.length > 22) {
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
+
+        var temperature = bytesToInt(bytes, index, 2);
+        if (temperature > 0x8000) {
+            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
+        }else {
+            data.temperature = temperature / 100 + "°C";
+        }
+        index += 2   
+        
+        data.humility = bytesToInt(bytes, index, 2) / 100 + "%";
+        index += 2
+
+        data.air_pressure = bytesToInt(bytes, index, 3)
+        index += 3
+
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();
         index += 4;
@@ -188,7 +263,7 @@ function decodeUplink(input) {
             }
             data.location_failure_data = data_list;
         }
-    }else if (fPort == 4 && bytes.length == 9) {
+    }else if (fPort == 4 && bytes.length == 22) {
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();
         index += 4;
@@ -204,7 +279,32 @@ function decodeUplink(input) {
         index += 2;
 
         data.battery_percent = bytesToInt(bytes,index,1) + '%';
-    }else if (fPort == 5 && bytes.length == 9) {
+        index += 1
+
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
+
+        var temperature = bytesToInt(bytes, index, 2);
+        if (temperature > 0x8000) {
+            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
+        }else {
+            data.temperature = temperature / 100 + "°C";
+        }
+        index += 2   
+        
+        data.humility = bytesToInt(bytes, index, 2) / 100 + "%";
+        index += 2
+
+        data.air_pressure = bytesToInt(bytes, index, 3)
+    }else if (fPort == 5 && bytes.length == 22) {
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();
         index += 4;
@@ -220,7 +320,32 @@ function decodeUplink(input) {
         index += 2;
 
         data.shutdown_type = shutdownTypeArray[bytes[index]];
-    }else if (fPort == 6 && bytes.length == 9) {
+        index += 1
+
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
+
+        var temperature = bytesToInt(bytes, index, 2);
+        if (temperature > 0x8000) {
+            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
+        }else {
+            data.temperature = temperature / 100 + "°C";
+        }
+        index += 2   
+        
+        data.humility = bytesToInt(bytes, index, 2) / 100 + "%";
+        index += 2
+
+        data.air_pressure = bytesToInt(bytes, index, 3)
+    }else if (fPort == 6 && bytes.length == 22) {
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();
         index += 4;
@@ -237,6 +362,31 @@ function decodeUplink(input) {
 
         var event_code = bytes[index] - 1;
         data.event_type = eventTypeArray[event_code];
+        index += 1
+
+        const x_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const y_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        const z_data = '0x' + bytesToHexString(bytes,index,2);
+        index += 2;
+
+        data.axis_data = 'X:' + x_data + ' Y:' + y_data + ' Z:' + z_data;
+
+        var temperature = bytesToInt(bytes, index, 2);
+        if (temperature > 0x8000) {
+            data.temperature = "-" + (0x10000 - temperature) / 100 + "°C";
+        }else {
+            data.temperature = temperature / 100 + "°C";
+        }
+        index += 2   
+        
+        data.humility = bytesToInt(bytes, index, 2) / 100 + "%";
+        index += 2
+
+        data.air_pressure = bytesToInt(bytes, index, 3)
     }else if (fPort == 7) {
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
         data.time = date.toLocaleString();

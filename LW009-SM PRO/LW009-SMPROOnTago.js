@@ -1,7 +1,8 @@
 var parkingDetectMode = ['Magnetic detection', 'Radar detection', 'Magnetic & Radar detection'];
 var parkingInfo = ['Heartbeat', 'No parking', 'Occupied', 'Strong magnetic interference', 'Magnetic hardware destroyed', 'Radar mode destroyed'];
-var dataTypeList = ['Hearbeat', 'Parking information', 'Parking beacon information', 'Low power', 'Power off', 'Event information'];
+var dataTypeList = ['Heartbeat', 'Parking information', 'Parking beacon information', 'Low power', 'Power off', 'Event information'];
 var powerOffMode = ['Bluetooth command', 'LoRaWAN command'];
+var eventInfoUploadList = ["Downlink trigger","Calibration Successfully","Calibration Fail"];
 function Decoder(bytes, fPort, groupID) {
     var payloadList = [];
     payloadList.push(getPayloadData('port', fPort, groupID));
@@ -23,9 +24,9 @@ function Decoder(bytes, fPort, groupID) {
     var time = parse_time(timestamp, bytes[index] * 0.5);
     payloadList.push(getPayloadData('time', time, groupID));
     var temperature = bytes[index];
-    if (temperature == 0xff) {
+    if (temperature == 0x7f) {
         //无效数据
-        payloadList.push(getPayloadData('temperature', 'FF', groupID));
+        payloadList.push(getPayloadData('temperature', 'None', groupID));
     }
     else {
         var temp_value = signedHexToInt(bytesToHexString(bytes, index, 1)).toString() + '°C';
@@ -43,10 +44,14 @@ function Decoder(bytes, fPort, groupID) {
         var car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking';
         payloadList.push(getPayloadData('car_parking_state', car_parking_state, groupID));
         index++;
-        var parking_information = parkingInfo[bytes[index]];
+        var info_index = bytes[index]
+        if (fPort == 3) {
+            info_index ++
+        }
+        var parking_information = parkingInfo[info_index];
         payloadList.push(getPayloadData('parking_information', parking_information, groupID));
         index++;
-        var radar_data = bytesToHexString(bytes, index, 2);
+        var radar_data = '0x' + bytesToHexString(bytes, index, 2);
         payloadList.push(getPayloadData('radar_data', radar_data, groupID));
         index += 2;
         var x_data = '0x' + bytesToHexString(bytes, index, 2);
@@ -67,7 +72,7 @@ function Decoder(bytes, fPort, groupID) {
                 var mac_address = bytesToHexString(bytes, index, 6);
                 payloadList.push(getPayloadData('beacon_mac_' + i.toString(), mac_address, groupID));
                 index += 6;
-                var rssi = (bytes[index] - 256).toString() + 'dBm';
+                var rssi = signedHexToInt(bytesToHexString(bytes, index, 1)).toString() + 'dBm';
                 payloadList.push(getPayloadData('beacon_rssi_' + i.toString(), rssi, groupID));
                 index++;
                 var beacon_timestamp = bytesToInt(bytes, index, 4); //timestamp
@@ -81,7 +86,10 @@ function Decoder(bytes, fPort, groupID) {
         payloadList.push(getPayloadData('power_off_mode', power_off_mode, groupID));
     }
     else if (fPort == 6) {
-        payloadList.push(getPayloadData('event', 'Downlink frame trigger reporting', groupID));
+        payloadList.push(getPayloadData('event', eventInfoUploadList[bytes[index]], groupID));
+    }
+    else if (fPort == 7) {
+        payloadList.push(getPayloadData('parking_detect_count', bytesToInt(bytes,index,4), groupID));
     }
     return payloadList;
 }
