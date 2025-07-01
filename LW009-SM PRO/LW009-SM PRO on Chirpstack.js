@@ -56,11 +56,7 @@ function decodeUplink(input) {
         data.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
         index ++;
 
-        var info_index = bytes[index]
-        if (fPort == 3) {
-            info_index ++
-        }
-        data.parking_information = parkingInfo[info_index];
+        data.parking_information = parkingInfo[bytes[index]];
         index ++;
 
         data.radar_data = '0x' + bytesToHexString(bytes,index,2);

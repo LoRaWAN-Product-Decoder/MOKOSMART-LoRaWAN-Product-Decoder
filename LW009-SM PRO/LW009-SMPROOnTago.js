@@ -44,11 +44,7 @@ function Decoder(bytes, fPort, groupID) {
         var car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking';
         payloadList.push(getPayloadData('car_parking_state', car_parking_state, groupID));
         index++;
-        var info_index = bytes[index]
-        if (fPort == 3) {
-            info_index ++
-        }
-        var parking_information = parkingInfo[info_index];
+        var parking_information = parkingInfo[bytes[index]];
         payloadList.push(getPayloadData('parking_information', parking_information, groupID));
         index++;
         var radar_data = '0x' + bytesToHexString(bytes, index, 2);

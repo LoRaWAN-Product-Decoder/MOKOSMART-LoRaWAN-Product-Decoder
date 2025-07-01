@@ -52,11 +52,7 @@ function Decode(fPort, bytes, uplink_info) {
         deviceInfo.car_parking_state = (bytes[index] == 1) ? 'Parking' : 'No Parking'
         index ++;
 
-        var info_index = bytes[index]
-        if (fPort == 3) {
-            info_index ++
-        }
-        data.parking_information = parkingInfo[info_index];
+        data.parking_information = parkingInfo[bytes[index]];
         index ++;
 
         deviceInfo.radar_deviceInfo = '0x' + bytesToHexString(bytes,index,2);
