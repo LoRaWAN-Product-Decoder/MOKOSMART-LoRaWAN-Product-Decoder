@@ -180,8 +180,8 @@ beacon_len += 4;
 }
 // ================
 if (flag & 0x08) {
-var rangingData = bytes[parse_len++];
-item.rssi_0m = rangingData == 0 ? "0dBm" : rangingData - 256 + "dBm";
+item.rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_len, 1));
+parse_len++;
 beacon_len++;
 }
 if (flag & 0x10) {
@@ -223,8 +223,8 @@ beacon_len += 4;
 }
 // ================
 if (flag & 0x08) {
-var rangingData = bytes[parse_len++];
-item.rssi_0m = rangingData == 0 ? "0dBm" : rangingData - 256 + "dBm";
+item.rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_len, 1));
+parse_len++;
 beacon_len++;
 }
 if (flag & 0x10) {
@@ -674,14 +674,9 @@ item.y_axis_data = signedHexToInt(y_axis);
 item.z_axis_data = signedHexToInt(z_axis);
 }
 if (flag & 0x1000) {
-var tempInt = bytes[parse_len++];
-beacon_len++;
-var tempDecimal = bytes[parse_len++];
-beacon_len++;
-tempInt = tempInt > 128 ? tempInt - 256 : tempInt;
-tempDecimal = tempDecimal / 256;
-var temperature = (tempInt + tempDecimal).toFixed(1);
-item.temperature = temperature;
+item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+parse_len += 2;
+beacon_len += 2;
 }
 if (flag & 0x2000) {
 var rangingData = bytes[parse_len++];

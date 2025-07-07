@@ -277,8 +277,7 @@ function parse_uid_data(bytes, timezone, groupID) {
         parse_index += 4;
     }
     if (flag & 0x08) {
-        var rangingData = bytes[parse_index];
-        var rssi_0m = (rangingData == 0 ? '0dBm' : (rangingData - 256).toString() + 'dBm');
+        var rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_index, 1));
         tempList.push(getPayloadData('rssi_0m', rssi_0m, groupID));
         parse_index++;
     }
@@ -319,8 +318,7 @@ function parse_url_data(bytes, timezone, groupID) {
         parse_index += 4;
     }
     if (flag & 0x08) {
-        var rangingData = bytes[parse_index];
-        var rssi_0m = (rangingData == 0 ? '0dBm' : (rangingData - 256).toString() + 'dBm');
+        var rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_index, 1));
         tempList.push(getPayloadData('rssi_0m', rssi_0m, groupID));
         parse_index++;
     }
@@ -768,13 +766,8 @@ function parse_bxp_button_data(bytes, no_response_package, timezone, groupID) {
             tempList.push(getPayloadData('axis_data', axis_data, groupID));
         }
         if (flag & 0x1000) {
-            var tempInt = bytes[parse_index];
-            parse_index++;
-            var tempDecimal = bytes[parse_index];
-            parse_index++;
-            tempInt = tempInt > 128 ? tempInt - 256 : tempInt;
-            tempDecimal = tempDecimal / 256;
-            var temperature = ((tempInt + tempDecimal).toFixed(1)).toString() + '°C';
+            var temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_index, 2)) * 0.1).toFixed(1);
+            parse_index += 2;
             tempList.push(getPayloadData('temperature', temperature, groupID));
         }
         if (flag & 0x2000) {

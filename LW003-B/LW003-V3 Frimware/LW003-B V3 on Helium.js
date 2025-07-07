@@ -168,8 +168,8 @@ function Decoder(bytes, port, uplink_info) {
                 }
                 // ================
                 if (flag & 0x08) {
-                    var rangingData = bytes[parse_len++];
-                    data.rssi_0m = rangingData == 0 ? "0dBm" : rangingData - 256 + "dBm";
+                    data.rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_len, 1));
+                    parse_len++;
                     beacon_len++;
                 }
                 if (flag & 0x10) {
@@ -636,14 +636,9 @@ function Decoder(bytes, port, uplink_info) {
                         data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis
                     }
                     if (flag & 0x1000) {
-                        var tempInt = bytes[parse_len++];
-                        beacon_len++;
-                        var tempDecimal = bytes[parse_len++];
-                        beacon_len++;
-                        tempInt = tempInt > 128 ? tempInt - 256 : tempInt;
-                        tempDecimal = tempDecimal / 256;
-                        var temperature = (tempInt + tempDecimal).toFixed(1);
-                        data.temperature = temperature + "°C";
+                        data.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+                        parse_len += 2;
+                        beacon_len += 2;
                     }
                     if (flag & 0x2000) {
                         var rangingData = bytes[parse_len++];
@@ -843,6 +838,32 @@ function bytesToInt(bytes, start, len) {
     }
     // var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
     return value;
+}
+
+function signedHexToInt(hexStr) {
+    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
+    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    if (twoStr.length < bitNum) {
+        while (twoStr.length < bitNum) {
+            twoStr = "0" + twoStr;
+        }
+    }
+    if (twoStr.substring(0, 1) == "0") {
+        // 正数
+        twoStr = parseInt(twoStr, 2); // 二进制转十进制
+        return twoStr;
+    }
+    // 负数
+    var twoStr_unsign = "";
+    twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
+    twoStr = twoStr.toString(2);
+    twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
+    // 去除首字符，将0转为1，将1转为0   反码
+    twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
+    twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
+    twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
+    twoStr = parseInt(-twoStr_unsign, 2);
+    return twoStr;
 }
 
 function timezone_decode(tz) {
