@@ -462,7 +462,8 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    item.full_scale = fullScaleArray[bytes[parse_len++]];
+                    item.full_scale_index = bytes[parse_len++];
+                    item.full_scale = fullScaleArray[item.full_scale_index];
                     beacon_len++;
                 }
                 if (flag & 0x0200) {
@@ -470,6 +471,8 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x0400) {
+                    var scaleIndex = item.full_scale_index;
+                    var scale = scaleIndex == 3 ? 12 : Math.pow(2, scaleIndex);
                     var x_axis = bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
@@ -480,9 +483,9 @@ function decodeUplink(input) {
                     parse_len += 2;
                     beacon_len += 2;
                     item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
-                    item.x_axis_data = signedHexToInt(x_axis);
-                    item.y_axis_data = signedHexToInt(y_axis);
-                    item.z_axis_data = signedHexToInt(z_axis);
+                    item.x_axis_data = Math.round((signedHexToInt(x_axis) >> 4) * scale);
+                    item.y_axis_data = Math.round((signedHexToInt(y_axis) >> 4) * scale);
+                    item.z_axis_data = Math.round((signedHexToInt(z_axis) >> 4) * scale);
                 }
                 if ((flag & 0x1800)) {
                     item.raw_data_length = current_data_len - beacon_len;

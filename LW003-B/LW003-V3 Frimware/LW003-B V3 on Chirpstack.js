@@ -30,6 +30,11 @@ var urlExpansionArray = [".com/", ".org/", ".edu/", ".net/", ".info/", ".biz/", 
 function Decode(fPort, bytes) {
     var dev_info = {};
     dev_info.port = fPort;
+    var date = new Date();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    dev_info.timestamp = timestamp;
+    dev_info.time = parse_time(timestamp, offsetHours);
     if (fPort == 1 || fPort == 3) {
         // port 1:Turn on info/port 3:Device info
         dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";

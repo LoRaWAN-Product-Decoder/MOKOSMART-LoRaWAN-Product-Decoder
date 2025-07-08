@@ -30,6 +30,11 @@ var urlExpansionArray = [".com/", ".org/", ".edu/", ".net/", ".info/", ".biz/", 
 function Decoder(bytes, port, uplink_info) {
     var dev_info = {};
     dev_info.port = port;
+    var date = new Date();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    dev_info.timestamp = timestamp;
+    dev_info.time = parse_time(timestamp, offsetHours);
     if (port == 1 || port == 3) {
         // port 1:Turn on info/port 3:Device info
         dev_info.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
@@ -475,7 +480,8 @@ function Decoder(bytes, port, uplink_info) {
                     beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    data.full_scale = fullScaleArray[bytes[parse_len++]];
+                    data.full_scale_index = bytes[parse_len++];
+                    data.full_scale = fullScaleArray[item.full_scale_index];
                     beacon_len++;
                 }
                 if (flag & 0x0200) {
@@ -483,6 +489,8 @@ function Decoder(bytes, port, uplink_info) {
                     beacon_len++;
                 }
                 if (flag & 0x0400) {
+                    var scaleIndex = data.full_scale_index;
+                    var scale = scaleIndex == 3 ? 12 : Math.pow(2, scaleIndex);
                     var x_axis = "0x" + bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
@@ -492,7 +500,10 @@ function Decoder(bytes, port, uplink_info) {
                     var z_axis = "0x" + bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
-                    data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis
+                    data.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis;
+                    data.x_axis_data = Math.round((signedHexToInt(x_axis) >> 4) * scale);
+                    data.y_axis_data = Math.round((signedHexToInt(y_axis) >> 4) * scale);
+                    data.z_axis_data = Math.round((signedHexToInt(z_axis) >> 4) * scale);
                 }
                 if ((flag & 0x1800)) {
                     data.raw_data_length = current_data_len - beacon_len;

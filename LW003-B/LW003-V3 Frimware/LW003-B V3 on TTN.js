@@ -38,6 +38,11 @@ return dev_info;
 }
 data.port = fPort;
 data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+var date = new Date();
+var timestamp = Math.trunc(date.getTime() / 1000);
+var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+data.timestamp = timestamp;
+data.time = parse_time(timestamp, offsetHours);
 if (fPort == 1 || fPort == 3) {
 // port 1:Turn on info/port 3:Device info
 data.battery_charging_status = bytes[0] & 0x80 ? "in charging" : "no charging";
@@ -500,7 +505,8 @@ item.sample_rate = sampleRateArray[bytes[parse_len++]];
 beacon_len++;
 }
 if (flag & 0x0100) {
-item.full_scale = fullScaleArray[bytes[parse_len++]];
+item.full_scale_index = bytes[parse_len++];
+item.full_scale = fullScaleArray[item.full_scale_index];
 beacon_len++;
 }
 if (flag & 0x0200) {
@@ -508,6 +514,8 @@ item.motion_threshold = bytes[parse_len++] / 10 + "g";
 beacon_len++;
 }
 if (flag & 0x0400) {
+var scaleIndex = item.full_scale_index;
+var scale = scaleIndex == 3 ? 12 : Math.pow(2, scaleIndex);
 var x_axis = bytesToHexString(bytes, parse_len, 2);
 parse_len += 2;
 beacon_len += 2;
@@ -518,9 +526,9 @@ var z_axis = bytesToHexString(bytes, parse_len, 2);
 parse_len += 2;
 beacon_len += 2;
 item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
-item.x_axis_data = signedHexToInt(x_axis);
-item.y_axis_data = signedHexToInt(y_axis);
-item.z_axis_data = signedHexToInt(z_axis);
+item.x_axis_data = Math.round((signedHexToInt(x_axis) >> 4) * scale);
+item.y_axis_data = Math.round((signedHexToInt(y_axis) >> 4) * scale);
+item.z_axis_data = Math.round((signedHexToInt(z_axis) >> 4) * scale);
 }
 if ((flag & 0x1800)) {
 item.raw_data_length = current_data_len - beacon_len;
