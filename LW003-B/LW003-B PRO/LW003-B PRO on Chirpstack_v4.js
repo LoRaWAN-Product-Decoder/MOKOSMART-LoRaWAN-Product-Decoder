@@ -28,22 +28,22 @@ var chargingTypeArray = [
 ];
 
 var shutDownTypeArray = ["Bluetooth command or App", "LoRaWAN Command", "Power button", "Battery run out"];
-var beaconTypeArray = 
-[
-    "Unknown",
-    "iBeacon", 
-    "Eddystone-UID", 
-    "Eddystone-URL", 
-    "Eddystone-TLM", 
-    "BXP-ACC", 
-    "BXP-T&H", 
-    "BXP-T&S", 
-    "BXP-DeviceInfo", 
-    "BXP-BUTTON", 
-    "BXP-PIR",
-    "BXP-TOF",
-    "BXP-iBeacon", 
-];
+var beaconTypeArray =
+    [
+        "Unknown",
+        "iBeacon",
+        "Eddystone-UID",
+        "Eddystone-URL",
+        "Eddystone-TLM",
+        "BXP-ACC",
+        "BXP-T&H",
+        "BXP-T&S",
+        "BXP-DeviceInfo",
+        "BXP-BUTTON",
+        "BXP-PIR",
+        "BXP-TOF",
+        "BXP-iBeacon",
+    ];
 var messageTypeArray = ["Normal heartbeat report", "The device come into low power state", "Other type"];
 var sampleRateArray = ["1Hz", "10Hz", "25Hz", "50Hz", "100Hz", "200Hz", "400Hz", "1344Hz", "1620Hz", "5376Hz"];
 var fullScaleArray = ["±2g", "±4g", "±8g", "±16g"];
@@ -67,7 +67,7 @@ function decodeUplink(input) {
 
     if (fPort == 1 || fPort == 3 || fPort == 4 || fPort == 8) {
         const battery_status = bytes[index];
-        index ++;
+        index++;
         data.battery_charging_status = (battery_status & 0x80 == 0x80) ? "in charging" : "no charging";
         data.battery_level = (battery_status & 0x7F) + "%";
 
@@ -80,22 +80,22 @@ function decodeUplink(input) {
         var firmware_version = 'V' + major_firmware_version + '.' + minor_firmware_version + '.' + patch_firmware_version;
         data.firmware_version = firmware_version;
         index += 1;
-    
+
         var major_hardware_version = (bytes[index] >> 4) & 0x0f;
         var patch_hardware_version = bytes[index] & 0x0f;
         var hard_version = 'V' + major_hardware_version + '.' + patch_hardware_version;
         data.hardware_version = hard_version;
         index += 1;
 
-        var temperature = bytesToHexString(bytes,index,2);
+        var temperature = bytesToHexString(bytes, index, 2);
         if (temperature != 'ffff') {
             data.temperature = (signedHexToInt(bytesToHexString(bytes, index, 2)) * 0.01) + '°C';
         }
         index += 2;
 
-        var humidity = bytesToHexString(bytes,index,2);
+        var humidity = bytesToHexString(bytes, index, 2);
         if (humidity != 'ffff') {
-            data.humidity = (bytesToInt(bytes,index,2) * 0.01) + '%';
+            data.humidity = (bytesToInt(bytes, index, 2) * 0.01) + '%';
         }
         index += 2;
 
@@ -103,9 +103,9 @@ function decodeUplink(input) {
         index += 1;
 
         data.charging_type = chargingTypeArray[bytes[index]];
-    }else if (fPort == 2) {
+    } else if (fPort == 2) {
         const battery_status = bytes[index];
-        index ++;
+        index++;
         data.battery_charging_status = (battery_status & 0x80 == 0x80) ? "in charging" : "no charging";
         data.battery_level = (battery_status & 0x7F) + "%";
 
@@ -113,16 +113,16 @@ function decodeUplink(input) {
         index += 2;
 
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
-            index += 4;
+        data.time = date.toLocaleString();
+        index += 4;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1) / 2);
-            index += 1;
+        data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1) / 2);
+        index += 1;
 
-            data.shutdown_type = shutDownTypeArray[bytes[index]];
-            index += 1;
+        data.shutdown_type = shutDownTypeArray[bytes[index]];
+        index += 1;
 
-            data.charging_type = chargingTypeArray[bytes[index]];
+        data.charging_type = chargingTypeArray[bytes[index]];
     } else if (fPort == 5) {
         // Scan data info
         data.packet_sequence = bytes[index];
@@ -217,7 +217,7 @@ function decodeUplink(input) {
                     parse_len += item.raw_data_length;
                 }
                 datas.push(item);
-            }else if (beacon_type == 1) {
+            } else if (beacon_type == 1) {
                 // iBeaconFlag
                 var flag = iBeaconFlag;
                 if (flag & 0x01) {
@@ -294,8 +294,8 @@ function decodeUplink(input) {
                 }
                 // ================
                 if (flag & 0x08) {
-                    var rangingData = bytes[parse_len++];
-                    item.rssi_0m = rangingData == 0 ? "0dBm" : rangingData - 256 + "dBm";
+                    item.rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_len, 1));
+                    parse_len++;
                     beacon_len++;
                 }
                 if (flag & 0x10) {
@@ -335,8 +335,8 @@ function decodeUplink(input) {
                 }
                 // ================
                 if (flag & 0x08) {
-                    var rangingData = bytes[parse_len++];
-                    item.rssi_0m = rangingData == 0 ? "0dBm" : rangingData - 256 + "dBm";
+                    item.rssi_0m = signedHexToInt(bytesToHexString(bytes, parse_len, 1));
+                    parse_len++;
                     beacon_len++;
                 }
                 if (flag & 0x10) {
@@ -462,7 +462,8 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    item.full_scale = fullScaleArray[bytes[parse_len++]];
+                    item.full_scale_index = bytes[parse_len++];
+                    item.full_scale = fullScaleArray[item.full_scale_index];
                     beacon_len++;
                 }
                 if (flag & 0x0200) {
@@ -470,6 +471,8 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x0400) {
+                    var scaleIndex = item.full_scale_index;
+                    var scale = scaleIndex == 3 ? 12 : Math.pow(2, scaleIndex);
                     var x_axis = bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
@@ -480,9 +483,9 @@ function decodeUplink(input) {
                     parse_len += 2;
                     beacon_len += 2;
                     item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
-                    item.x_axis_data = signedHexToInt(x_axis);
-                    item.y_axis_data = signedHexToInt(y_axis);
-                    item.z_axis_data = signedHexToInt(z_axis);
+                    item.x_axis_data = Math.round((signedHexToInt(x_axis) >> 4) * scale);
+                    item.y_axis_data = Math.round((signedHexToInt(y_axis) >> 4) * scale);
+                    item.z_axis_data = Math.round((signedHexToInt(z_axis) >> 4) * scale);
                 }
                 if ((flag & 0x1800)) {
                     item.raw_data_length = current_data_len - beacon_len;
@@ -606,11 +609,21 @@ function decodeUplink(input) {
                     item.z_axis_data = signedHexToInt(z_axis);
                 }
                 if (flag & 0x80) {
-                    item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
+                    item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
                     parse_len += 2;
                     beacon_len += 2;
                 }
                 if (flag & 0x0100) {
+                    item.humidity = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+                    parse_len += 2;
+                    beacon_len += 2;
+                }
+                if (flag & 0x0200) {
+                    item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
+                    parse_len += 2;
+                    beacon_len += 2;
+                }
+                if (flag & 0x0400) {
                     var length = bytes[parse_len++];
                     beacon_len++;
                     item.tag_id = bytesToHexString(bytes, parse_len, length);
@@ -618,7 +631,7 @@ function decodeUplink(input) {
                     beacon_len += length;
                 }
                 if (!no_response_package) {
-                    if (flag & 0x0200) {
+                    if (flag & 0x0800) {
                         var length = bytes[parse_len++];
                         beacon_len++;
                         item.adv_name = bytesToString(bytes, parse_len, length);
@@ -626,13 +639,13 @@ function decodeUplink(input) {
                         beacon_len += length;
                     }
                 }
-                if ((flag & 0x0C00)) {
+                if ((flag & 0x3000)) {
                     item.raw_data_length = current_data_len - beacon_len;
                     item.raw_data = bytesToHexString(bytes, parse_len, item.raw_data_length).toUpperCase();
                     parse_len += item.raw_data_length;
                 }
                 datas.push(item);
-            }else if (beacon_type == 8) {
+            } else if (beacon_type == 8) {
                 // BXPDeviceInfoFlag
                 var flag = BXPDeviceInfoFlag;
                 if (flag & 0x01) {
@@ -788,14 +801,9 @@ function decodeUplink(input) {
                         item.z_axis_data = signedHexToInt(z_axis);
                     }
                     if (flag & 0x1000) {
-                        var tempInt = bytes[parse_len++];
-                        beacon_len++;
-                        var tempDecimal = bytes[parse_len++];
-                        beacon_len++;
-                        tempInt = tempInt > 128 ? tempInt - 256 : tempInt;
-                        tempDecimal = tempDecimal / 256;
-                        var temperature = (tempInt + tempDecimal).toFixed(1);
-                        item.temperature = temperature;
+                        item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+                        parse_len += 2;
+                        beacon_len += 2;
                     }
                     if (flag & 0x2000) {
                         var rangingData = bytes[parse_len++];
@@ -841,37 +849,37 @@ function decodeUplink(input) {
                 }
 
                 if (flag & 0x08) {
-                    item.delay_response_status = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.delay_response_status = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x10) {
-                    item.door_status = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.door_status = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x20) {
-                    item.sensor_sensitivity = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.sensor_sensitivity = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x40) {
-                    item.sensor_detection_status = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.sensor_detection_status = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x80) {
-                    item.battery_voltage = bytesToInt(bytes,parse_len,2) + 'mV';
+                    item.battery_voltage = bytesToInt(bytes, parse_len, 2) + 'mV';
                     parse_len += 2;
                     beacon_len += 2;
                 }
                 if (flag & 0x0100) {
-                    item.major = bytesToInt(bytes,parse_len,2);
+                    item.major = bytesToInt(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
                 }
                 if (flag & 0x0200) {
-                    item.minor = bytesToInt(bytes,parse_len,2);
+                    item.minor = bytesToInt(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -915,17 +923,17 @@ function decodeUplink(input) {
                 }
 
                 if (flag & 0x08) {
-                    item.mfg_code = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.mfg_code = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x10) {
-                    item.beacon_code = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.beacon_code = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x20) {
-                    item.battery_voltage = bytesToInt(bytes,parse_len,2) + 'mV';
+                    item.battery_voltage = bytesToInt(bytes, parse_len, 2) + 'mV';
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -935,14 +943,14 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x80) {
-                    item.user_data = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.user_data = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    item.sub_type = '0x' + bytesToHexString(bytes,parse_len,1);
-                    parse_len ++;
-                    beacon_len ++;
+                    item.sub_type = '0x' + bytesToHexString(bytes, parse_len, 1);
+                    parse_len++;
+                    beacon_len++;
                 }
                 if (!no_response_package) {
                     if (flag & 0x0200) {
@@ -959,7 +967,7 @@ function decodeUplink(input) {
                     parse_len += item.raw_data_length;
                 }
                 datas.push(item);
-            }else if (beacon_type == 12) {
+            } else if (beacon_type == 12) {
                 // BXPiBeaconFlag
                 var flag = BXPiBeaconFlag;
                 if (flag & 0x01) {
