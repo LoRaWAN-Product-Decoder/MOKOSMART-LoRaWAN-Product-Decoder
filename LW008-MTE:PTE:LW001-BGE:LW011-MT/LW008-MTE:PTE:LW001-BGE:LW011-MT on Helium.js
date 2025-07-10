@@ -46,6 +46,7 @@ function Decoder(bytes, port, uplink_info) {
     if (bytes.length < 4) {
         return {};
     }
+    var contain_vlotage = 0;
     var deviceInfo = {};
     deviceInfo.port = port;
 
@@ -85,11 +86,11 @@ function Decoder(bytes, port, uplink_info) {
     if (port == 1 && bytes.length == 9) {
         parse_port1_data(deviceInfo, bytes.slice(3), port);
     } else if (port == 2 && bytes.length >= 7) {
-        parse_port2_data(deviceInfo, bytes.slice(3), port);
+        parse_port2_data(deviceInfo, bytes.slice(3), contain_vlotage);
     }else if (port == 3 && bytes.length == 8) {
         parse_port3_data(deviceInfo, bytes.slice(3), port);
     } else if (port == 4 && bytes.length >= 5) {
-        parse_port4_data(deviceInfo, bytes.slice(3), port);
+        parse_port4_data(deviceInfo, bytes.slice(3), contain_vlotage);
     } else if (port == 5 && bytes.length == 4) {
         var data = {};
         var shutdownTypeCode = bytesToInt(bytes, 3, 2);
@@ -134,13 +135,13 @@ function parse_port1_data(deviceInfo, bytes, port) {
     deviceInfo.data = data;
 }
 
-function parse_port2_data(deviceInfo, bytes, port) {
+function parse_port2_data(deviceInfo, bytes, contain_vlotage) {
     var data = {};
     var positionTypeCode = bytesToInt(bytes, 2, 1);
     data.position_success_type = positionTypeArray[positionTypeCode];
     var sub_bytes = bytes.slice(4,4 + bytes[3]);
     if (positionTypeCode == 2) {
-        var positionData = parse_position_data(sub_bytes, positionTypeCode);
+        var positionData = parse_position_data(sub_bytes, contain_vlotage);
         data.mac_data = positionData;
     } else if (positionTypeCode == 3) {
         var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
@@ -163,22 +164,26 @@ function parse_port3_data(deviceInfo, bytes, port) {
     deviceInfo.data = data;
 }
 
-function parse_port4_data(deviceInfo, bytes, port) {
+function parse_port4_data(deviceInfo, bytes, contain_vlotage) {
     var data = {};
     var failedTypeCode = bytesToInt(bytes, 0, 1);
     var dataLen = bytesToInt(bytes, 1, 1);
     var dataBytes = bytes.slice(2);
     if (failedTypeCode == 0 || failedTypeCode == 1 || failedTypeCode == 2
         || failedTypeCode == 3 || failedTypeCode == 4 || failedTypeCode == 5) {
-        var number = (dataLen / 7);
+        var length = (contain_vlotage ? 9 : 7);
+        var number = (dataLen / length);
         var data_list = [];
         for (var i = 0; i < number; i++) {
             var item = {};
-            var sub_bytes = dataBytes.slice((i * 7), (i * 7 + 8));
+            var sub_bytes = dataBytes.slice((i * length), (i * length + length));
             var mac_address = bytesToHexString(sub_bytes, 0, 6);
             var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
             item.mac_address = mac_address;
             item.rssi = rssi;
+            if (contain_vlotage) {
+                item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
+            }
             data_list.push(item);
         }
         // data.reasons_for_positioning_failure_code = failedTypeCode;
@@ -237,44 +242,22 @@ function parse_port12_data(deviceInfo, bytes, port) {
     deviceInfo.data = data;
 }
 
-function parse_position_data(bytes, type) {
-    if ((type == 0) || (type == 2)) {
-        var number = (bytes.length / 7);
-        var data_list = [];
-        for (var i = 0; i < number; i++) {
-            var sub_bytes = bytes.slice((i * 7), (i * 7 + 8));
-            var mac_address = bytesToHexString(sub_bytes, 0, 6);
-            var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
-            var data_dic = {
-                'mac_address': mac_address,
-                'rssi': rssi
-            };
-            data_list.push(data_dic);
+function parse_position_data(bytes, contain_vlotage) {
+    var length = (contain_vlotage ? 9 : 7)
+    var number = (bytes.length / length);
+    var mac_data = [];
+    for (var i = 0; i < number; i++) {
+        var item = {};
+        var sub_bytes = bytes.slice((i * length), (i * length + length));
+        item.mac_address = bytesToHexString(sub_bytes, 0, 6);
+        item.rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
+        if (contain_vlotage) {
+            item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
         }
-        return data_list;
+        
+        mac_data.push(item);
     }
-    if (type == 3) {
-        var number = (bytes.length / 9);
-        var data_list = [];
-        for (var i = 0; i < number; i++) {
-            var sub_bytes = bytes.slice((i * 9), (i * 9 + 10));
-            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7)
-                + '°';
-            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7) + '°';
-            var podp = bytesToInt(sub_bytes, 8, 1) * 0.1;
-            var data_dic = {
-                'latitude': latitude,
-                'longitude': longitude,
-                'podp': podp
-            };
-            data_list.push(data_dic);
-        }
-        return data_list;
-    }
-    if (type == 4) {
-        return bytes;
-    }
-    return [];
+    return mac_data;
 }
 /*********************Port Parse*************************/
 

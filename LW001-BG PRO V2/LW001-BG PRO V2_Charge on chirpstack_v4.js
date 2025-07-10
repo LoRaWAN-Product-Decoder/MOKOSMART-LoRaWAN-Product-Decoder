@@ -431,6 +431,6 @@ function getData(hex) {
 }
 
 var input = {};
-input.fPort = 3;
-input.bytes = getData("011CE0040ED4701AB00318D2FFB3FC98A622CA");
+input.fPort = 2;
+input.bytes = getData("031a900000021bf082c09f199adaffffdd3c39dc1549d90e001763d63d6055d0ffff686d01af");
 console.log(decodeUplink(input));

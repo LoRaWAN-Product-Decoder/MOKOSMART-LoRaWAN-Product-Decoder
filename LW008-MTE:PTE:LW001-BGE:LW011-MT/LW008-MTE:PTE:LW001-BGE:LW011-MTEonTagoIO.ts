@@ -44,6 +44,7 @@ const eventTypeArray:string[] = [
 
 
 function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string]: any }[] {
+    var contain_vlotage = 0;
     const payloadList: { [key: string]: any }[] = [];
 
     if (bytes.length < 4 || fPort == 0 || fPort == 10 || fPort == 11) {
@@ -128,7 +129,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 
     if (fPort == 2 && bytes.length >= 7) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[1], groupID));
-        return [...payloadList, ...parse_port2_data(bytes.slice(3),groupID)];
+        return [...payloadList, ...parse_port2_data(bytes.slice(3),groupID,contain_vlotage)];
     }
 
     if (fPort == 3 && bytes.length == 8) {
@@ -138,7 +139,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 
     if (fPort == 4 && bytes.length >= 5) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[2], groupID));
-        return [...payloadList, ...parse_port4_data(bytes.slice(3),groupID)];
+        return [...payloadList, ...parse_port4_data(bytes.slice(3),groupID,contain_vlotage)];
     } 
 
     if (fPort == 5 && bytes.length == 4) {
@@ -187,7 +188,7 @@ function parse_port1_data(bytes:number[], groupID:string):{ [key: string]: any }
     return tempList;
 }
 
-function parse_port2_data(bytes:number[], groupID:string):{ [key: string]: any }[] {
+function parse_port2_data(bytes:number[], groupID:string, contain_vlotage:number):{ [key: string]: any }[] {
     const tempList: { [key: string]: any }[] = []; 
     const positionTypeCode = bytesToInt(bytes, 2, 1);
     tempList.push(getPayloadData("position_type_code", positionTypeCode, groupID));
@@ -195,7 +196,7 @@ function parse_port2_data(bytes:number[], groupID:string):{ [key: string]: any }
     
     const sub_bytes = bytes.slice(4,4 + bytes[3]);
     if (positionTypeCode == 2) {
-        const positionData = parse_position_data(sub_bytes);
+        const positionData = parse_position_data(sub_bytes,contain_vlotage);
         tempList.push(getPayloadData("mac_data", positionData, groupID));
     } else if (positionTypeCode == 3) {
         const latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
@@ -221,21 +222,26 @@ function parse_port3_data(bytes:number[], groupID:string):{ [key: string]: any }
     return tempList;
 }
 
-function parse_port4_data(bytes:number[], groupID:string):{ [key: string]: any }[] {
+function parse_port4_data(bytes:number[], groupID:string,contain_vlotage:number):{ [key: string]: any }[] {
     const tempList: { [key: string]: any }[] = []; 
     const failedTypeCode = bytesToInt(bytes, 0, 1);
     const dataLen = bytesToInt(bytes, 1, 1);
     const dataBytes = bytes.slice(2);
     if (failedTypeCode == 0 || failedTypeCode == 1 || failedTypeCode == 2
         || failedTypeCode == 3 || failedTypeCode == 4 || failedTypeCode == 5) {
-        const number = (dataLen / 7);
+        const length = (contain_vlotage == 0 ? 7 : 9);
+        const number = (dataLen / length);
         for (let i = 0; i < number; i++) {
             const item = {};
-            const sub_bytes = dataBytes.slice((i * 7), (i * 7 + 8));
+            const sub_bytes = dataBytes.slice((i * length), (i * length + length));
             const mac_address = bytesToHexString(sub_bytes, 0, 6);
             const rssi = (bytesToInt(sub_bytes, 6, 1) - 256).toString() + 'dBm';
             tempList.push(getPayloadData("mac_address" + i.toString(), mac_address, groupID));
             tempList.push(getPayloadData("rssi" + i.toString(), rssi, groupID));
+            if (contain_vlotage) {
+                const voltage = bytesToInt(sub_bytes, 7, 2).toString() + "mV";
+                tempList.push(getPayloadData("voltage",voltage,groupID));
+            }
         }
         tempList.push(getPayloadData("reasons_for_positioning_failure_code", failedTypeCode, groupID));
         tempList.push(getPayloadData("reasons_for_positioning_failure", posFailedReasonArray[failedTypeCode], groupID));
@@ -277,17 +283,22 @@ function parse_port9_data(bytes:number[], groupID:string):{ [key: string]: any }
     return tempList;
 }
 
-function parse_position_data(bytes: number[]):{ [key: string]: string }[] {
-    const number = (bytes.length / 7);
+function parse_position_data(bytes: number[], contain_vlotage:number):{ [key: string]: string }[] {
+    const length = (contain_vlotage == 0 ? 7 : 9);
+    const number = (bytes.length / length);
     const mac_data: { [key: string]: string }[] = [];
     for (let i = 0; i < number; i++) {
-        const sub_bytes = bytes.slice((i * 7), (i * 7 + 8));
+        const sub_bytes = bytes.slice((i * length), (i * length + length));
         const mac_address = bytesToHexString(sub_bytes, 0, 6);
         const rssi = (bytesToInt(sub_bytes, 6, 1) - 256).toString + 'dBm';
         const data_dic = {
             'mac': mac_address,
             'rssi': rssi
         };
+        if (contain_vlotage > 0) {
+            const voltage = bytesToInt(sub_bytes, 7, 2).toString() + "mV";
+            data_dic['voltage'] = voltage;
+        }
         mac_data.push(data_dic);
     }
     return mac_data;

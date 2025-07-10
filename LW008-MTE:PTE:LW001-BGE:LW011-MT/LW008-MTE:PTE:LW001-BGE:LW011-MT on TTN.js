@@ -53,27 +53,16 @@ var eventTypeArray = [
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
-    if (fPort == 199 || fPort == 10 || fPort == 11) {
-        return {};
-    }
+    var contain_vlotage = 0;
     var deviceInfo = {};
     var data = {};
+    if (fPort == 0 || fPort == 10 || fPort == 11) {
+        deviceInfo.data = data;
+        return deviceInfo;
+    }
+
     data.port = fPort;
-
-    // if (fPort == 2) {
-    //     var positionTypeCode = bytesToInt(bytes, 2, 1);
-    //     if (positionTypeCode == 0) {
-    //         var i = 0;
-    //         var len = bytes.length;
-    //         var out = { access_points: [] };
-
-    //         for (; i < len;) {
-    //             out.access_points.push({ macAddress: bytes.slice(i, i + 6), signalStrength: int8(bytes[i + 6]) });
-    //             i += 7;
-    //         }
-    //         return out;
-    //     }
-    // }
+    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
     var operationModeCode = bytes[0] & 0x07;
     // data.operation_mode_code = operationModeCode;
@@ -95,12 +84,12 @@ function decodeUplink(input) {
     // data.positioning_type_code = positioningTypeCode;
     data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 
-    var timestamp = new Date().getTime();
-    timestamp = timestamp;
-    data.timestamp = timestamp;
-
     var date = new Date();
-    data.time = date.toJSON();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, offsetHours);
+    data.timezone = timezone_decode(offsetHours * 2);
 
     if (fPort == 12 && bytes.length == 11) {
         parse_port12_data(data, bytes, fPort);
@@ -115,32 +104,41 @@ function decodeUplink(input) {
     data.ack = bytes[2] & 0x0f;
 
     if (fPort == 1 && bytes.length == 9) {
-        parse_port1_data(data, bytes.slice(3), fPort);
+        data.payload_type = payloadTypeArray[0];
+        parse_port1_data(data, bytes.slice(3));
     } else if (fPort == 2 && bytes.length >= 7) {
-        parse_port2_data(data, bytes.slice(3), fPort);
+        data.payload_type = payloadTypeArray[1];
+        parse_port2_data(data, bytes.slice(3));
+    }else if (fPort == 3 && bytes.length == 8) {
+        data.payload_type = payloadTypeArray[7];
+        parse_port3_data(data, bytes.slice(3));
     } else if (fPort == 4 && bytes.length >= 5) {
-        parse_port4_data(data, bytes.slice(3), fPort);
+        data.payload_type = payloadTypeArray[2];
+        parse_port4_data(data, bytes.slice(3),contain_vlotage);
     } else if (fPort == 5 && bytes.length == 4) {
+        data.payload_type = payloadTypeArray[3];
         var obj = {};
         var shutdownTypeCode = bytesToInt(bytes, 3, 2);
         // obj.shutdown_type_code = shutdownTypeCode;
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         data.obj = obj;
     } else if (fPort == 6 && bytes.length == 5) {
+        data.payload_type = payloadTypeArray[4];
         var obj = {};
         obj.number_of_shocks = bytesToInt(bytes, 3, 2);
         data.obj = obj;
     } else if (fPort == 7 && bytes.length == 5) {
+        data.payload_type = payloadTypeArray[5];
         var obj = {};
         obj.total_idle_time = bytesToInt(bytes, 3, 2);
         data.obj = obj;
     } else if (fPort == 8 && bytes.length == 4) {
-        var obj = {};
+        data.payload_type = payloadTypeArray[6];
         var eventTypeCode = bytesToInt(bytes, 3, 1);
         // obj.event_type_code = eventTypeCode;
-        obj.event_type = eventTypeArray[eventTypeCode];
-        data.obj = obj;
+        data.event_type = eventTypeArray[eventTypeCode];
     } else if (fPort == 9 && bytes.length == 43) {
+        data.payload_type = payloadTypeArray[7];
         parse_port9_data(data, bytes.slice(3), fPort);
     }
     // data.obj = data_dic;
@@ -150,7 +148,7 @@ function decodeUplink(input) {
 }
 
 /*********************Port Parse*************************/
-function parse_port1_data(data, bytes, port) {
+function parse_port1_data(data, bytes) {
     var obj = {};
     var rebootReasonCode = bytesToInt(bytes, 0, 1);
     // data.obj.reboot_reason_code = rebootReasonCode;
@@ -163,13 +161,13 @@ function parse_port1_data(data, bytes, port) {
     data.obj = obj;
 }
 
-function parse_port2_data(deviceInfo, bytes, port) {
-    var data = {};
+function parse_port2_data(data, bytes, contain_vlotage) {
     var positionTypeCode = bytesToInt(bytes, 2, 1);
+    data.position_type_code = positionTypeCode;
     data.position_success_type = positionTypeArray[positionTypeCode];
     var sub_bytes = bytes.slice(4,4 + bytes[3]);
     if (positionTypeCode == 2) {
-        var positionData = parse_position_data(sub_bytes, positionTypeCode);
+        var positionData = parse_position_data(sub_bytes,contain_vlotage);
         data.mac_data = positionData;
     } else if (positionTypeCode == 3) {
         var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
@@ -182,39 +180,40 @@ function parse_port2_data(deviceInfo, bytes, port) {
     const dateArr = bytes.slice(-4);
     const date = new Date(1000 * bytesToInt(dateArr, 0, dateArr.length));
     data.time = date.toLocaleString();
-    deviceInfo.data = data;
 }
 
-function parse_port3_data(deviceInfo, bytes, port) {
-    var data = {};
+function parse_port3_data(data, bytes) {
     data.low_power_percent = bytesToInt(bytes, 0, 1);
     data.current_cicle_battery_total_consumer = bytesToInt(bytes, 1, 4);
-    deviceInfo.data = data;
 }
 
-function parse_port4_data(data, bytes, port) {
+function parse_port4_data(data, bytes,contain_vlotage) {
     var obj = {};
     var failedTypeCode = bytesToInt(bytes, 0, 1);
     var dataLen = bytesToInt(bytes, 1, 1);
     var dataBytes = bytes.slice(2);
     if (failedTypeCode == 0 || failedTypeCode == 1 || failedTypeCode == 2
         || failedTypeCode == 3 || failedTypeCode == 4 || failedTypeCode == 5) {
-        var number = (dataLen / 7);
+        var length = (contain_vlotage ? 9 : 7);
+        var number = (dataLen / length);
         var data_list = [];
         for (var i = 0; i < number; i++) {
             var item = {};
-            var sub_bytes = dataBytes.slice((i * 7), (i * 7 + 8));
+            var sub_bytes = dataBytes.slice((i * length), (i * length + length));
             var mac_address = bytesToHexString(sub_bytes, 0, 6);
             var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
             item.mac_address = mac_address;
             item.rssi = rssi;
+            if (contain_vlotage) {
+                item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
+            }
             data_list.push(item);
         }
         obj.reasons_for_positioning_failure_code = failedTypeCode;
         obj.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
         obj.location_failure_data = data_list;
         data.obj = obj;
-        return;
+        return;  
     } else {
         var data_list = [];
         obj.pdop = bytesToInt(dataBytes, 0, 1) / 10;
@@ -265,43 +264,22 @@ function parse_port12_data(data, bytes, port) {
     data.obj = obj;
 }
 
-function parse_position_data(bytes, type) {
-    if ((type == 0) || (type == 2)) {
-        var number = (bytes.length / 7);
-        var data_list = [];
-        for (var i = 0; i < number; i++) {
-            var sub_bytes = bytes.slice((i * 7), (i * 7 + 8));
-            var mac_address = bytesToHexString(sub_bytes, 0, 6);
-            var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
-            var data_dic = {
-                'mac_address': mac_address,
-                'rssi': rssi
-            };
-            data_list.push(data_dic);
+function parse_position_data(bytes, contain_vlotage) {
+    var length = (contain_vlotage ? 9 : 7)
+    var number = (bytes.length / length);
+    var mac_data = [];
+    for (var i = 0; i < number; i++) {
+        var item = {};
+        var sub_bytes = bytes.slice((i * length), (i * length + length));
+        item.mac_address = bytesToHexString(sub_bytes, 0, 6);
+        item.rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
+        if (contain_vlotage) {
+            item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
         }
-        return data_list;
+        
+        mac_data.push(item);
     }
-    if (type == 3) {
-        var number = (bytes.length / 9);
-        var data_list = [];
-        for (var i = 0; i < number; i++) {
-            var sub_bytes = bytes.slice((i * 9), (i * 9 + 10));
-            var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
-            var longitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 4, 4)) * 0.0000001).toFixed(7);
-            var pdop = Number(bytesToInt(sub_bytes, 8, 1) * 0.1).toFixed(1);
-            var data_dic = {
-                'latitude': latitude,
-                'longitude': longitude,
-                'pdop': pdop
-            };
-            data_list.push(data_dic);
-        }
-        return data_list;
-    }
-    if (type == 4) {
-        return bytes;
-    }
-    return [];
+    return mac_data;
 }
 /*********************Port Parse*************************/
 
@@ -371,9 +349,9 @@ function parse_time(timestamp, timezone) {
 
     var time_str = "";
     time_str += d.getUTCFullYear();
-    time_str += "/";
+    time_str += "-";
     time_str += formatNumber(d.getUTCMonth() + 1);
-    time_str += "/";
+    time_str += "-";
     time_str += formatNumber(d.getUTCDate());
     time_str += " ";
 
