@@ -41,7 +41,7 @@ function decodeUplink(input) {
     var date = new Date();
     var timestamp = Math.trunc(date.getTime() / 1000);
     var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
-    data.timestamp = timestamp;
+    data.timestamp = timestamp + "";
     data.time = parse_time(timestamp, offsetHours);
     if (fPort == 1 || fPort == 3) {
         // port 1:Turn on info/port 3:Device info
@@ -871,6 +871,7 @@ function decodeUplink(input) {
                     parse_len += item.raw_data_length;
                 }
                 datas.push(item);
+                // datas.push(JSON.stringify(item));
             }
         }
         data.scan_data = datas;

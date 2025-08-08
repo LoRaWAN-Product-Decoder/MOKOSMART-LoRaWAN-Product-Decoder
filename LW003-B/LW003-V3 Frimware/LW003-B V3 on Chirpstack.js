@@ -33,7 +33,7 @@ function Decode(fPort, bytes) {
     var date = new Date();
     var timestamp = Math.trunc(date.getTime() / 1000);
     var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
-    dev_info.timestamp = timestamp;
+    dev_info.timestamp = timestamp + "";
     dev_info.time = parse_time(timestamp, offsetHours);
     if (fPort == 1 || fPort == 3) {
         // port 1:Turn on info/port 3:Device info
