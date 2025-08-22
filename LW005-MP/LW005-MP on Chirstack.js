@@ -37,7 +37,7 @@ function Decode(fPort, bytes) {
     }
     dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
 	dev_info.timestamp = timestamp;
-    dev_info.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1));
+    dev_info.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1)) / 2;
     switch (fPort) {
         case 5:
             dev_info.ac_output_state = bytes[5] == 1 ? "ON" : "OFF";

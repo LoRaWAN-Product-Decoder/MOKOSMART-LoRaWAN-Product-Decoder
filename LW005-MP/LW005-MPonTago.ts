@@ -34,7 +34,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 	const time = parse_time(timestamp, bytes[4] * 0.5);
     payloadList.push(getPayloadData('time', time, groupID));
 
-	const timezone = signedHexToInt(bytesToHexString(bytes, 4, 1));
+	const timezone = signedHexToInt(bytesToHexString(bytes, 4, 1)) / 2;
     payloadList.push(getPayloadData('timezone', timezone, groupID));
 
     if (fPort == 5) {

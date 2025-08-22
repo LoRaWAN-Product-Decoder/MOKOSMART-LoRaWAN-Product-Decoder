@@ -51,7 +51,7 @@ function decodeUplink(input) {
     }
     data.time = parse_time(timestamp, bytes[4] * 0.5);
 	data.timestamp = timestamp;
-    data.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1));
+    data.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1)) / 2;
     switch (fPort) {
         case 5:
             data.ac_output_state = bytes[5] == 1 ? "ON" : "OFF";

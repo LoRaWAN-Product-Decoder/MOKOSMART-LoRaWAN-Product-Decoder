@@ -15,22 +15,17 @@ var BXPDeviceInfoFlag = 0x1FFF;
 var BXPACCFlag = 0x1FFF;
 var BXPTHFlag = 0x07FF;
 var BXPButtonFlag = 0x03FFFF;
-var BXPTagFlag = 0x0FFF;
+var BXPTagFlag = 0x3FFF;
 var OtherTypeFlag = 0x1F;
 var BXPPirFlag = 0x3FFF;
 var BXPTofFlag = 0x0FFF;
 
 
-var chargingTypeArray = [
-    'No Charging',
-    'DC Priority',
-    'Solar Priority'
-];
-
+var chargingTypeArray = ['No Charging','DC Charging','Solar Charging'];
 var shutDownTypeArray = ["Bluetooth command or App", "LoRaWAN Command", "Power button", "Battery run out"];
 var beaconTypeArray =
     [
-        "Unknown",
+        "Other",
         "iBeacon",
         "Eddystone-UID",
         "Eddystone-URL",
@@ -44,7 +39,7 @@ var beaconTypeArray =
         "BXP-TOF",
         "BXP-iBeacon",
     ];
-var messageTypeArray = ["Normal heartbeat report", "The device come into low power state", "Other type"];
+//var messageTypeArray = ["Normal heartbeat report", "The device come into low power state", "Other type"];
 var sampleRateArray = ["1Hz", "10Hz", "25Hz", "50Hz", "100Hz", "200Hz", "400Hz", "1344Hz", "1620Hz", "5376Hz"];
 var fullScaleArray = ["±2g", "±4g", "±8g", "±16g"];
 var frameTypeArray = ["Single press mode", "Double press mode", "Long press mode", "Abnormal inactivity mode"];
@@ -68,9 +63,8 @@ function decodeUplink(input) {
     if (fPort == 1 || fPort == 3 || fPort == 4 || fPort == 8) {
         const battery_status = bytes[index];
         index++;
-        data.battery_charging_status = (battery_status & 0x80 == 0x80) ? "in charging" : "no charging";
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
         data.battery_level = (battery_status & 0x7F) + "%";
-
         data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
         index += 2;
 
@@ -102,34 +96,77 @@ function decodeUplink(input) {
         data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1)) / 2;
         index += 1;
 
-        data.charging_type = chargingTypeArray[bytes[index]];
+        if (fPort == 1 || fPort == 3) {
+            data.charging_type = chargingTypeArray[bytes[index]];
+        }else if (fPort == 4) {
+            data.information_package_type = 'Downlink Message Trigger';
+        }
+
+        
     } else if (fPort == 2) {
         const battery_status = bytes[index];
         index++;
-        data.battery_charging_status = (battery_status & 0x80 == 0x80) ? "in charging" : "no charging";
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
         data.battery_level = (battery_status & 0x7F) + "%";
 
         data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
         index += 2;
 
         const date = new Date(1000 * bytesToInt(bytes, index, 4));
-        data.time = date.toLocaleString();
+        data.timestamp = date.toLocaleString();
         index += 4;
 
-        data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1) / 2);
+        data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1))/ 2;
         index += 1;
 
         data.shutdown_type = shutDownTypeArray[bytes[index]];
         index += 1;
 
         data.charging_type = chargingTypeArray[bytes[index]];
-    } else if (fPort == 5) {
+    } else if (fPort == 9) {
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        data.work_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.adv_cnt = bytesToInt(bytes, index, 4);
+        index += 4;
+
+        data.scan_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.red_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.green_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.blue_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.axis_sleep_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.axis_wakeup_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.lorawan_send_count = bytesToInt(bytes, index, 4);
+        index += 4;
+
+        data.lorawan_power = bytesToInt(bytes, index, 4) + 'mAS';
+        index += 4;
+
+        data.power_consumption = bytesToInt(bytes, index, 4) * 0.001 + 'mAH';
+
+    } else if (fPort == 5 || fPort == 10) {
         // Scan data info
         data.packet_sequence = bytes[index];
         index += 1;
 
-        data.time = parse_time(bytesToInt(bytes, index, 4), bytes[5] * 0.5);
-        data.timestamp = bytesToInt(bytes, index, 4);
+        data.timestamp = parse_time(bytesToInt(bytes, index, 4), bytes[5] * 0.5);
         index += 4;
 
         data.timezone = timezone_decode(bytes[index]);
@@ -137,7 +174,7 @@ function decodeUplink(input) {
 
         data.beacon_number = bytes[index];
         index += 1;
-        data.message_type = "Scan data";
+        data.message_type = "Scan Data";
 
         // var date = new Date();
         // data.time = date.toJSON();
@@ -166,9 +203,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -181,8 +216,16 @@ function decodeUplink(input) {
                         var dataBlock = {};
                         var dataBlockLength = bytes[parse_len++];
                         beacon_len++;
+                        if ((dataBlockLength >> 6) & 0x00) {
+                            dataBlock.status = "Normal";
+                            parse_len++;
+                            beacon_len++;
+                            dataBlocks.push(dataBlock);
+                            blockNum--;
+                            continue;
+                        }
                         if ((dataBlockLength >> 6) & 0x01) {
-                            dataBlock.error = "type error";
+                            dataBlock.status = "Type Error";
                             parse_len++;
                             beacon_len++;
                             dataBlocks.push(dataBlock);
@@ -190,7 +233,7 @@ function decodeUplink(input) {
                             continue;
                         }
                         if ((dataBlockLength >> 6) & 0x02) {
-                            dataBlock.error = "length error";
+                            dataBlock.status = "Length Error";
                             parse_len++;
                             beacon_len++;
                             dataBlocks.push(dataBlock);
@@ -230,9 +273,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -286,9 +327,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -327,9 +366,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -373,9 +410,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -386,7 +421,6 @@ function decodeUplink(input) {
                 }
                 if (flag & 0x10) {
                     item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
-                    item.batt_vol = bytesToInt(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -397,7 +431,7 @@ function decodeUplink(input) {
                     beacon_len++;
                     tempInt = tempInt > 128 ? tempInt - 256 : tempInt;
                     tempDecimal = tempDecimal / 256;
-                    var temperature = (tempInt + tempDecimal).toFixed(1);
+                    var temperature = (tempInt + tempDecimal).toFixed(1) + '℃';
                     item.temperature = temperature;
                 }
                 if (flag & 0x40) {
@@ -429,9 +463,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -452,7 +484,7 @@ function decodeUplink(input) {
                 }
                 if (flag & 0x40) {
                     item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
-                    item.batt_vol = bytesToInt(bytes, parse_len, 2);
+                    //item.batt_vol = bytesToInt(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -462,8 +494,9 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x0100) {
-                    item.full_scale_index = bytes[parse_len++];
-                    item.full_scale = fullScaleArray[item.full_scale_index];
+                    item.full_scale_index = bytes[parse_len];
+                    item.full_scale = fullScaleArray[bytes[parse_len]];
+                    parse_len++;
                     beacon_len++;
                 }
                 if (flag & 0x0200) {
@@ -471,21 +504,32 @@ function decodeUplink(input) {
                     beacon_len++;
                 }
                 if (flag & 0x0400) {
-                    var scaleIndex = item.full_scale_index;
-                    var scale = scaleIndex == 3 ? 12 : Math.pow(2, scaleIndex);
-                    var x_axis = bytesToHexString(bytes, parse_len, 2);
+                    var scaleIndex = item.full_scale_index ?? 0;
+
+                    var scale = 0.9765625;
+                    if (scaleIndex == 1) {
+                        scale = 1.953125;
+                    }else if (scaleIndex == 2) {
+                        scale = 3.90625;
+                    }else if (scaleIndex == 3) {
+                        scale = 7.8125;
+                    }
+
+                    item.x_axis_data = fetchRawString(bytesToInt(bytes,parse_len,2),scale);
                     parse_len += 2;
                     beacon_len += 2;
-                    var y_axis = bytesToHexString(bytes, parse_len, 2);
+                    item.y_axis_data = fetchRawString(bytesToInt(bytes,parse_len,2),scale);
                     parse_len += 2;
                     beacon_len += 2;
-                    var z_axis = bytesToHexString(bytes, parse_len, 2);
+                    item.z_axis_data = fetchRawString(bytesToInt(bytes,parse_len,2),scale);
                     parse_len += 2;
                     beacon_len += 2;
-                    item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
-                    item.x_axis_data = Math.round((signedHexToInt(x_axis) >> 4) * scale);
-                    item.y_axis_data = Math.round((signedHexToInt(y_axis) >> 4) * scale);
-                    item.z_axis_data = Math.round((signedHexToInt(z_axis) >> 4) * scale);
+                    
+                    var x_axis = '0x' + item.x_axis_data.toString(16).toUpperCase();
+                    var y_axis = '0x' + item.y_axis_data.toString(16).toUpperCase();
+                    var z_axis = '0x' + item.z_axis_data.toString(16).toUpperCase();
+                    item.axis_data = "X:" + x_axis + " Y:" + y_axis + " Z:" + z_axis;
+                    
                 }
                 if ((flag & 0x1800)) {
                     item.raw_data_length = current_data_len - beacon_len;
@@ -506,9 +550,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -529,7 +571,6 @@ function decodeUplink(input) {
                 }
                 if (flag & 0x40) {
                     item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
-                    item.batt_vol = bytesToInt(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -537,14 +578,14 @@ function decodeUplink(input) {
                 if (flag & 0x80) {
                     var temperature = bytesToInt(bytes, parse_len, 2);
                     if (temperature > 0x8000)
-                        item.temperature = "-" + (0x10000 - temperature) / 10;
+                        item.temperature = "-" + (0x10000 - temperature) / 10 + '℃';
                     else
-                        item.temperature = temperature / 10;
+                        item.temperature = temperature / 10 + '℃';
                     parse_len += 2;
                     beacon_len += 2;
                 }
                 if (flag & 0x0100) {
-                    item.humidity = bytesToInt(bytes, parse_len, 2) / 10;
+                    item.humidity = bytesToInt(bytes, parse_len, 2) / 10 + '%';
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -567,18 +608,16 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
                 // ================
                 if (flag & 0x08) {
                     item.hall_sensor_status = bytes[parse_len] & 0x01 ? "Magnet away/absent" : "Magnet approach/present";
-                    item.hall_sensor_status_code = bytes[parse_len] & 0x01;
+                    //item.hall_sensor_status_code = bytes[parse_len] & 0x01;
                     item.accelerometer_sensor_status = bytes[parse_len] & 0x02 ? "In move" : "In static";
-                    item.accelerometer_check_move = bytes[parse_len] & 0x02;
+                    //item.accelerometer_check_move = bytes[parse_len] & 0x02;
                     item.accelerometer_sensor_equipped_status = bytes[parse_len] & 0x04 ? "Equipped" : "Not equipped";
                     parse_len++;
                     beacon_len++;
@@ -603,18 +642,18 @@ function decodeUplink(input) {
                     var z_axis = bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
-                    item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
+                    //item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
                     item.x_axis_data = signedHexToInt(x_axis);
                     item.y_axis_data = signedHexToInt(y_axis);
                     item.z_axis_data = signedHexToInt(z_axis);
                 }
                 if (flag & 0x80) {
-                    item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+                    item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1) + '℃';
                     parse_len += 2;
                     beacon_len += 2;
                 }
                 if (flag & 0x0100) {
-                    item.humidity = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+                    item.humidity = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1) + '%';
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -658,9 +697,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -681,7 +718,7 @@ function decodeUplink(input) {
                 }
                 if (flag & 0x40) {
                     item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
-                    item.batt_vol = bytesToInt(bytes, parse_len, 2);
+                    
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -733,9 +770,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -748,7 +783,7 @@ function decodeUplink(input) {
                 if (flag & 0x10) {
                     item.password_verification_status = (bytes[parse_len] & 0x01) ? "Password verification enabled" : "Password verification disabled";
                     item.alarm_triggered_status = (bytes[parse_len] & 0x02) ? "Alarm be triggered" : "Alarm not be triggered";
-                    item.alarm_status = bytes[parse_len] & 0x02;
+                    //item.alarm_status = bytes[parse_len] & 0x02;
                     parse_len++;
                     beacon_len++;
                 }
@@ -795,13 +830,13 @@ function decodeUplink(input) {
                         var z_axis = bytesToHexString(bytes, parse_len, 2);
                         parse_len += 2;
                         beacon_len += 2;
-                        item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
+                        //item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
                         item.x_axis_data = signedHexToInt(x_axis);
                         item.y_axis_data = signedHexToInt(y_axis);
                         item.z_axis_data = signedHexToInt(z_axis);
                     }
                     if (flag & 0x1000) {
-                        item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1);
+                        item.temperature = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.1).toFixed(1) + '℃';
                         parse_len += 2;
                         beacon_len += 2;
                     }
@@ -812,7 +847,6 @@ function decodeUplink(input) {
                     }
                     if (flag & 0x4000) {
                         item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
-                        item.batt_vol = bytesToInt(bytes, parse_len, 2);
                         parse_len += 2;
                         beacon_len += 2;
                     }
@@ -841,9 +875,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4),0);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -915,22 +947,20 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
 
                 if (flag & 0x08) {
-                    item.mfg_code = '0x' + bytesToHexString(bytes, parse_len, 1);
-                    parse_len++;
-                    beacon_len++;
+                    item.mfg_code = '0x' + bytesToHexString(bytes, parse_len, 2);
+                    parse_len +=2;
+                    beacon_len +=2;
                 }
                 if (flag & 0x10) {
-                    item.beacon_code = '0x' + bytesToHexString(bytes, parse_len, 1);
-                    parse_len++;
-                    beacon_len++;
+                    item.beacon_code = '0x' + bytesToHexString(bytes, parse_len, 2);
+                    parse_len +=2;
+                    beacon_len +=2;
                 }
                 if (flag & 0x20) {
                     item.battery_voltage = bytesToInt(bytes, parse_len, 2) + 'mV';
@@ -938,14 +968,14 @@ function decodeUplink(input) {
                     beacon_len += 2;
                 }
                 if (flag & 0x40) {
-                    var rangingData = bytes[parse_len++];
-                    item.ranging_data = rangingData == 0 ? "0dBm" : rangingData - 256 + "dBm";
-                    beacon_len++;
+                    item.ranging_data = bytesToInt(bytes, parse_len, 2) + 'mm';
+                    parse_len += 2;
+                    beacon_len += 2;
                 }
                 if (flag & 0x80) {
-                    item.user_data = '0x' + bytesToHexString(bytes, parse_len, 1);
-                    parse_len++;
-                    beacon_len++;
+                    item.user_data = '0x' + bytesToHexString(bytes, parse_len, 2);
+                    parse_len +=2;
+                    beacon_len +=2;
                 }
                 if (flag & 0x0100) {
                     item.sub_type = '0x' + bytesToHexString(bytes, parse_len, 1);
@@ -980,9 +1010,7 @@ function decodeUplink(input) {
                     beacon_len += 1;
                 }
                 if (flag & 0x04) {
-                    item.current_time = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
-                    item.timestamp = bytesToInt(bytes, parse_len, 4);
-                    item.timezone = parse_time_zone(bytes[5] * 0.5);
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
                     parse_len += 4;
                     beacon_len += 4;
                 }
@@ -1039,6 +1067,7 @@ function decodeUplink(input) {
         data.scan_data = datas;
     }
     dev_info.data = data;
+    console.log(JSON.stringify(dev_info, null, 2));
     return dev_info;
 }
 
@@ -1166,6 +1195,19 @@ function formatNumber(number) {
     return number < 10 ? "0" + number : number;
 }
 
+function fetchRawString(xHex, scale) {
+    let value = 0;
+    
+    if (xHex & 0x8000) {
+        value = ((xHex >> 4) - 0x1000) * scale;
+    } else {
+        value = (xHex >> 4) * scale;
+    }
+    
+    return Math.round(value);
+}
+
+
 String.prototype.format = function () {
     if (arguments.length == 0)
         return this;
@@ -1191,5 +1233,5 @@ function getData(hex) {
 // console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
 var input = {};
 input.fPort = 5;
-input.bytes = getData("4e66cd2e9a10060d0ac424b6de3a2abd66f60ba8000d0aa309748aafa9af66f60ba8009505d9111e793ce7b966f60ba800000a0bb30001300a9505d275202b7325b366f60ba800bf0a0baa000120010d0a6cdf52b222a1b666f60ba8000d0af401d415f2b4c266f60ba800");
+input.bytes = getData("00689C52F510013905EE9578538FCBBE689C52F300000A0B2901000101C0C2800CC0020106020A001816ABFE60000A01000101C0C2800CC00B2900EE9578538FCB");
 console.log(decodeUplink(input));

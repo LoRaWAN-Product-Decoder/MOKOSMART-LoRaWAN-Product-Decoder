@@ -33,7 +33,7 @@ function Decoder(bytes, port) {
         return dev_info;
     }
     dev_info.time = parse_time(timestamp, bytes[4] * 0.5);
-    dev_info.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1));
+    dev_info.timezone = signedHexToInt(bytesToHexString(bytes, 4, 1)) / 2;
     switch (port) {
         case 5:
             dev_info.ac_output_state = bytes[5] == 1 ? "ON" : "OFF";
