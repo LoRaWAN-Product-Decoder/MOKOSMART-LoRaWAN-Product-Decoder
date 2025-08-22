@@ -149,7 +149,7 @@ function command_format_check(bytes, port) {
 			break;
 
 		case 7:
-			if (bytes.length === 6)
+			if (bytes.length >= 6)
 				return true;
 			break;
 

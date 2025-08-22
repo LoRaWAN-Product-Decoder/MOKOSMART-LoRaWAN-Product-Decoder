@@ -162,7 +162,7 @@ function command_format_check(length, fPort) {
     if (fPort == 6 && length === 11) {
         return true;
     }
-    if (fPort == 7 && length === 6) {
+    if (fPort == 7 && length >= 6) {
         return true;
     }
     return false;
