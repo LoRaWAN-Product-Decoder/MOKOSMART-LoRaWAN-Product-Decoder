@@ -404,7 +404,7 @@ function getData(hex) {
 	return datas;
 }
 
-var input = {};
-input.fPort = 4;
-input.bytes = getData("05122A400203");
-console.log(decodeUplink(input));
+// var input = {};
+// input.fPort = 2;
+// input.bytes = getData("011be00207e9081a052a2b000901bd92463c946eeb2e");
+// console.log(decodeUplink(input));
