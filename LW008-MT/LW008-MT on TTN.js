@@ -45,27 +45,55 @@ var eventTypeArray = [
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
-    if (fPort == 199 || fPort == 10 || fPort == 11) {
+    if (fPort == 199 || fPort == 10) {
         return {};
+    }
+    if (fPort == 11) {
+        
+        var header = bytes[0];
+        if ((header & 0x80) == 0x80) {
+            //Bit7=1鍒欒〃绀轰笉闇€瑕佽В鏋�
+            return {}
+        }
+        var index = 2;
+
+        var year = bytesToInt(bytes, index, 2);
+        index += 2;
+
+        var month = bytesToInt(bytes, index, 1);
+        index += 1;
+
+        var day = bytesToInt(bytes, index, 1);
+        index += 1;
+
+        var hour = bytesToInt(bytes, index, 1);
+        index += 1;
+
+        var minute = bytesToInt(bytes, index, 1);
+        index += 1;
+
+        var second = bytesToInt(bytes, index, 1);
+        index += 1;
+
+        var storage_timezone = signedHexToInt(bytesToHexString(bytes, index, 1)) / 2;
+
+        index += 1;
+        var port = bytesToInt(bytes, index, 1);
+        index += 1;
+        var tempDataInfo = {};
+        tempDataInfo.bytes = bytes.slice(index);
+        tempDataInfo.fPort = port;
+        var tempDeviceInfo = decodeUplink(tempDataInfo).data;
+        tempDeviceInfo.storage_time = year + '/' + month + '/' + day + ' ' + hour + ':' + minute + ':' + second;
+        tempDeviceInfo.storage_timezone = storage_timezone;
+        var deviceInfo = {};
+        deviceInfo.data = tempDeviceInfo;
+
+        return deviceInfo;
     }
     var deviceInfo = {};
     var data = {};
     data.port = fPort;
-
-    // if (fPort == 2) {
-    //     var positionTypeCode = bytesToInt(bytes, 2, 1);
-    //     if (positionTypeCode == 0) {
-    //         var i = 0;
-    //         var len = bytes.length;
-    //         var out = { access_points: [] };
-
-    //         for (; i < len;) {
-    //             out.access_points.push({ macAddress: bytes.slice(i, i + 6), signalStrength: int8(bytes[i + 6]) });
-    //             i += 7;
-    //         }
-    //         return out;
-    //     }
-    // }
 
     var operationModeCode = bytes[0] & 0x03;
     // data.operation_mode_code = operationModeCode;
@@ -101,7 +129,7 @@ function decodeUplink(input) {
         return deviceInfo;
     }
 
-    var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
+    var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '掳C';
     data.temperature = temperature;
 
     data.ack = bytes[2] & 0x0f;
@@ -230,9 +258,9 @@ function parse_port12_data(data, bytes, port) {
     obj.ack = bytes[1] & 0x0f;
     obj.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
     obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
-        + '°';
+        + '掳';
     obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
-        + '°';
+        + '掳';
     obj.pdop = bytesToInt(bytes, 10, 1);
     data.obj = obj;
 }
@@ -363,24 +391,24 @@ function formatNumber(number) {
 }
 
 function signedHexToInt(hexStr) {
-    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
-    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    var twoStr = parseInt(hexStr, 16).toString(2); // 灏嗗崄鍏浆鍗佽繘鍒讹紝鍐嶈浆2杩涘埗
+    var bitNum = hexStr.length * 4; // 1涓瓧鑺� = 8bit 锛�0xff 涓€涓� "f"灏辨槸4浣�
     if (twoStr.length < bitNum) {
         while (twoStr.length < bitNum) {
             twoStr = "0" + twoStr;
         }
     }
     if (twoStr.substring(0, 1) == "0") {
-        // 正数
-        twoStr = parseInt(twoStr, 2); // 二进制转十进制
+        // 姝ｆ暟
+        twoStr = parseInt(twoStr, 2); // 浜岃繘鍒惰浆鍗佽繘鍒�
         return twoStr;
     }
-    // 负数
+    // 璐熸暟
     var twoStr_unsign = "";
-    twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
+    twoStr = parseInt(twoStr, 2) - 1; // 琛ョ爜锛�(璐熸暟)鍙嶇爜+1锛岀鍙蜂綅涓嶅彉锛涚浉瀵瑰崄杩涘埗鏉ヨ涔熸槸 +1锛屼絾杩欓噷鏄礋鏁帮紝+1灏辨槸缁濆鍊兼暟鎹�-1
     twoStr = twoStr.toString(2);
-    twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
-    // 去除首字符，将0转为1，将1转为0   反码
+    twoStr_unsign = twoStr.substring(1, bitNum); // 鑸嶅純棣栦綅(绗﹀彿浣�)
+    // 鍘婚櫎棣栧瓧绗︼紝灏�0杞负1锛屽皢1杞负0   鍙嶇爜
     twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
     twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
     twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
