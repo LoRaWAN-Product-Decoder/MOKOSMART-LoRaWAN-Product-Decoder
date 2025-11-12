@@ -466,7 +466,7 @@ function parsePositionData(dataBytes, contain_vlotage) {
         var item = {
             type: "GPS",
             pdop: bytesToInt(dataBytes, 0, 1) / 10,
-            satellite_signal_strength: bytesToInt(sub_bytes, 1, 4),
+            satellite_signal_strength: bytesToInt(dataBytes, 1, 4),
         };
         result.push(item);
     } else if (n % ble_sub_len === 0) {
