@@ -45,6 +45,21 @@ var fullScaleArray = ["±2g", "±4g", "±8g", "±16g"];
 var frameTypeArray = ["Single press mode", "Double press mode", "Long press mode", "Abnormal inactivity mode"];
 var urlSchemeArray = ["http://www.", "https://www.", "http://", "https://"];
 var urlExpansionArray = [".com/", ".org/", ".edu/", ".net/", ".info/", ".biz/", ".gov/", ".com", ".org", ".edu", ".net", ".info", ".biz", ".gov"];
+var disconnectTypeArray = ["Abnormal", "Timeout", "Active"];
+var beaconConnectResultArray = [
+    "Success",
+    "Scan closed",
+    "Exceed the max number",
+    "Beacon has been connected",
+    "Out of range",
+    "Cannot be connected",
+    "Connect failed",
+    "Device type error",
+    "Password error"
+];
+var getBXPBDDeviceInfoResultArray = ["Success","Device disconnect","Not support command"];
+var cmdResultArray = ["Success","Device disconnect","Not support command","Timeout"];
+var deleteTriggerResultArray = ["Single click","Double click","Long press"];
 
 function decodeUplink(input) {
     var bytes = input.bytes;
@@ -1065,10 +1080,232 @@ function decodeUplink(input) {
             }
         }
         data.scan_data = datas;
+    } else if (fPort == 11) {
+        
     }
     dev_info.data = data;
     console.log(JSON.stringify(dev_info, null, 2));
     return dev_info;
+}
+
+function parsePort11(bytes) {
+    var index = 0;
+    var data = {};
+    if (bytes[index] != 0x03) {
+        return data;
+    }
+    index ++;
+    var cmd = bytesToInt(bytes,index,2);
+    index += 2;
+    //总得数据域长度
+    var data_len = bytes[index];
+    index ++;
+    var sub_bytes = bytes.slice(index);
+    if (cmd == 0x0b01) {
+        //断开连接通知
+        for (var i = 0; i < sub_bytes.length;) {
+            var temp_tag = sub_bytes[i++] & 0xff;
+            var temp_len = sub_bytes[i++] & 0xff;
+            switch (temp_tag) {
+                case 0x00:
+                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x01:
+                    data.disconnect_type = disconnectTypeArray[sub_bytes[i]];
+                    break;
+                case 0x02:
+                    data.gateway_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x03:
+                    data.timestamp = bytesToInt(sub_bytes, i, temp_len)
+                    break;
+            }
+            i += temp_len;
+        }
+        return data;
+    }
+    if (cmd == 0x0b03) {
+        //当前网关连接beacon信息通知
+        var beacon_numbers = sub_bytes[0];
+        sub_bytes = sub_bytes.slice(1);
+        var beacon_list = [];
+        for (var i = 0; i < beacon_numbers;i ++) {
+            var temp_sub_data = sub_bytes.slice(i * 7,i * 7 + 7);
+            var temp_data = {};
+            temp_data.mac = bytesToHexString(temp_sub_data, 0, 6);
+            temp_data.device_type = ((temp_sub_data[6] == 0x01) ? "BXP-B-CR" : "BXP-B-D");
+            beacon_list.push(temp_data);
+        }
+        data.beacon_list = beacon_list;
+        return data;
+    }
+    if (cmd == 0x0b11 || cmd == 0x0b31) {
+        //0x0b11 连接BXP-B-D设备结果通知
+        //0x0b31 连接BXP-B-CR设备结果通知
+        for (var i = 0; i < sub_bytes.length;) {
+            var temp_tag = sub_bytes[i++] & 0xff;
+            var temp_len = sub_bytes[i++] & 0xff;
+            switch (temp_tag) {
+                case 0x00:
+                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x01:
+                    data.connect_result = beaconConnectResultArray[sub_bytes[i]];
+                    break;
+                case 0x02:
+                    data.product_model = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x03:
+                    data.company_name = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x04:
+                    data.hardware_version = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x05:
+                    data.software_version = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x06:
+                    data.firmware_version = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x07:
+                    data.battery_voltage = bytesToInt(sub_bytes, i, temp_len) + "mV";
+                    break;
+                case 0x08:
+                    data.single_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
+                    break;
+                case 0x09:
+                    data.double_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
+                    break;
+                case 0x0a:
+                    data.long_press_alarm_count = bytesToInt(sub_bytes, i, temp_len);
+                    break;
+                case 0x0b:
+                    data.single_click_alarm = (((sub_bytes[i] & 0x01) == 0x01) ? "Alarm" : "Normal")
+                    data.double_click_alarm = (((sub_bytes[i] & 0x02) == 0x02) ? "Alarm" : "Normal")
+                    data.long_press_alarm = (((sub_bytes[i] & 0x04) == 0x04) ? "Alarm" : "Normal")
+                    data.static_alarm = (((sub_bytes[i] & 0x08) == 0x08) ? "Alarm" : "Normal")
+                    break;
+                case 0x0c:
+                    data.support_axis = (((sub_bytes[i] & 0x01) == 0x01) ? "true" : "false")
+                    data.support_th = (((sub_bytes[i] & 0x02) == 0x02) ? "true" : "false")
+                    data.support_light_detected = (((sub_bytes[i] & 0x04) == 0x04) ? "true" : "false")
+                    break;
+                case 0x0d:
+                    data.gateway_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x0e:
+                    data.timestamp = bytesToInt(sub_bytes, i, temp_len)
+                    break;
+            }
+            i += temp_len;
+        }
+        return data;
+    }
+    if (cmd == 0x0b13 || cmd == 0x0b33) {
+        //0x0b13 获取BXP-B-D设备信息结果通知
+        //0x0b33 获取BXP-B-CR设备信息结果通知
+        for (var i = 0; i < sub_bytes.length;) {
+            var temp_tag = sub_bytes[i++] & 0xff;
+            var temp_len = sub_bytes[i++] & 0xff;
+            switch (temp_tag) {
+                case 0x00:
+                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x01:
+                    data.command_result = getBXPBDDeviceInfoResultArray[sub_bytes[i]];
+                    break;
+                case 0x02:
+                    data.product_model = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x03:
+                    data.company_name = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x04:
+                    data.hardware_version = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x05:
+                    data.software_version = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x06:
+                    data.firmware_version = bytesToString(sub_bytes, i, temp_len)
+                    break;
+                case 0x07:
+                    data.support_axis = (((sub_bytes[i] & 0x01) == 0x01) ? "true" : "false")
+                    data.support_th = (((sub_bytes[i] & 0x02) == 0x02) ? "true" : "false")
+                    data.support_light_detected = (((sub_bytes[i] & 0x04) == 0x04) ? "true" : "false")
+                    break;
+            }
+            i += temp_len;
+        }
+        return data;
+    }
+    if (cmd == 0x0b15 || cmd == 0x0b35) {
+        //0x0b15 获取BXP-B-D设备状态结果通知
+        //0x0b35 获取BXP-B-CR设备状态结果通知
+        for (var i = 0; i < sub_bytes.length;) {
+            var temp_tag = sub_bytes[i++] & 0xff;
+            var temp_len = sub_bytes[i++] & 0xff;
+            switch (temp_tag) {
+                case 0x00:
+                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x01:
+                    data.command_result = getBXPBDDeviceInfoResultArray[sub_bytes[i]];
+                    break;
+                case 0x02:
+                    data.battery_voltage = bytesToInt(sub_bytes, i, temp_len) + "mV";
+                    break;
+                case 0x03:
+                    data.single_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
+                    break;
+                case 0x04:
+                    data.double_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
+                    break;
+                case 0x05:
+                    data.long_press_alarm_count = bytesToInt(sub_bytes, i, temp_len);
+                    break;
+                case 0x06:
+                    data.single_click_alarm = (((sub_bytes[i] & 0x01) == 0x01) ? "Alarm" : "Normal")
+                    data.double_click_alarm = (((sub_bytes[i] & 0x02) == 0x02) ? "Alarm" : "Normal")
+                    data.long_press_alarm = (((sub_bytes[i] & 0x04) == 0x04) ? "Alarm" : "Normal")
+                    data.static_alarm = (((sub_bytes[i] & 0x08) == 0x08) ? "Alarm" : "Normal")
+                    break;
+            }
+            i += temp_len;
+        }
+        return data;
+    }
+    if (cmd == 0x0b17 || cmd == 0x0b19 || cmd == 0x0b1b 
+        || cmd == 0x0b1d || cmd == 0x0b37 || cmd == 0x0b39 
+        || cmd == 0x0b3b || cmd == 0x0b3d || cmd == 0x0b3f) {
+        //0x0b17 解除报警结果通知
+        //0x0b19 控制BXP-B-D设备LED灯结果
+        //0x0b1b 控制BXP-B-D设备蜂鸣器结果
+        //0x0b1d 删除触发记录结果
+        //0x0b37 解除报警结果
+        //0x0b39 控制BXP-B-CR设备LED灯结果
+        //0x0b3b 控制BXP-B-CR设备蜂鸣器结果
+        //0x0b3d 删除BXP-B-CR设备触发记录结果
+        //0x0b3f 控制BXP-B-CR设备马达结果
+        for (var i = 0; i < sub_bytes.length;) {
+            var temp_tag = sub_bytes[i++] & 0xff;
+            var temp_len = sub_bytes[i++] & 0xff;
+            switch (temp_tag) {
+                case 0x00:
+                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
+                    break;
+                case 0x01:
+                    data.command_result = cmdResultArray[sub_bytes[i]];
+                    break;
+                case 0x02:
+                    //0x0b1d/0x0b3d特有
+                    data.delete_content = deleteTriggerResultArray[sub_bytes[i]];
+                    break;
+            }
+            i += temp_len;
+        }
+        return data;
+    }
 }
 
 
