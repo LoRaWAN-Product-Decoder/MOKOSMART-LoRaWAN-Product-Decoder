@@ -1081,7 +1081,7 @@ function decodeUplink(input) {
         }
         data.scan_data = datas;
     } else if (fPort == 11) {
-        
+        data = parsePort11(bytes);
     }
     dev_info.data = data;
     console.log(JSON.stringify(dev_info, null, 2));
