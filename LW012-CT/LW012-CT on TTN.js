@@ -62,7 +62,6 @@ function decodeUplink(input) {
 
     if (fPort == 12 && bytes.length == 11) {
         parse_port12_data(data, bytes, fPort);
-        // console.log(data);
         deviceInfo.data = data
         return deviceInfo;
     }

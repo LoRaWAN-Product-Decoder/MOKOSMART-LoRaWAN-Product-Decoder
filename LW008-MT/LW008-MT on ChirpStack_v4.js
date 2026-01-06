@@ -447,7 +447,7 @@ function getData(hex) {
 	return datas;
 }
 
-var input = {};
-input.fPort = 2;
-input.bytes = getData("0122000031030912278808443a9d6228");
-console.log(decodeUplink(input));
+//var input = {};
+//input.fPort = 2;
+//input.bytes = getData("0122000031030912278808443a9d6228");
+//console.log(decodeUplink(input));

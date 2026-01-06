@@ -403,7 +403,7 @@ function formatNumber(number: number): string {
 */
 function signedHexToInt(hexStr: string): number {
     let twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
-    // console.log(twoStr);
+    
     let bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
     if (twoStr.length < bitNum) {
         while (twoStr.length < bitNum) {
@@ -445,10 +445,7 @@ if (payloadd.value && portt.value) {
     payload = payload.concat(Decoder(buffer, portt.value, payloadd.group));
   }
   catch (e) {
-    // Print the error to the Live Inspector.
-    console.error(e);
-    // Return the variable parse_error for debugging.
-    // payload = [{ variable: 'parse_error', value: e.message }];
+    
   }
 }
 

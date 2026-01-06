@@ -78,8 +78,16 @@ function decodeUplink(input) {
     if (fPort == 1 || fPort == 3 || fPort == 4 || fPort == 8) {
         const battery_status = bytes[index];
         index++;
-        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
-        data.battery_level = (battery_status & 0x7F) + "%";
+        
+        var battery_level = (battery_status & 0x7F);
+        if (battery_level != 0x7F) {
+            data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        }
+        if (battery_level > 100) {
+            battery_level = 100;
+        }
+        
+        data.battery_level = battery_level + "%";
         data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
         index += 2;
 
@@ -1084,7 +1092,6 @@ function decodeUplink(input) {
         data = parsePort11(bytes);
     }
     dev_info.data = data;
-    console.log(JSON.stringify(dev_info, null, 2));
     return dev_info;
 }
 
@@ -1126,16 +1133,22 @@ function parsePort11(bytes) {
     }
     if (cmd == 0x0b03) {
         //当前网关连接beacon信息通知
-        var beacon_numbers = sub_bytes[0];
-        sub_bytes = sub_bytes.slice(1);
+        //sub_bytes[0]==0x00，tag表示接下来的是已连接设备数量
+        //sub_bytes[1]==0x01，表示接下来一个字节是已连接设备数量
+        //接下来是已连接的个数
+        var beacon_numbers = sub_bytes[2];
         var beacon_list = [];
-        for (var i = 0; i < beacon_numbers;i ++) {
-            var temp_sub_data = sub_bytes.slice(i * 7,i * 7 + 7);
-            var temp_data = {};
-            temp_data.mac = bytesToHexString(temp_sub_data, 0, 6);
-            temp_data.device_type = ((temp_sub_data[6] == 0x01) ? "BXP-B-CR" : "BXP-B-D");
-            beacon_list.push(temp_data);
+        if (beacon_numbers > 0) {
+            sub_bytes = sub_bytes.slice(3);
+            for (var i = 0; i < beacon_numbers;i ++) {
+                var temp_sub_data = sub_bytes.slice(i * 7,i * 7 + 7);
+                var temp_data = {};
+                temp_data.mac = bytesToHexString(temp_sub_data, 0, 6);
+                temp_data.device_type = ((temp_sub_data[6] == 0x01) ? "BXP-B-CR" : "BXP-B-D");
+                beacon_list.push(temp_data);
+            }
         }
+        
         data.beacon_list = beacon_list;
         return data;
     }
@@ -1467,8 +1480,7 @@ function getData(hex) {
 
 // var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
 
-// console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
-var input = {};
-input.fPort = 5;
-input.bytes = getData("00689C52F510013905EE9578538FCBBE689C52F300000A0B2901000101C0C2800CC0020106020A001816ABFE60000A01000101C0C2800CC00B2900EE9578538FCB");
-console.log(decodeUplink(input));
+//var input = {};
+//input.fPort = 11;
+//input.bytes = getData("030B030E0001010106CD0A88998735020100");
+//console.log(decodeUplink(input));

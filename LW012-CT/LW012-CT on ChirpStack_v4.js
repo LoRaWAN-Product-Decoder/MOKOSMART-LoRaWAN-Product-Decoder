@@ -62,7 +62,6 @@ function decodeUplink(input) {
 
     if (fPort == 12 && bytes.length == 11) {
         parse_port12_data(data, bytes, fPort);
-        // console.log(data);
         deviceInfo.data = data
         return deviceInfo;
     }
@@ -435,7 +434,7 @@ function getData(hex) {
 	return datas;
 }
 
-var input = {};
-input.fPort = 2;
-input.bytes = getData("011d600107dd4b9c105f47b9684f9088");
-console.log(decodeUplink(input));
+//var input = {};
+//input.fPort = 2;
+//input.bytes = getData("011d600107dd4b9c105f47b9684f9088");
+//console.log(decodeUplink(input));
