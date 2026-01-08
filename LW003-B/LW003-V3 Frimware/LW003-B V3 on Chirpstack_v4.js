@@ -705,7 +705,12 @@ function decodeUplink(input) {
                         beacon_len++;
                     }
                     if (flag & 0x4000) {
-                        item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
+                        var voltage = bytesToInt(bytes, parse_len, 2);
+                        if (voltage > 100) {
+                            item.battery_voltage = voltage + "mV";
+                        } else {
+                            item.battery_voltage = voltage + "%";
+                        }
                         item.batt_vol = bytesToInt(bytes, parse_len, 2);
                         parse_len += 2;
                         beacon_len += 2;
@@ -1029,5 +1034,7 @@ function getData(hex) {
 // console.log(getData("11 64 91 78 33 10 09 08 01 02 01 06 05 22 00 00 00 00"));
 var input = {};
 input.fPort = 5;
-input.bytes = getData("4e66cd2e9a10060d0ac424b6de3a2abd66f60ba8000d0aa309748aafa9af66f60ba8009505d9111e793ce7b966f60ba800000a0bb30001300a9505d275202b7325b366f60ba800bf0a0baa000120010d0a6cdf52b222a1b666f60ba8000d0af401d415f2b4c266f60ba800");
-console.log(decodeUplink(input));
+input.bytes = getData("01595f52a810022e08fb3fa0bfdf6ec4695f529d200100000300000101094d4b20427574746f6e000050fce0fe68022800f5000064002e08f4830ce59808c4695f529d200100000300000101094d4b20427574746f6e000050009003880368014200005500");
+var result = decodeUplink(input);
+console.log("解码结果:");
+console.log(JSON.stringify(result, null, 2));
