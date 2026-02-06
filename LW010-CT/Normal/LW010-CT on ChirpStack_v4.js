@@ -3,34 +3,34 @@ var operationModeArray = ["Standby mode"
     , "Periodic mode"
     , "Stationary in motion mode"
     , "Start of movement in motion mode"
-    ,"Movement in motion mode"
-    ,"End of movement in motion mode"
-    ,"Timing + period mode"];
+    , "Movement in motion mode"
+    , "End of movement in motion mode"
+    , "Timing + period mode"];
 var deviceStatusArray = ["No auxiliary"
-    ,"Man down"
-    ,"Downlink for positioning"
-    ,"Alert alarm"
-    ,"SOS alarm"];
+    , "Man down"
+    , "Downlink for positioning"
+    , "Alert alarm"
+    , "SOS alarm"];
 var shutdownTypeArray = ["Bluetooth command to turn off the device"
     , "LoRaWAN command to turn off the device"
     , "Magnetic to turn off the device"
     , "The battery run out"];
-var lowPowerPercentArray = ["10%","20%","30%","40%","50%","60%"];
+var lowPowerPercentArray = ["10%", "20%", "30%", "40%", "50%", "60%"];
 var eventTypeArray = ["Start movement"
-    ,"In movement"
-    ,"End of movement"
-    ,"Man Down start"
-    ,"Exist Man Down"
-    ,"SOS start"
-    ,"SOS end"
-    ,"Alert alarm start"    
-    ,"Alert alarm end"
-    ,""
-    ,""
-    ,"Downlink for positioning"
-    ,"Temperature high"
-    ,"Temperature low"
-    ,"Light intensity over threshold"];
+    , "In movement"
+    , "End of movement"
+    , "Man Down start"
+    , "Exist Man Down"
+    , "SOS start"
+    , "SOS end"
+    , "Alert alarm start"
+    , "Alert alarm end"
+    , ""
+    , ""
+    , "Downlink for positioning"
+    , "Temperature high"
+    , "Temperature low"
+    , "Light intensity over threshold"];
 var positionTypeArray = [
     "Positioning in working mode"
     , "ManDown positioning"
@@ -38,7 +38,7 @@ var positionTypeArray = [
     , "Alert positioning"
     , "SOS positioning"
 ];
-var assistanceTypeArray = ["No auxiliary","Man down","Downlink for positioning","Alert alarm","SOS alarm"];
+var assistanceTypeArray = ["No auxiliary", "Man down", "Downlink for positioning", "Alert alarm", "SOS alarm"];
 
 
 // Decode uplink function.
@@ -83,18 +83,20 @@ function decodeUplink(input) {
         data.latitude = latitude;
         data.longitude = longitude;
         data.pdop = pdop;
-    }else {
+    } else {
         var index = 0;
         data.charging_status = ((bytes[index] & 0x80) == 0x80) ? 'Charging' : 'No charging';
         data.battery_percent = (bytes[index] & 0x7f) + "%";
         index += 1;
-        
+
         if (fPort == 1 && bytes.length == 8) {
             if (bytes[index] != 0x80) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
 
             var major_firmware_version = (bytes[index] >> 6) & 0x03;
@@ -110,24 +112,28 @@ function decodeUplink(input) {
             data.hardware_version = hard_version;
             index += 1;
 
-            var work_mode = bytesToInt(bytes,index,1);
+            var work_mode = bytesToInt(bytes, index, 1);
             data.work_mode = operationModeArray[work_mode];
             index += 1;
 
-            var device_status = bytesToInt(bytes,index,1);
+            var device_status = bytesToInt(bytes, index, 1);
             data.device_status = deviceStatusArray[device_status];
             index += 1;
 
-            var light_intensity = bytesToInt(bytes,index,2);
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
-        }else if (fPort == 2 && bytes.length == 12) {
+        } else if (fPort == 2 && bytes.length == 12) {
             if (bytes[index] != 0x80) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
@@ -137,28 +143,32 @@ function decodeUplink(input) {
             data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
             index += 1;
 
-            var work_mode = bytesToInt(bytes,index,1);
+            var work_mode = bytesToInt(bytes, index, 1);
             data.work_mode = operationModeArray[work_mode];
             index += 1;
 
-            var device_status = bytesToInt(bytes,index,1);
+            var device_status = bytesToInt(bytes, index, 1);
             data.device_status = deviceStatusArray[device_status];
             index += 1;
 
-            var shutdown_type = bytesToInt(bytes,index,1);
+            var shutdown_type = bytesToInt(bytes, index, 1);
             data.shutdown_type = shutdownTypeArray[shutdown_type];
             index += 1;
 
-            var light_intensity = bytesToInt(bytes,index,2);
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
-        }else if (fPort == 3 && bytes.length == 11) {
+        } else if (fPort == 3 && bytes.length == 11) {
             if (bytes[index] != 0x80) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
@@ -168,24 +178,28 @@ function decodeUplink(input) {
             data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
             index += 1;
 
-            var work_mode = bytesToInt(bytes,index,1);
+            var work_mode = bytesToInt(bytes, index, 1);
             data.work_mode = operationModeArray[work_mode];
             index += 1;
 
-            var device_status = bytesToInt(bytes,index,1);
+            var device_status = bytesToInt(bytes, index, 1);
             data.device_status = deviceStatusArray[device_status];
             index += 1;
 
-            var light_intensity = bytesToInt(bytes,index,2);
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
-        }else if (fPort == 4 && bytes.length == 12) {
+        } else if (fPort == 4 && bytes.length == 12) {
             if (bytes[index] != 0x80) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
@@ -195,23 +209,25 @@ function decodeUplink(input) {
             data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
             index += 1;
 
-            var work_mode = bytesToInt(bytes,index,1);
+            var work_mode = bytesToInt(bytes, index, 1);
             data.work_mode = operationModeArray[work_mode];
             index += 1;
 
-            var device_status = bytesToInt(bytes,index,1);
+            var device_status = bytesToInt(bytes, index, 1);
             data.device_status = deviceStatusArray[device_status];
             index += 1;
 
-            var low_power_percent = bytesToInt(bytes,index,1);
+            var low_power_percent = bytesToInt(bytes, index, 1);
             data.low_power_percent = lowPowerPercentArray[low_power_percent];
             index += 1;
-            
-            var light_intensity = bytesToInt(bytes,index,2);
+
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
-        }else if (fPort == 5 && bytes.length == 10) {
+        } else if (fPort == 5 && bytes.length == 10) {
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
             data.time = date.toLocaleString();
             index += 4;
@@ -219,7 +235,7 @@ function decodeUplink(input) {
             data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
             index += 1;
 
-            var event_type = bytesToInt(bytes,index,1);
+            var event_type = bytesToInt(bytes, index, 1);
             data.event_type = eventTypeArray[event_type];
             index += 1;
 
@@ -227,14 +243,18 @@ function decodeUplink(input) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
-            
-            var light_intensity = bytesToInt(bytes,index,2);
+
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
-        }else if (fPort == 8 && bytes.length > 6) {
+        } else if (fPort == 8 && bytes.length > 6) {
             index += 2;
 
             var position_type_code = (bytes[index] >> 4) & 0x0f;
@@ -252,17 +272,17 @@ function decodeUplink(input) {
             var data_len = bytes[index];
             index += 1;
 
-            var position_data = bytes.slice(index,index + data_len);
+            var position_data = bytes.slice(index, index + data_len);
             index += data_len;
 
             if (position_symbol == 0x01) {
                 //蓝牙定位
                 var sub_bytes_len = (contain_vlotage ? 9 : 7);
                 var data_list = [];
-                for (var i = 0; i < (data_len / sub_bytes_len);i ++) {
+                for (var i = 0; i < (data_len / sub_bytes_len); i++) {
                     var item = {};
-                    var temp_sub = position_data.slice((i * sub_bytes_len),(i * sub_bytes_len) + sub_bytes_len);
-                    item.mac_address = bytesToHexString(temp_sub, 0, 6);
+                    var temp_sub = position_data.slice((i * sub_bytes_len), (i * sub_bytes_len) + sub_bytes_len);
+                    item.mac = bytesToHexString(temp_sub, 0, 6);
                     item.rssi = signedHexToInt(bytesToHexString(temp_sub, 6, 1)) + 'dBm';
                     if (contain_vlotage) {
                         item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
@@ -270,19 +290,19 @@ function decodeUplink(input) {
                     data_list.push(item);
                 }
                 data.position_data = data_list;
-            }else if (position_symbol == 0x03) {
+            } else if (position_symbol == 0x03) {
                 //GPS定位
                 var data_list = [];
-                for (var i = 0; i < (data_len / 9);i ++) {
+                for (var i = 0; i < (data_len / 9); i++) {
                     var item = {};
-                    var temp_sub = position_data.slice((i * 9),(i * 9) + 9);
+                    var temp_sub = position_data.slice((i * 9), (i * 9) + 9);
                     item.latitude = Number(signedHexToInt(bytesToHexString(temp_sub, 0, 4)) * 0.0000001).toFixed(7) + '°';
                     item.longitude = Number(signedHexToInt(bytesToHexString(temp_sub, 4, 4)) * 0.0000001).toFixed(7) + '°';
                     item.pdop = (bytesToInt(temp_sub, 8, 1) * 0.1).toFixed(1).toString();
                     data_list.push(item);
                 }
                 data.position_data = data_list;
-            }else {
+            } else {
                 data.position_data = position_data;
             }
 
@@ -290,18 +310,22 @@ function decodeUplink(input) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
-            
-            var light_intensity = bytesToInt(bytes,index,2);
+
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
             index += 2;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
             data.time = date.toLocaleString();
-        }else if (fPort == 9 && bytes.length > 7) {
+        } else if (fPort == 9 && bytes.length > 7) {
             data.position_type = positionTypeArray[bytes[index]];
             index += 1;
 
@@ -309,15 +333,15 @@ function decodeUplink(input) {
             index += 1;
 
             data.assistance_type = assistanceTypeArray[bytes[index]];
-            index +=1;
+            index += 1;
 
             data.position_failed_type = parsePositionFailedCode(bytes[index]);
-            index +=1;
+            index += 1;
 
             var data_len = bytes[index];
             index += 1;
 
-            var failed_data = bytes.slice(index,index + data_len);
+            var failed_data = bytes.slice(index, index + data_len);
             index += data_len;
 
             var failed_type = bytes[index];
@@ -327,10 +351,10 @@ function decodeUplink(input) {
                 //蓝牙定位
                 var sub_bytes_len = (contain_vlotage ? 9 : 7);
                 var data_list = [];
-                for (var i = 0; i < (data_len / sub_bytes_len);i ++) {
+                for (var i = 0; i < (data_len / sub_bytes_len); i++) {
                     var item = {};
-                    var temp_sub = failed_data.slice((i * sub_bytes_len),(i * sub_bytes_len) + sub_bytes_len);
-                    item.mac_address = bytesToHexString(temp_sub, 0, 6);
+                    var temp_sub = failed_data.slice((i * sub_bytes_len), (i * sub_bytes_len) + sub_bytes_len);
+                    item.mac = bytesToHexString(temp_sub, 0, 6);
                     item.rssi = signedHexToInt(bytesToHexString(temp_sub, 6, 1)) + 'dBm';
                     if (contain_vlotage) {
                         item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
@@ -338,12 +362,12 @@ function decodeUplink(input) {
                     data_list.push(item);
                 }
                 data.position_failed_data = data_list;
-            }else if (failed_type == 3) {
+            } else if (failed_type == 3) {
                 //GPS定位
                 var data_list = [];
-                for (var i = 0; i < (data_len / 5);i ++) {
+                for (var i = 0; i < (data_len / 5); i++) {
                     var item = {};
-                    var temp_sub = failed_data.slice((i * 5),(i * 5) + 5);
+                    var temp_sub = failed_data.slice((i * 5), (i * 5) + 5);
                     item.pdop = (bytesToInt(temp_sub, 0, 1) * 0.1).toFixed(1).toString();
                     var cn_list = [];
                     cn_list.push(bytesToInt(temp_sub, 1, 1));
@@ -354,7 +378,7 @@ function decodeUplink(input) {
                     data_list.push(item);
                 }
                 data.position_failed_data = data_list;
-            }else {
+            } else {
                 data.position_failed_data = failed_data;
             }
 
@@ -362,20 +386,26 @@ function decodeUplink(input) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
-            
-            var light_intensity = bytesToInt(bytes,index,2);
+
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
             index += 2;
-        }else if (fPort == 11 && bytes.length == 12) {
+        } else if (fPort == 11 && bytes.length == 12) {
             if (bytes[index] != 0x80) {
                 //0x80代表温度关闭
                 var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
                 data.temperature = temperature;
-            } 
+            } else {
+                data.temperature = "OFF";
+            }
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
@@ -385,22 +415,24 @@ function decodeUplink(input) {
             data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
             index += 1;
 
-            var work_mode = bytesToInt(bytes,index,1);
+            var work_mode = bytesToInt(bytes, index, 1);
             data.work_mode = operationModeArray[work_mode];
             index += 1;
 
-            var device_status = bytesToInt(bytes,index,1);
+            var device_status = bytesToInt(bytes, index, 1);
             data.device_status = deviceStatusArray[device_status];
             index += 1;
 
-            data.shock_times = bytesToInt(bytes,index,1);
+            data.shock_times = bytesToInt(bytes, index, 1);
             index += 1;
 
-            var light_intensity = bytesToInt(bytes,index,2);
+            var light_intensity = bytesToInt(bytes, index, 2);
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
+            } else {
+                data.light_intensity = "OFF";
             }
-        }else if (fPort == 12 && bytes.length == 53) {
+        } else if (fPort == 12 && bytes.length == 53) {
             data.work_time = bytesToInt(bytes, index, 4);
             index += 4;
 
@@ -441,7 +473,7 @@ function decodeUplink(input) {
             index += 4;
         }
     }
-    
+
     deviceInfo.data = data;
     return deviceInfo;
 }

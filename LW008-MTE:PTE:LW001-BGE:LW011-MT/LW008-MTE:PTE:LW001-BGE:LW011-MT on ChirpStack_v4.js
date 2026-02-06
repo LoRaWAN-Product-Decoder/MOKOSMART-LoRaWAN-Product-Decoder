@@ -9,7 +9,7 @@ var payloadTypeArray = [
     , "Battery Consumption"
     , "GPS Limit"];
 var operationModeArray = ["Standby mode", "Periodic mode", "Timing mode", "Motion mode", "Time-Segmented Mode"];
-var rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off","Factory reset"];
+var rebootReasonArray = ["Restart after power failure", "Bluetooth command request", "LoRaWAN command request", "Power on after normal power off", "Factory reset"];
 var positionTypeArray = [
     "WIFI positioning success (Customized Format)"
     , "WIFI positioning success (LoRa Cloud DAS Format, the positioning date would be upload to LoRa Cloud on Port199)"
@@ -109,12 +109,12 @@ function decodeUplink(input) {
     } else if (fPort == 2 && bytes.length >= 7) {
         data.payload_type = payloadTypeArray[1];
         parse_port2_data(data, bytes.slice(3));
-    }else if (fPort == 3 && bytes.length == 8) {
+    } else if (fPort == 3 && bytes.length == 8) {
         data.payload_type = payloadTypeArray[7];
         parse_port3_data(data, bytes.slice(3));
     } else if (fPort == 4 && bytes.length >= 5) {
         data.payload_type = payloadTypeArray[2];
-        parse_port4_data(data, bytes.slice(3),contain_vlotage);
+        parse_port4_data(data, bytes.slice(3), contain_vlotage);
     } else if (fPort == 5 && bytes.length == 4) {
         data.payload_type = payloadTypeArray[3];
         var obj = {};
@@ -165,9 +165,9 @@ function parse_port2_data(data, bytes, contain_vlotage) {
     var positionTypeCode = bytesToInt(bytes, 2, 1);
     data.position_type_code = positionTypeCode;
     data.position_success_type = positionTypeArray[positionTypeCode];
-    var sub_bytes = bytes.slice(4,4 + bytes[3]);
+    var sub_bytes = bytes.slice(4, 4 + bytes[3]);
     if (positionTypeCode == 2) {
-        var positionData = parse_position_data(sub_bytes,contain_vlotage);
+        var positionData = parse_position_data(sub_bytes, contain_vlotage);
         data.mac_data = positionData;
     } else if (positionTypeCode == 3) {
         var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
@@ -183,11 +183,11 @@ function parse_port2_data(data, bytes, contain_vlotage) {
 }
 
 function parse_port3_data(data, bytes) {
-    data.low_power_percent = bytesToInt(bytes, 0, 1);
-    data.current_cicle_battery_total_consumer = bytesToInt(bytes, 1, 4);
+    data.low_power_percent = bytesToInt(bytes, 0, 1) + "%";
+    data.current_cicle_battery_total_consumer = bytesToInt(bytes, 1, 4) + "mAH";
 }
 
-function parse_port4_data(data, bytes,contain_vlotage) {
+function parse_port4_data(data, bytes, contain_vlotage) {
     var obj = {};
     var failedTypeCode = bytesToInt(bytes, 0, 1);
     var dataLen = bytesToInt(bytes, 1, 1);
@@ -213,7 +213,7 @@ function parse_port4_data(data, bytes,contain_vlotage) {
         obj.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
         obj.location_failure_data = data_list;
         data.obj = obj;
-        return;  
+        return;
     } else {
         var data_list = [];
         obj.pdop = bytesToInt(dataBytes, 0, 1) / 10;
@@ -276,7 +276,7 @@ function parse_position_data(bytes, contain_vlotage) {
         if (contain_vlotage) {
             item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
         }
-        
+
         mac_data.push(item);
     }
     return mac_data;
