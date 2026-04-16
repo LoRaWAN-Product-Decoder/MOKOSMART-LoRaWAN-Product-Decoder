@@ -118,7 +118,7 @@ function decodeUplink(input) {
     } else if (fPort == 5 && bytes.length == 4) {
         data.payload_type = payloadTypeArray[3];
         var obj = {};
-        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         // obj.shutdown_type_code = shutdownTypeCode;
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         data.obj = obj;

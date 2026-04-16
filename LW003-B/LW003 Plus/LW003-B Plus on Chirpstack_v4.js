@@ -19,9 +19,10 @@ var BXPTagFlag = 0x3FFF;
 var OtherTypeFlag = 0x1F;
 var BXPPirFlag = 0x3FFF;
 var BXPTofFlag = 0x0FFF;
+var nanoBeaconFlag = 0x03FF;
 
 
-var chargingTypeArray = ['No Charging','DC Charging','Solar Charging'];
+var infoPackageArray = ['Trigger by downlink','Trip on start','In trip','Trip on end'];
 var shutDownTypeArray = ["Bluetooth command or App", "LoRaWAN Command", "Power button", "Battery run out"];
 var beaconTypeArray =
     [
@@ -60,6 +61,17 @@ var beaconConnectResultArray = [
 var getBXPBDDeviceInfoResultArray = ["Success","Device disconnect","Not support command"];
 var cmdResultArray = ["Success","Device disconnect","Not support command","Timeout"];
 var deleteTriggerResultArray = ["Single click","Double click","Long press"];
+var positionModeArray = [
+    'Standby mode','Periodic mode',
+    'Timing mode','Stationary of motion mode',
+    'Trip start of motion mode','In trip of motion mode',
+    'Trip end of motion mode'
+];
+var positionFailedArray = [
+    'GPS positioning timeout','GPS tech timeout',
+    'PDOP limit','Interrupted by trip end',
+    'Interrupted by trip start'
+];
 
 function decodeUplink(input) {
     var bytes = input.bytes;
@@ -90,7 +102,7 @@ function decodeUplink(input) {
         data.battery_level = battery_level + "%";
         data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
         index += 2;
-
+        
         var major_firmware_version = (bytes[index] >> 6) & 0x03;
         var minor_firmware_version = (bytes[index] >> 4) & 0x03;
         var patch_firmware_version = bytes[index] & 0x0f;
@@ -103,7 +115,7 @@ function decodeUplink(input) {
         var hard_version = 'V' + major_hardware_version + '.' + patch_hardware_version;
         data.hardware_version = hard_version;
         index += 1;
-
+        
         var temperature = bytesToHexString(bytes, index, 2);
         if (temperature != 'ffff') {
             data.temperature = (signedHexToInt(bytesToHexString(bytes, index, 2)) * 0.01) + '°C';
@@ -115,17 +127,14 @@ function decodeUplink(input) {
             data.humidity = (bytesToInt(bytes, index, 2) * 0.01) + '%';
         }
         index += 2;
-
+        
         data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1)) / 2;
         index += 1;
-
-        if (fPort == 1 || fPort == 3) {
-            data.charging_type = chargingTypeArray[bytes[index]];
-        }else if (fPort == 4) {
-            data.information_package_type = 'Downlink Message Trigger';
+        
+        if (fPort == 4) {
+            data.information_package_type = infoPackageArray[bytes[index]];
         }
 
-        
     } else if (fPort == 2) {
         const battery_status = bytes[index];
         index++;
@@ -145,7 +154,6 @@ function decodeUplink(input) {
         data.shutdown_type = shutDownTypeArray[bytes[index]];
         index += 1;
 
-        data.charging_type = chargingTypeArray[bytes[index]];
     } else if (fPort == 9) {
         const battery_status = bytes[index];
         index++;
@@ -161,19 +169,25 @@ function decodeUplink(input) {
         data.scan_time = bytesToInt(bytes, index, 4) + 's';
         index += 4;
 
-        data.red_light_total_time = bytesToInt(bytes, index, 4) + 's';
-        index += 4;
-
-        data.green_light_total_time = bytesToInt(bytes, index, 4) + 's';
-        index += 4;
-
-        data.blue_light_total_time = bytesToInt(bytes, index, 4) + 's';
-        index += 4;
-
         data.axis_sleep_total_time = bytesToInt(bytes, index, 4) + 's';
         index += 4;
 
         data.axis_wakeup_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.power_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.ble_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.lorawan_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.gps_light_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
+        data.wifi_light_total_time = bytesToInt(bytes, index, 4) + 's';
         index += 4;
 
         data.lorawan_send_count = bytesToInt(bytes, index, 4);
@@ -182,7 +196,7 @@ function decodeUplink(input) {
         data.lorawan_power = bytesToInt(bytes, index, 4) + 'mAS';
         index += 4;
 
-        data.power_consumption = bytesToInt(bytes, index, 4) * 0.001 + 'mAH';
+        data.power_consumption = bytesToInt(bytes, index, 4) / 1000 + 'mAH';
 
     } else if (fPort == 5 || fPort == 10) {
         // Scan data info
@@ -1085,240 +1099,190 @@ function decodeUplink(input) {
                     parse_len += item.raw_data_length;
                 }
                 datas.push(item);
+            } else if (beacon_type == 13) {
+                // nanoBeaconFlag
+                var flag = nanoBeaconFlag;
+                if (flag & 0x01) {
+                    item.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
+                    parse_len += 6;
+                    beacon_len += 6;
+                }
+                if (flag & 0x02) {
+                    item.rssi = bytes[parse_len++] - 256;
+                    beacon_len += 1;
+                }
+                if (flag & 0x04) {
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
+                    parse_len += 4;
+                    beacon_len += 4;
+                }
+                // ================
+                if (!no_response_package) {
+                    if (flag & 0x08) {
+                        item.mfg_code = '0x' + bytesToHexString(bytes, parse_len, 2);
+                        parse_len +=2;
+                        beacon_len +=2;
+                    }
+                    if (flag & 0x10) {
+                        item.adv_type_status =  bytesToInt(bytes, parse_len, 1) === 0 ? 'Normal' : 'Trigger';
+                        parse_len += 1;
+                        beacon_len += 1;
+                    }
+                    if (flag & 0x20) {
+                        item.battery_voltage = Math.round(bytesToInt(bytes, parse_len, 1) * 31.25) + 'mV';
+                        parse_len += 1;
+                        beacon_len += 1;
+                    }
+                    if (flag & 0x40) {
+                        item.temperature = (signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.01) + '°C';;
+
+                        parse_len += 2;
+                        beacon_len += 2;
+                    }
+                    if (flag & 0x80) {
+                        item.sec_cnt = bytesToInt(bytes, parse_len, 4);
+
+                        parse_len += 4;
+                        beacon_len += 4;
+                    }
+                    if (flag & 0x0100) {
+                        const status = bytesToHexString(bytes,parse_len,1);
+                        var status_string = '';
+                        if (status == 'dd') {
+                            status_string = 'No Alarm';
+                        } else if (status == 'fd') {
+                            status_string = 'Cut-off Alarm';
+                        } else if (status == 'cd') {
+                            status_string = 'Button Alarm';
+                        } else if (status == 'ed') {
+                            status_string = 'Button alarm and Cut-off alarm';
+                        }
+                        item.trigger_status = status_string;
+                        
+                        parse_len += 1;
+                        beacon_len += 1;
+                    }
+                }
+                if (flag & 0x0200) {
+                    item.raw_data_length = current_data_len - beacon_len;
+                    item.raw_data = bytesToHexString(bytes, parse_len, item.raw_data_length).toUpperCase();
+                    parse_len += item.raw_data_length;
+                }
+                datas.push(item);
             }
         }
         data.scan_data = datas;
+        var gps_data_len = bytesToInt(bytes,parse_len,1);
+        parse_len ++;
+        if (gps_data_len == 5) {
+            //定位失败
+            var temp_data = {};
+            temp_data.pdop = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_one = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_two = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_three = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_four = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+
+            data.position_failure_data = temp_data;
+        } else if (gps_data_len == 9) {
+            //定位成功
+            var temp_data = {};
+            var latitude = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 4)) * 0.0000001).toFixed(7);
+            parse_len += 4;
+            var longitude = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 4)) * 0.0000001).toFixed(7);
+            parse_len += 4;
+            var pdop = Number(bytesToInt(bytes, parse_len, 1) * 0.1).toFixed(1);
+            parse_len ++;
+            temp_data.latitude = latitude;
+            temp_data.longitude = longitude;
+            temp_data.pdop = pdop;
+
+            data.position_data = temp_data;
+        }
     } else if (fPort == 11) {
-        data = parsePort11(bytes);
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
+        index += 2;
+
+        data.position_mode = positionModeArray[bytes[index]];
+        index ++;
+
+        const date = new Date(1000 * bytesToInt(bytes, index, 4));
+        data.timestamp = date.toLocaleString();
+        index += 4;
+
+        index ++;
+        
+        var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var pdop = Number(bytesToInt(bytes, index, 1) * 0.1).toFixed(1);
+        data.latitude = latitude;
+        data.longitude = longitude;
+        data.pdop = pdop;
+    } else if (fPort == 12) {
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
+        index += 2;
+
+        data.position_mode = positionModeArray[bytes[index]];
+        index ++;
+
+        data.fix_failure_reason = positionFailedArray[bytes[index]];
+        index ++;
+
+        var postion_len = bytes[index];
+        index ++;
+
+        var fix_failure_array = [];
+        for (var i = 0; i < (postion_len / 5);i ++) {
+            var temp_hex = bytes.slice(index + i * 5, index + (i + 1) * 5);
+            var temp_data = {};
+            temp_data.pdop = bytesToInt(temp_hex, 0, 1);
+            temp_data.satellite_signal_strength_one = bytesToInt(temp_hex, 1, 1);
+            temp_data.satellite_signal_strength_two = bytesToInt(temp_hex, 2, 1);
+            temp_data.satellite_signal_strength_three = bytesToInt(temp_hex, 3, 1);
+            temp_data.satellite_signal_strength_four = bytesToInt(temp_hex, 4, 1);
+            fix_failure_array.push(temp_data);
+        } 
+        data.fix_data = fix_failure_array;
+    } else if (fPort == 13) {
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        //data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
+        //index += 2;
+
+        data.position_mode = positionModeArray[bytes[index]];
+        index ++;
+
+        var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var pdop = Number(bytesToInt(bytes, index, 1) * 0.1).toFixed(1);
+        data.latitude = latitude;
+        data.longitude = longitude;
+        data.pdop = pdop;
     }
     dev_info.data = data;
     return dev_info;
-}
-
-function parsePort11(bytes) {
-    var index = 0;
-    var data = {};
-    if (bytes[index] != 0x03) {
-        return data;
-    }
-    index ++;
-    var cmd = bytesToInt(bytes,index,2);
-    index += 2;
-    //总得数据域长度
-    var data_len = bytes[index];
-    index ++;
-    var sub_bytes = bytes.slice(index);
-    if (cmd == 0x0b01) {
-        //断开连接通知
-        for (var i = 0; i < sub_bytes.length;) {
-            var temp_tag = sub_bytes[i++] & 0xff;
-            var temp_len = sub_bytes[i++] & 0xff;
-            switch (temp_tag) {
-                case 0x00:
-                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x01:
-                    data.disconnect_type = disconnectTypeArray[sub_bytes[i]];
-                    break;
-                case 0x02:
-                    data.gateway_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x03:
-                    data.timestamp = bytesToInt(sub_bytes, i, temp_len)
-                    break;
-            }
-            i += temp_len;
-        }
-        return data;
-    }
-    if (cmd == 0x0b03) {
-        //当前网关连接beacon信息通知
-        //sub_bytes[0]==0x00，tag表示接下来的是已连接设备数量
-        //sub_bytes[1]==0x01，表示接下来一个字节是已连接设备数量
-        //接下来是已连接的个数
-        var beacon_numbers = sub_bytes[2];
-        var beacon_list = [];
-        if (beacon_numbers > 0) {
-            sub_bytes = sub_bytes.slice(3);
-            for (var i = 0; i < beacon_numbers;i ++) {
-                var temp_sub_data = sub_bytes.slice(i * 7,i * 7 + 7);
-                var temp_data = {};
-                temp_data.mac = bytesToHexString(temp_sub_data, 0, 6);
-                temp_data.device_type = ((temp_sub_data[6] == 0x01) ? "BXP-B-CR" : "BXP-B-D");
-                beacon_list.push(temp_data);
-            }
-        }
-        
-        data.beacon_list = beacon_list;
-        return data;
-    }
-    if (cmd == 0x0b11 || cmd == 0x0b31) {
-        //0x0b11 连接BXP-B-D设备结果通知
-        //0x0b31 连接BXP-B-CR设备结果通知
-        for (var i = 0; i < sub_bytes.length;) {
-            var temp_tag = sub_bytes[i++] & 0xff;
-            var temp_len = sub_bytes[i++] & 0xff;
-            switch (temp_tag) {
-                case 0x00:
-                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x01:
-                    data.connect_result = beaconConnectResultArray[sub_bytes[i]];
-                    break;
-                case 0x02:
-                    data.product_model = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x03:
-                    data.company_name = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x04:
-                    data.hardware_version = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x05:
-                    data.software_version = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x06:
-                    data.firmware_version = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x07:
-                    data.battery_voltage = bytesToInt(sub_bytes, i, temp_len) + "mV";
-                    break;
-                case 0x08:
-                    data.single_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
-                    break;
-                case 0x09:
-                    data.double_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
-                    break;
-                case 0x0a:
-                    data.long_press_alarm_count = bytesToInt(sub_bytes, i, temp_len);
-                    break;
-                case 0x0b:
-                    data.single_click_alarm = (((sub_bytes[i] & 0x01) == 0x01) ? "Alarm" : "Normal")
-                    data.double_click_alarm = (((sub_bytes[i] & 0x02) == 0x02) ? "Alarm" : "Normal")
-                    data.long_press_alarm = (((sub_bytes[i] & 0x04) == 0x04) ? "Alarm" : "Normal")
-                    data.static_alarm = (((sub_bytes[i] & 0x08) == 0x08) ? "Alarm" : "Normal")
-                    break;
-                case 0x0c:
-                    data.support_axis = (((sub_bytes[i] & 0x01) == 0x01) ? "true" : "false")
-                    data.support_th = (((sub_bytes[i] & 0x02) == 0x02) ? "true" : "false")
-                    data.support_light_detected = (((sub_bytes[i] & 0x04) == 0x04) ? "true" : "false")
-                    break;
-                case 0x0d:
-                    data.gateway_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x0e:
-                    data.timestamp = bytesToInt(sub_bytes, i, temp_len)
-                    break;
-            }
-            i += temp_len;
-        }
-        return data;
-    }
-    if (cmd == 0x0b13 || cmd == 0x0b33) {
-        //0x0b13 获取BXP-B-D设备信息结果通知
-        //0x0b33 获取BXP-B-CR设备信息结果通知
-        for (var i = 0; i < sub_bytes.length;) {
-            var temp_tag = sub_bytes[i++] & 0xff;
-            var temp_len = sub_bytes[i++] & 0xff;
-            switch (temp_tag) {
-                case 0x00:
-                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x01:
-                    data.command_result = getBXPBDDeviceInfoResultArray[sub_bytes[i]];
-                    break;
-                case 0x02:
-                    data.product_model = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x03:
-                    data.company_name = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x04:
-                    data.hardware_version = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x05:
-                    data.software_version = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x06:
-                    data.firmware_version = bytesToString(sub_bytes, i, temp_len)
-                    break;
-                case 0x07:
-                    data.support_axis = (((sub_bytes[i] & 0x01) == 0x01) ? "true" : "false")
-                    data.support_th = (((sub_bytes[i] & 0x02) == 0x02) ? "true" : "false")
-                    data.support_light_detected = (((sub_bytes[i] & 0x04) == 0x04) ? "true" : "false")
-                    break;
-            }
-            i += temp_len;
-        }
-        return data;
-    }
-    if (cmd == 0x0b15 || cmd == 0x0b35) {
-        //0x0b15 获取BXP-B-D设备状态结果通知
-        //0x0b35 获取BXP-B-CR设备状态结果通知
-        for (var i = 0; i < sub_bytes.length;) {
-            var temp_tag = sub_bytes[i++] & 0xff;
-            var temp_len = sub_bytes[i++] & 0xff;
-            switch (temp_tag) {
-                case 0x00:
-                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x01:
-                    data.command_result = getBXPBDDeviceInfoResultArray[sub_bytes[i]];
-                    break;
-                case 0x02:
-                    data.battery_voltage = bytesToInt(sub_bytes, i, temp_len) + "mV";
-                    break;
-                case 0x03:
-                    data.single_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
-                    break;
-                case 0x04:
-                    data.double_click_alarm_count = bytesToInt(sub_bytes, i, temp_len);
-                    break;
-                case 0x05:
-                    data.long_press_alarm_count = bytesToInt(sub_bytes, i, temp_len);
-                    break;
-                case 0x06:
-                    data.single_click_alarm = (((sub_bytes[i] & 0x01) == 0x01) ? "Alarm" : "Normal")
-                    data.double_click_alarm = (((sub_bytes[i] & 0x02) == 0x02) ? "Alarm" : "Normal")
-                    data.long_press_alarm = (((sub_bytes[i] & 0x04) == 0x04) ? "Alarm" : "Normal")
-                    data.static_alarm = (((sub_bytes[i] & 0x08) == 0x08) ? "Alarm" : "Normal")
-                    break;
-            }
-            i += temp_len;
-        }
-        return data;
-    }
-    if (cmd == 0x0b17 || cmd == 0x0b19 || cmd == 0x0b1b 
-        || cmd == 0x0b1d || cmd == 0x0b37 || cmd == 0x0b39 
-        || cmd == 0x0b3b || cmd == 0x0b3d || cmd == 0x0b3f) {
-        //0x0b17 解除报警结果通知
-        //0x0b19 控制BXP-B-D设备LED灯结果
-        //0x0b1b 控制BXP-B-D设备蜂鸣器结果
-        //0x0b1d 删除触发记录结果
-        //0x0b37 解除报警结果
-        //0x0b39 控制BXP-B-CR设备LED灯结果
-        //0x0b3b 控制BXP-B-CR设备蜂鸣器结果
-        //0x0b3d 删除BXP-B-CR设备触发记录结果
-        //0x0b3f 控制BXP-B-CR设备马达结果
-        for (var i = 0; i < sub_bytes.length;) {
-            var temp_tag = sub_bytes[i++] & 0xff;
-            var temp_len = sub_bytes[i++] & 0xff;
-            switch (temp_tag) {
-                case 0x00:
-                    data.baecon_mac = bytesToHexString(sub_bytes, i, temp_len);
-                    break;
-                case 0x01:
-                    data.command_result = cmdResultArray[sub_bytes[i]];
-                    break;
-                case 0x02:
-                    //0x0b1d/0x0b3d特有
-                    data.delete_content = deleteTriggerResultArray[sub_bytes[i]];
-                    break;
-            }
-            i += temp_len;
-        }
-        return data;
-    }
 }
 
 
@@ -1482,5 +1446,6 @@ function getData(hex) {
 
 var input = {};
 input.fPort = 5;
-input.bytes = getData("0269ca4b3910021609f96f5aa233b4d769ca4b34094d4b20427574746f6e1609f15bc6d797d0be69ca4b35094d4b20427574746f6e");
-console.log(decodeUplink(input));
+input.bytes = getData("0069E0B49E1001170DF3AE32000001AA69E0B47E05050053091000BD4852DD0912278678443A9F5615");
+//console.log(decodeUplink(input));
+console.log(JSON.stringify(decodeUplink(input), null, 2));

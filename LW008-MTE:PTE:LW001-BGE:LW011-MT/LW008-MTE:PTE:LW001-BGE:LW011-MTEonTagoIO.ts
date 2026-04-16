@@ -144,7 +144,7 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
 
     if (fPort == 5 && bytes.length == 4) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[3], groupID));
-        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         payloadList.push(getPayloadData("shutdown_type", shutdownTypeArray[shutdownTypeCode], groupID));
         return payloadList;
     } 

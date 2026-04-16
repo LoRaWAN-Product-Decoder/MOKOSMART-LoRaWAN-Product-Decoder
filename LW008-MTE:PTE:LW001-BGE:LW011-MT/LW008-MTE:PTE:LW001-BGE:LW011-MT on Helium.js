@@ -93,7 +93,7 @@ function Decoder(bytes, port, uplink_info) {
         parse_port4_data(deviceInfo, bytes.slice(3), contain_vlotage);
     } else if (port == 5 && bytes.length == 4) {
         var data = {};
-        var shutdownTypeCode = bytesToInt(bytes, 3, 2);
+        var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         // data.shutdown_type_code = shutdownTypeCode;
         data.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         deviceInfo.data = data;
