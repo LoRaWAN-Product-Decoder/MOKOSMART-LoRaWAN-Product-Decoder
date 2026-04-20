@@ -11,6 +11,7 @@ var fixFailedReason = ["WIFI Pos Timeout", "WIFI Pos Tech Timeout", "WIFI Pos Fa
 
 function Decode(fPort, bytes) {
     var dev_info = {};
+    var contain_voltage = true;
     dev_info.fPort = fPort;
     if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
         || fPort == 5 || fPort == 8 || fPort == 9) {
@@ -96,13 +97,18 @@ function Decode(fPort, bytes) {
         if ((pos_data_sign == 0 || pos_data_sign == 1) && pos_data_length > 0) {
             // WIFI BLE
             var datas = [];
-            var count = pos_data_length / 7;
+            var length = (contain_voltage ? 9 : 7);
+            var count = pos_data_length / length;
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var data = {};
                 data.rssi = bytes[index++];
                 data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
+                if (contain_voltage) {
+                    data.voltage = bytesToInt(bytes,index,2) + 'mV';
+                    index += 2;
+                }
                 datas.push(data);
             }
             dev_info.pos_data = datas;
@@ -139,13 +145,18 @@ function Decode(fPort, bytes) {
             dev_info.pos_data_length = pos_data_length;
             // WIFI Failed
             var datas = [];
-            var count = pos_data_length / 7;
+            var length = (contain_voltage ? 9 : 7);
+            var count = pos_data_length / length;
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var data = {};
                 data.rssi = bytes[index++];
                 data.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
+                if (contain_voltage) {
+                    data.voltage = bytesToInt(bytes,index,2) + 'mV';
+                    index += 2;
+                }
                 datas.push(data);
             }
             dev_info.pos_data = datas;

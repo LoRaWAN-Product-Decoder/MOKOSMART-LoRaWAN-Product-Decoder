@@ -89,11 +89,15 @@ function decodeUplink(input) {
     }
 
     const date = new Date(1000 * bytesToInt(bytes, index, 4));
-    data.time = date.toLocaleString();
+    var timestamp = Math.trunc(date.getTime() / 1000);
     index += 4;
-
-    data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
+    
+    var offsetHours = signedHexToInt(bytesToHexString(bytes, index, 1));
+    data.timezone = offsetHours
     index += 1;
+
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, offsetHours);
 
     var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
     data.temperature = temperature;

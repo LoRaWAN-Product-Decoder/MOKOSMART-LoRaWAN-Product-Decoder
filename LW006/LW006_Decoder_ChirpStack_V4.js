@@ -36,6 +36,7 @@ var fixFailedReason = [
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
+    var contain_voltage = true;
     var dev_info = {};
     var data = {};
     data.port = fPort;
@@ -154,13 +155,18 @@ function decodeUplink(input) {
         if ((pos_data_sign == 0 || pos_data_sign == 1) && pos_data_length > 0) {
             // WIFI BLE
             var datas = [];
-            var count = pos_data_length / 7;
+            var length = (contain_voltage ? 9 : 7);
+            var count = pos_data_length / length;
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var item = {};
                 item.rssi = bytes[index++] - 256 + "dBm";
                 item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
+                if (contain_voltage) {
+                    item.voltage = bytesToInt(bytes,index,2) + 'mV';
+                    index += 2;
+                }
                 datas.push(item);
                 // datas.push(JSON.stringify(item));
             }
@@ -209,13 +215,18 @@ function decodeUplink(input) {
         if (pos_data_length % 7 == 0) {
             // WIFI/BLE Failed
             var datas = [];
-            var count = pos_data_length / 7;
+            var length = (contain_voltage ? 9 : 7);
+            var count = pos_data_length / length;
             var index = 6;
             for (var i = 0; i < count; i++) {
                 var item = {};
                 item.rssi = bytes[index++] - 256 + "dBm";
                 item.mac = bytesToHexString(bytes, index, 6).toLowerCase();
                 index += 6;
+                if (contain_voltage) {
+                    item.voltage = bytesToInt(bytes,index,2) + 'mV';
+                    index += 2;
+                }
                 datas.push(item);
             }
             data.pos_data = datas;
