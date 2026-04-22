@@ -55,6 +55,13 @@ function decodeUplink(input) {
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
+    var date = new Date();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, offsetHours);
+    data.timezone = timezone_decode(offsetHours * 2);
+
     if (fPort == 0 || fPort == 10 || fPort == 11) {
         deviceInfo.data = data;
         return deviceInfo;
@@ -434,7 +441,7 @@ function getData(hex) {
 	return datas;
 }
 
-//var input = {};
-//input.fPort = 2;
-//input.bytes = getData("011d600107dd4b9c105f47b9684f9088");
-//console.log(decodeUplink(input));
+var input = {};
+input.fPort = 2;
+input.bytes = getData("09190b0115e74aab95d3a9d9f844774d4247d7e75e188a22e5d469e5d860");
+console.log(decodeUplink(input));

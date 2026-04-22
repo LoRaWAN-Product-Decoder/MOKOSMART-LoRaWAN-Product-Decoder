@@ -973,7 +973,7 @@ function decodeUplink(input) {
                 datas.push(item);
             } else if (beacon_type == 11) {
                 // BXPTofFlag
-                var flag = BXPPirFlag;
+                var flag = BXPTofFlag;
                 if (flag & 0x01) {
                     item.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
