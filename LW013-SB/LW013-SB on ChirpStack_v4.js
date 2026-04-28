@@ -1,4 +1,4 @@
-var eventTypeList = [
+var triggerEventTypeList = [
     'no event triggered',
     'event1 triggered',
     'event2 triggered',
@@ -9,6 +9,16 @@ var powerOffTypeList = [
     'turn off via APP',
     'turn off via downlink command',
     'turn off via magnetic'
+];
+
+var eventList = [
+	'downlink trigger',
+	'Event 1 Trigger',
+	'Event 1 Exit',
+	'Event 2 Trigger',
+	'Event 2 Exit',
+	'Event 3 Trigger',
+	'Event 3 Exit'
 ];
 
 // Decode uplink function.
@@ -36,6 +46,13 @@ function decodeUplink(input) {
     var index = 0;
 
     if (fPort == 6) {
+		var date_port6 = new Date();
+		var timestamp_port6 = Math.trunc(date_port6.getTime() / 1000);
+		var offsetHours_port6 = Math.abs(Math.floor(date_port6.getTimezoneOffset() / 60));
+		data.timestamp = timestamp_port6;
+		data.time = parse_time(timestamp_port6, offsetHours_port6);
+		data.timezone = timezone_decode(offsetHours_port6 * 2);
+		
         data.work_time = bytesToInt(bytes,  index, 4);
         index += 4;
 
@@ -83,6 +100,7 @@ function decodeUplink(input) {
 
         data.battery_consumption = bytesToInt(bytes, index, 4);
         index += 4;
+		
             
         deviceInfo.data = data;
         return deviceInfo;
@@ -97,7 +115,7 @@ function decodeUplink(input) {
     index += 1;
 
     data.timestamp = timestamp;
-    data.time = parse_time(timestamp, offsetHours);
+    data.time = parse_time(timestamp, offsetHours/2);
 
     var temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
     data.temperature = temperature;
@@ -120,13 +138,13 @@ function decodeUplink(input) {
         data.hardware_version = hard_version;
         index += 1;
 
-        data.event_type = eventTypeList[bytes[index]];
+        data.event_type = triggerEventTypeList[bytes[index]];
     }else if (fPort == 2 && bytes.length == 9) {
-        data.event_type = eventTypeList[bytes[index]];
+        data.event_type = triggerEventTypeList[bytes[index]];
     }else if (fPort == 4 && bytes.length == 9) {
         data.shutdown_type = powerOffTypeList[bytes[index]];
     }else if (fPort == 5 && bytes.length == 9) {
-        data.event_type = (bytes[index] == 0) ? 'downlink trigger' : '';
+        data.event_type = eventList[bytes[index]];
     }
     
     deviceInfo.data = data;
