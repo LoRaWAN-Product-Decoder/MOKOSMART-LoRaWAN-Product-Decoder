@@ -116,7 +116,6 @@ function decodeUplink(input) {
     data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 
     var timestamp = new Date().getTime();
-    timestamp = timestamp;
     data.timestamp = timestamp;
 
     var date = new Date();
