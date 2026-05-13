@@ -37,7 +37,8 @@ function Decoder(bytes, port) {
         var hardware_ver_major = (bytes[3] >> 4) & 0x0f;
         var hardware_ver_patch = bytes[3] & 0x0f;
         dev_info.hardware_version = "V" + hardware_ver_major + "." + hardware_ver_patch;
-        dev_info.device_mode = deviceMode[bytes[4]];
+        dev_info.visitor_mode = ((bytes[4] & 0x80) == 0x80);
+        dev_info.device_mode = deviceMode[bytes[4] & 0x7f];
         dev_info.device_status = deviceStatus[bytes[5]];
         dev_info.vibration_status = bytes[6] > 0 ? "Abnormal" : "Normal";
 
@@ -51,7 +52,8 @@ function Decoder(bytes, port) {
         dev_info.current_time = parse_time(bytesToInt(bytes, 2, 4), bytes[6] * 0.5);
         dev_info.timestamp = get_timestamp(bytesToInt(bytes, 2, 4));
         dev_info.timezone = timezone_decode(bytes[6]);
-        dev_info.device_mode = deviceMode[bytes[7]];
+        dev_info.visitor_mode = ((bytes[7] & 0x80) == 0x80);
+        dev_info.device_mode = deviceMode[bytes[7] & 0x7f];
         dev_info.device_status = deviceStatus[bytes[8]];
         if (port == 2)
             dev_info.turn_off_mode = turnOffMode[bytes[9]];
@@ -63,7 +65,8 @@ function Decoder(bytes, port) {
         dev_info.current_time = parse_time(bytesToInt(bytes, 1, 4), bytes[5] * 0.5);
         dev_info.timestamp = get_timestamp(bytesToInt(bytes, 1, 4));
         dev_info.timezone = timezone_decode(bytes[5]);
-        dev_info.event_type = eventType[bytes[6]];
+        dev_info.visitor_mode = ((bytes[6] & 0x80) == 0x80);
+        dev_info.event_type = eventType[bytes[6] & 0x7f];
     } else if (port == 6) {
         // L76_GPS data
         dev_info.pos_type = posType[bytesToInt(bytes, 0, 2) >> 12];
@@ -94,15 +97,17 @@ function Decoder(bytes, port) {
         var pos_data_sign = bytes[3] & 0x0F;
         dev_info.pos_data_sign = posDataSign[pos_data_sign];
         dev_info.pos_data_sign_code = pos_data_sign;
-        dev_info.device_mode = deviceMode[bytes[4] >> 4];
+        dev_info.visitor_mode = ((bytes[4] & 0x80) == 0x80);
+        dev_info.device_mode = deviceMode[(bytes[4] & 0x70) >> 4];
         dev_info.device_status = deviceStatus[bytes[4] & 0x0F];
-        var pos_data_length = bytes[5] & 0xFF;
+        dev_info.sos_data_send_count = bytes[5];
+        var pos_data_length = bytes[6] & 0xFF;
         dev_info.pos_data_length = pos_data_length;
         if ((pos_data_sign == 0 || pos_data_sign == 1) && pos_data_length > 0) {
             // WIFI BLE
             var datas = [];
             var count = pos_data_length / 7;
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < count; i++) {
                 var data = {};
                 data.rssi = bytes[index++] - 256 + "dBm";
@@ -116,7 +121,7 @@ function Decoder(bytes, port) {
             // L76 GPS
             var datas = [];
             var count = pos_data_length / 9;
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < count; i++) {
                 var data = {};
                 var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
@@ -134,18 +139,20 @@ function Decoder(bytes, port) {
     } else if (port == 9) {
         // Pos Failed
         dev_info.pos_type = posType[bytes[1]];
-        dev_info.device_mode = deviceMode[bytes[2]];
+        dev_info.visitor_mode = ((bytes[2] & 0x80) == 0x80);
+        dev_info.device_mode = deviceMode[bytes[2] & 0x70];
         dev_info.device_status = deviceStatus[bytes[3]];
         var pos_data_sign = bytes[4] & 0x0F;
         dev_info.pos_data_sign = pos_data_sign;
         dev_info.failed_reason = fixFailedReason[pos_data_sign];
+        dev_info.sos_data_send_count = bytes[5];
         if (pos_data_sign < 3) {
-            var pos_data_length = bytes[5] & 0xFF;
+            var pos_data_length = bytes[6] & 0xFF;
             dev_info.pos_data_length = pos_data_length;
             // WIFI Failed
             var datas = [];
             var count = pos_data_length / 7;
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < count; i++) {
                 var data = {};
                 data.rssi = bytes[index++] - 256 + "dBm";
@@ -155,12 +162,12 @@ function Decoder(bytes, port) {
             }
             dev_info.pos_data = datas;
         } else if (pos_data_sign < 6) {
-            var pos_data_length = bytes[5] & 0xFF;
+            var pos_data_length = bytes[6] & 0xFF;
             dev_info.pos_data_length = pos_data_length;
             // WIFI Failed
             var datas = [];
             var count = pos_data_length / 7;
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < count; i++) {
                 var data = {};
                 data.rssi = bytes[index++] - 256 + "dBm";
@@ -171,13 +178,13 @@ function Decoder(bytes, port) {
             dev_info.pos_data = datas;
         } else if (pos_data_sign < 8) {
             // L76 GPS Failed
-            var pdop = Number((bytes[5] & 0xFF) * 0.1).toFixed(1);
+            var pdop = Number((bytes[6] & 0xFF) * 0.1).toFixed(1);
             dev_info.pdop = pdop;
             if (pdop == 0xFF) {
                 dev_info.pdop == "unknow";
             }
             var datas = [];
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < 4; i++) {
                 var data = bytesToHexString(bytes, index++, 1).toLowerCase();
                 datas.push(data);
@@ -186,7 +193,7 @@ function Decoder(bytes, port) {
         } else if (pos_data_sign < 12) {
             // LR1110 GPS Failed
             var datas = [];
-            var index = 6;
+            var index = 7;
             for (var i = 0; i < 4; i++) {
                 var data = bytesToHexString(bytes, index++, 1).toLowerCase();
                 datas.push(data);
