@@ -140,7 +140,7 @@ function Decoder(bytes, port) {
         // Pos Failed
         dev_info.pos_type = posType[bytes[1]];
         dev_info.visitor_mode = ((bytes[2] & 0x80) == 0x80);
-        dev_info.device_mode = deviceMode[bytes[2] & 0x70];
+        dev_info.device_mode = deviceMode[bytes[2] & 0x7f];
         dev_info.device_status = deviceStatus[bytes[3]];
         var pos_data_sign = bytes[4] & 0x0F;
         dev_info.pos_data_sign = pos_data_sign;
