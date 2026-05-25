@@ -103,6 +103,9 @@ function decodeUplink(input) {
 
     data.ack = bytes[2] & 0x0f;
 
+    var tempVoltage = ((bytes[2] & 0xf0) >> 4);
+    data.battery_value = 2.8 + tempVoltage * 0.1;
+
     if (fPort == 1 && bytes.length == 9) {
         data.payload_type = payloadTypeArray[0];
         parse_port1_data(data, bytes.slice(3));
@@ -179,7 +182,13 @@ function parse_port2_data(data, bytes, contain_vlotage) {
     }
     const dateArr = bytes.slice(-4);
     const date = new Date(1000 * bytesToInt(dateArr, 0, dateArr.length));
-    data.time = date.toLocaleString();
+
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    data.timestamp = timestamp;
+
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+
+    data.time = parse_time(timestamp, offsetHours);
 }
 
 function parse_port3_data(data, bytes) {

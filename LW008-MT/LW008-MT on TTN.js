@@ -132,6 +132,8 @@ function decodeUplink(input) {
     data.temperature = temperature;
 
     data.ack = bytes[2] & 0x0f;
+    var tempVoltage = ((bytes[2] & 0xf0) >> 4);
+    data.battery_value = 2.2 + tempVoltage * 0.1;
 
     if (fPort == 1 && bytes.length == 9) {
         parse_port1_data(data, bytes.slice(3), fPort);
