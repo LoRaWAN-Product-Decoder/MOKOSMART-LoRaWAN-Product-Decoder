@@ -50,10 +50,17 @@ function decodeUplink(input) {
     var fPort = input.fPort;
     var deviceInfo = {};
     var data = {};
-    var contain_vlotage = true;
+    var contain_vlotage = false;
     
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+
+    var date = new Date();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, offsetHours);
+    data.timezone = timezone_decode(offsetHours * 2);
 
     if (fPort == 0 || fPort == 10 || fPort == 11) {
         deviceInfo.data = data;
@@ -86,7 +93,7 @@ function decodeUplink(input) {
     // data.positioning_type_code = positioningTypeCode;
     data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
 
-    data.anti_demolition = (bytes[0] & 0x80 == 0) ? "No trigger" : "Trigger";
+    data.anti_demolition = ((bytes[0] & 0x80) == 0) ? "No trigger" : "Trigger";
 
     var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '°C';
     data.temperature = temperature;
@@ -133,10 +140,9 @@ function decodeUplink(input) {
         parse_port9_data(data, bytes.slice(3), fPort);
     }  else if (fPort == 13 && bytes.length == 7) {
         data.payload_type = payloadTypeArray[11];
-        var timestamp = bytesToInt(bytes,3,4);
-        data.timestamp = timestamp;
-        const date = new Date(1000 * timestamp);
-        data.time = date.toLocaleString();
+        var timestamp111 = bytesToInt(bytes,3,4);
+        data.timestamp = timestamp111;
+        data.time = parse_time(timestamp111, offsetHours);
     }
     deviceInfo.data = data;
     return deviceInfo;
@@ -171,7 +177,7 @@ function parse_port2_data(data, bytes,contain_vlotage) {
     if (positionTypeCode == 1) {
         //蓝牙
         var positionData = parse_position_data(sub_bytes, contain_vlotage);
-        data.mac_data = positionData;
+        data.mac_data = JSON.stringify(positionData);
     } else if (positionTypeCode == 3) {
         //GPS
         var latitude = Number(signedHexToInt(bytesToHexString(sub_bytes, 0, 4)) * 0.0000001).toFixed(7);
@@ -185,7 +191,14 @@ function parse_port2_data(data, bytes,contain_vlotage) {
     index += len;
 
     const date = new Date(1000 * bytesToInt(bytes, index, 4));
-    data.time = date.toLocaleString();
+    
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    data.timestamp = timestamp;
+
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+
+    data.time = parse_time(timestamp, offsetHours);
+
     index += 4;
 }
 
@@ -208,7 +221,7 @@ function parse_port4_data(data, bytes, contain_vlotage) {
             var item = {};
             var sub_bytes = dataBytes.slice((i * sub_len), (i * sub_len) + sub_len);
             var mac_address = bytesToHexString(sub_bytes, 0, 6);
-            var rssi = signedHexToInt(sub_bytes.slice(6,7)) + 'dBm';
+            var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
             item.mac_address = mac_address;
             item.rssi = rssi;
             if (contain_vlotage) {
@@ -264,6 +277,28 @@ function parse_port9_data(data, bytes, port) {
 
 function parse_port12_data(data, bytes, port) {
     var obj = {};
+    var operationModeCode = bytes[0] & 0x07;
+    // data.operation_mode_code = operationModeCode;
+    obj.operation_mode = operationModeArray[operationModeCode];
+
+    var batteryLevelCode = bytes[0] & 0x08;
+    // data.battery_level_code = batteryLevelCode;
+    obj.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
+
+    var manDownStatusCode = bytes[0] & 0x10;
+    // data.mandown_status_code = manDownStatusCode;
+    obj.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
+
+    var motionStateSinceLastPaylaodCode = bytes[0] & 0x20;
+    // data.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
+    obj.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
+
+    var positioningTypeCode = bytes[0] & 0x40;
+    // data.positioning_type_code = positioningTypeCode;
+    obj.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
+
+    obj.anti_demolition = ((bytes[0] & 0x80) == 0) ? "No trigger" : "Trigger";
+
     obj.ack = bytes[1] & 0x0f;
     obj.battery_value = (((bytes[1] >> 4) & 0xf) * 0.1 + 2.2).toFixed(1).toString() + "V";
     obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
@@ -282,7 +317,7 @@ function parse_position_data(bytes, contain_vlotage) {
         var obj = {};
         var sub_bytes = bytes.slice((i * sub_len), (i * sub_len) + sub_len);
         var mac_address = bytesToHexString(sub_bytes, 0, 6);
-        var rssi = signedHexToInt(sub_bytes.slice(6,7)) + 'dBm';
+        var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
         obj.mac_address = mac_address;
         obj.rssi = rssi;
         if (contain_vlotage) {
@@ -420,4 +455,16 @@ function int8(byte) {
         return 0xFFFFFF00 | byte;
     }
     return byte;
+}
+
+function getData(hex) {
+	var length = hex.length;
+	var datas = [];
+	for (var i = 0; i < length; i += 2) {
+		var start = i;
+		var end = i + 2;
+		var data = parseInt("0x" + hex.substring(start, end));
+		datas.push(data);
+	}
+	return datas;
 }

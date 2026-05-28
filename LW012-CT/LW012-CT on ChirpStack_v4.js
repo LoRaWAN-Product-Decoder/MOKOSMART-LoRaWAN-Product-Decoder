@@ -191,7 +191,14 @@ function parse_port2_data(data, bytes,contain_vlotage) {
     index += len;
 
     const date = new Date(1000 * bytesToInt(bytes, index, 4));
-    data.time = date.toLocaleString();
+    
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    data.timestamp = timestamp;
+
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+
+    data.time = parse_time(timestamp, offsetHours);
+
     index += 4;
 }
 
