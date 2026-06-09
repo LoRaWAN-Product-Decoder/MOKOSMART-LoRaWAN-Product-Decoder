@@ -133,6 +133,9 @@ function parse_port1_data(bytes) {
     index += 1;
 
     data.auxiliary_operation = auxiliaryStatusList[bytes[index]];
+    index += 1;
+
+    data.motor_status = ((bytes[index] == 0) ? 'Normal' : 'unnormal');
 
     return data;
 }
@@ -229,38 +232,51 @@ function parse_port8_data(bytes, contain_vlotage) {
     var len = bytes[index];
     index ++;
 
-    var sub_bytes = bytes.slice(index, index + len);
+    // var sub_bytes = bytes.slice(index, index + len);
 
-    if (positionTypeCode == 0) {
-        // 情况1: 仅有BLE定位成功数据
-        var positionData = parse_port8_position_data(sub_bytes, contain_vlotage);
+    var ble_len = bytes[index];
+    index ++;
+
+    if (ble_len > 0) {
+        var positionData = parse_port8_position_data(bytes.slice(index, index + ble_len), contain_vlotage);
         data.mac_data = JSON.stringify(positionData);
-        data.position_data = positionData; // 统一数组
-    } else if (positionTypeCode == 1) {
-        // 情况2: GPS定位数据，可能包含BLE数据
-        var positionData = parseGPSAndBLEPositionData(sub_bytes, contain_vlotage);
-        
-        // 设置统一数组
-        data.position_data = positionData;
-        
-        // 为了向后兼容，设置原有字段（从数组中提取GPS数据）
-        var gpsItems = positionData.filter(item => item.type === "GPS");
-        if (gpsItems.length > 0) {
-            var lastGPS = gpsItems[gpsItems.length - 1]; // 取最后一条GPS数据
-            data.latitude = lastGPS.latitude;
-            data.longitude = lastGPS.longitude;
-            data.pdop = lastGPS.pdop;
-            data.satellite_signal_strength = lastGPS.satellite_signal_strength;
-        }
-        
-        // 为了向后兼容，设置BLE数据
-        // var bleItems = positionData.filter(item => item.type === "BLE");
-        // if (bleItems.length > 0) {
-        //     data.mac_data = JSON.stringify(bleItems);
-        // }
+        data.ble_position_data = positionData;
     }
 
-    index += len;
+    index += ble_len;
+
+    var gps_len = bytes[index];
+    index ++;
+
+    var gpsPositionData = [];
+    var gpsBytes = bytes.slice(index, index + gps_len);
+    if (gps_len == 9) {
+        //卫星信号强度数据开关关闭
+        //纬度（4字节）+经度（4字节）+PDOP(1字节)
+        var gpsItem = {
+                type: "GPS",
+                latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
+                longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
+                pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
+            };
+        gpsPositionData.push(gpsItem);
+        
+    } else if (gps_len == 13) {
+        //上报卫星信号强度数据开关开启
+        //纬度（4字节）+经度（4字节）+PDOP(1字节)+卫星信号强度（4字节）
+        var gpsItem = {
+                type: "GPS",
+                latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
+                longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
+                pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
+                satellite_signal_strength: bytesToInt(gpsBytes, 9, 4)
+            };
+        gpsPositionData.push(gpsItem);
+    }
+
+    data.gps_position_data = gpsPositionData;
+
+    index += gps_len;
 
     const date = new Date(1000 * bytesToInt(bytes, index, 4));
     data.time = date.toLocaleString();
@@ -332,6 +348,18 @@ function parse_port11_data(bytes) {
     data.blue_led_working_time = bytesToInt(bytes, index, 4);
     index += 4;
 
+    data.alarm1_total_time = bytesToInt(bytes, index, 4);
+    index += 4;
+
+    data.alarm2_total_time = bytesToInt(bytes, index, 4);
+    index += 4;
+
+    data.fix_times_on_stationary_status_of_motion_mode = bytesToInt(bytes, index, 4);
+    index += 4;
+
+    data.fix_times_on_motion_status_of_motion_mode = bytesToInt(bytes, index, 4);
+    index += 4;
+
     data.lora_send_times = bytesToInt(bytes, index, 4);
     index += 4;
 
@@ -368,90 +396,6 @@ function parse_port8_position_data(bytes, contain_vlotage) {
         mac_data.push(obj);
     }
     return mac_data;
-}
-
-function parseGPSAndBLEPositionData(dataBytes, contain_vlotage) {
-    var n = dataBytes.length;
-    var result = [];
-    
-    var ble_sub_len = contain_vlotage ? 9 : 7;
-    var gps_sub_len = 13;
-        
-    // 情况2.1: 仅有GPS定位数据 (长度是13的倍数)
-    if (n % gps_sub_len === 0) {
-        var gpsNumber = n / gps_sub_len;
-        
-        for (var i = 0; i < gpsNumber; i++) {
-            var start = i * gps_sub_len;
-            var end = start + gps_sub_len;
-            var gpsBytes = dataBytes.slice(start, end);
-            
-            var gpsItem = {
-                type: "GPS",
-                latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
-                longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
-                pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
-                satellite_signal_strength: bytesToInt(gpsBytes, 9, 4)
-            };
-            result.push(gpsItem);
-        }
-    }
-    // 情况2.2: GPS和BLE混合数据
-    else if (n > gps_sub_len && (n - gps_sub_len) % ble_sub_len === 0) {
-        var bleNumber = (n - gps_sub_len) / ble_sub_len;
-        
-        // 解析BLE数据
-        for (var i = 0; i < bleNumber; i++) {
-            var start = i * ble_sub_len;
-            var end = start + ble_sub_len;
-            var bleBytes = dataBytes.slice(start, end);
-            
-            var bleItem = {
-                type: "BLE",
-                mac_address: bytesToHexString(bleBytes, 0, 6),
-                rssi: bytesToInt(bleBytes, 6, 1) - 256 + 'dBm'
-            };
-            
-            // 检查电压值，如果是0xFFFF则不包含voltage字段
-            if (contain_vlotage && bleBytes.length >= 9) {
-                var voltageValue = bytesToInt(bleBytes, 7, 2);
-                if (voltageValue !== 0xFFFF) {
-                    bleItem.voltage = voltageValue + "mV";
-                }
-            }
-            
-            result.push(bleItem);
-        }
-        
-        // 解析GPS数据 (最后13字节)
-        var gpsBytes = dataBytes.slice(bleNumber * ble_sub_len);
-        
-        var gpsItem = {
-            type: "GPS",
-            latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
-            longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
-            pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
-            satellite_signal_strength: bytesToInt(gpsBytes, 9, 4)
-        };
-        result.push(gpsItem);
-    }
-    else {
-        // 默认尝试解析为GPS数据
-        if (n >= gps_sub_len) {
-            var gpsBytes = dataBytes.slice(0, gps_sub_len);
-            
-            var gpsItem = {
-                type: "GPS",
-                latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
-                longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
-                pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
-                satellite_signal_strength: bytesToInt(gpsBytes, 9, 4)
-            };
-            result.push(gpsItem);
-        }
-    }
-    
-    return result;
 }
 
 function parsePositionData(dataBytes, contain_vlotage) {
@@ -702,5 +646,5 @@ function getData(hex) {
 
 // var input = {};
 // input.fPort = 8;
-// input.bytes = getData("5F000021101BDCBFBE1F7355E3EB2FCC765B12DC12278956443A9B6E37211F1E1D690F0D08");
+// input.bytes = getData("51000001400F000D1DB8B1C805AA3B3E34252423226A25AA14");
 // console.log(decodeUplink(input));
