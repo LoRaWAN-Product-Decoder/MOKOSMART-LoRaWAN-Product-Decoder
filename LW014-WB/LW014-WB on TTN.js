@@ -2,10 +2,10 @@ var deviceModeList = [
     'Standby mode',     //待机模式
     'Periodic mode',    //定期模式
     'Timing mode',      //定时模式
+    'Stationary state in motion mode',  //运动模式下静止
     'Start of movement in motion mode', //运动模式下运动开始
     'In movement for motion mode',      //运动模式下运动中
     'End of movement in motion mode',   //运动模式下运动结束
-    'Stationary state in motion mode',  //运动模式下静止    
     'Time-segmented mode'               //定时+定期模式
 ];
 
@@ -83,14 +83,13 @@ function decodeUplink(input) {
         deviceInfo.data = data;
         return deviceInfo;
     }
-
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
     if (fPort == 11) {            
         deviceInfo.data = parse_port11_data(bytes);
-    } else if ((fPort == 1 || fPort == 3) && bytes.length == 6) {
-        deviceInfo.data = parse_port1_data(bytes);
+    } else if ((fPort == 1 || fPort == 3) && bytes.length >= 6) {
+        deviceInfo.data = parse_port1_data(bytes,fPort);
     } else if ((fPort == 2 || fPort == 4) && (bytes.length == 10 || bytes.length == 9)) {
         deviceInfo.data = parse_port24_data(bytes,fPort);
     } else if (fPort == 5 && bytes.length == 7) {
@@ -106,7 +105,7 @@ function decodeUplink(input) {
     return deviceInfo;
 }
 
-function parse_port1_data(bytes) {
+function parse_port1_data(bytes,fPort) {
     var index = 0;
     var data = {};
     data.charging_status = ((bytes[0] & 0x80) ? "in charging" : "no charging");
@@ -135,7 +134,10 @@ function parse_port1_data(bytes) {
     data.auxiliary_operation = auxiliaryStatusList[bytes[index]];
     index += 1;
 
-    data.motor_status = ((bytes[index] == 0) ? 'Normal' : 'unnormal');
+    if (fPort == 1 && bytes.length == 7) {
+        //port1
+        data.motor_status = ((bytes[index] == 0) ? 'Normal' : 'unnormal');
+    }
 
     return data;
 }
@@ -269,7 +271,10 @@ function parse_port8_data(bytes, contain_vlotage) {
                 latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
                 longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
                 pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
-                satellite_signal_strength: bytesToInt(gpsBytes, 9, 4)
+                satellite_signal_strength_one: bytesToInt(gpsBytes, 9, 1),
+                satellite_signal_strength_two: bytesToInt(gpsBytes, 10, 1),
+                satellite_signal_strength_three: bytesToInt(gpsBytes, 11, 1),
+                satellite_signal_strength_four: bytesToInt(gpsBytes, 12, 1),
             };
         gpsPositionData.push(gpsItem);
     }
@@ -410,7 +415,10 @@ function parsePositionData(dataBytes, contain_vlotage) {
         var item = {
             type: "GPS",
             pdop: bytesToInt(dataBytes, 0, 1) / 10,
-            satellite_signal_strength: bytesToInt(dataBytes, 1, 4),
+            satellite_signal_strength_one: bytesToInt(dataBytes, 1, 1),
+            satellite_signal_strength_two: bytesToInt(dataBytes, 2, 1),
+            satellite_signal_strength_three: bytesToInt(dataBytes, 3, 1),
+            satellite_signal_strength_four: bytesToInt(dataBytes, 4, 1),
         };
         result.push(item);
     } else if (n % ble_sub_len === 0) {
@@ -460,7 +468,10 @@ function parsePositionData(dataBytes, contain_vlotage) {
         var gpsItem = {
             type: "GPS",
             pdop: bytesToInt(gpsBytes, 0, 1) / 10,
-            satellite_signal_strength: bytesToInt(gpsBytes, 1, 4),
+            satellite_signal_strength_one: bytesToInt(gpsBytes, 1, 1),
+            satellite_signal_strength_two: bytesToInt(gpsBytes, 2, 1),
+            satellite_signal_strength_three: bytesToInt(gpsBytes, 3, 1),
+            satellite_signal_strength_four: bytesToInt(gpsBytes, 4, 1),
         };
         result.push(gpsItem);
     } else if (n > ble_sub_len + gps_sub_len && (n - gps_sub_len) % ble_sub_len === 0) {
@@ -493,7 +504,10 @@ function parsePositionData(dataBytes, contain_vlotage) {
         var gpsItem = {
             type: "GPS",
             pdop: bytesToInt(gpsBytes, 0, 1) / 10,
-            satellite_signal_strength: bytesToInt(gpsBytes, 1, 4),
+            satellite_signal_strength_one: bytesToInt(gpsBytes, 1, 1),
+            satellite_signal_strength_two: bytesToInt(gpsBytes, 2, 1),
+            satellite_signal_strength_three: bytesToInt(gpsBytes, 3, 1),
+            satellite_signal_strength_four: bytesToInt(gpsBytes, 4, 1),
         };
         result.push(gpsItem);
     }
@@ -646,5 +660,5 @@ function getData(hex) {
 
 // var input = {};
 // input.fPort = 8;
-// input.bytes = getData("51000001400F000D1DB8B1C805AA3B3E34252423226A25AA14");
+// input.bytes = getData("44000001100B00091227789A443AA78A156A311307");
 // console.log(decodeUplink(input));
