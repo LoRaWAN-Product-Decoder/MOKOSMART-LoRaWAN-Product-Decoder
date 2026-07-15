@@ -116,7 +116,7 @@ function Decode(fPort, bytes) {
         // data.event_type_code = eventTypeCode;
         data.event_type = eventTypeArray[eventTypeCode];
         deviceInfo.data = data;
-    } else if (fPort == 9 && bytes.length == 43) {
+    } else if (fPort == 9 && bytes.length == 39) {
         parse_port9_data(deviceInfo, bytes.slice(3), fPort);
     }
     // deviceInfo.data = data_dic;
@@ -204,7 +204,6 @@ function parse_port9_data(deviceInfo, bytes, port) {
     data.gps_position_times = bytesToInt(bytes, 24, 4);
     data.lora_send_times = bytesToInt(bytes, 28, 4);
     data.lora_power = bytesToInt(bytes, 32, 4);
-    data.battery_value = bytesToInt(bytes, 36, 4);
     deviceInfo.data = data;
 }
 

@@ -10,7 +10,7 @@ function decodeUplink(input) {
     var fPort = input.fPort;
     var deviceInfo = {};
     var data = {};
-    if (fPort == 0) {
+    if (fPort == 0 || fPort == 10) {
         deviceInfo.data = data;
         return deviceInfo;
     }
@@ -33,10 +33,11 @@ function decodeUplink(input) {
 	data.timestamp = bytesToInt(bytes, index, 4);		//timestamp
     index += 4;
 
-    data.timezone = timezone_decode(bytes[index]);		//timezone
+    const timezone = bytes[index];
+    data.timezone = timezone_decode(timezone);		//timezone
     index ++;
 
-    data.time = parse_time(data.timestamp, bytes[index] * 0.5);
+    data.time = parse_time(data.timestamp, timezone * 0.5);
 
     const temperature = bytes[index];
     if (temperature == 0x7f) {

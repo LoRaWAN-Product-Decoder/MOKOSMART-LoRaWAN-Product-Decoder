@@ -150,7 +150,7 @@ function Decoder(bytes, fPort, groupID) {
         payloadList.push(getPayloadData("event_type", eventTypeArray[eventTypeCode], groupID));
         return payloadList;
     }
-    if (fPort == 9 && bytes.length == 43) {
+    if (fPort == 9 && bytes.length == 39) {
         payloadList.push(getPayloadData("payload_type", payloadTypeArray[7], groupID));
         return __spreadArray(__spreadArray([], payloadList, true), parse_port9_data(bytes.slice(3), groupID), true);
     }
@@ -244,7 +244,6 @@ function parse_port9_data(bytes, groupID) {
     tempList.push(getPayloadData("gps_position_times", bytesToInt(bytes, 24, 4), groupID));
     tempList.push(getPayloadData("lora_send_times", bytesToInt(bytes, 28, 4), groupID));
     tempList.push(getPayloadData("lora_power", bytesToInt(bytes, 32, 4), groupID));
-    tempList.push(getPayloadData("battery_value", bytesToInt(bytes, 36, 4), groupID));
     return tempList;
 }
 function parse_position_data(bytes, type) {

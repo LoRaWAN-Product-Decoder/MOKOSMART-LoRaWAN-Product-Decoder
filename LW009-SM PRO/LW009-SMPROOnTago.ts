@@ -30,11 +30,12 @@ function Decoder(bytes: number[], fPort: number, groupID: string):{ [key: string
     payloadList.push(getPayloadData('timestamp' , timestamp, groupID));
     index += 4;
 
-    const timezone = timezone_decode(bytes[index]);		//timezone
+    const timezoneValue = bytes[index];
+    const timezone = timezone_decode(timezoneValue);		//timezone
     payloadList.push(getPayloadData('timezone' , timezone, groupID));
     index ++;
 
-    const time = parse_time(timestamp, bytes[index] * 0.5);
+    const time = parse_time(timestamp, timezoneValue * 0.5);
     payloadList.push(getPayloadData('time' , time, groupID));
 
     const temperature = bytes[index];

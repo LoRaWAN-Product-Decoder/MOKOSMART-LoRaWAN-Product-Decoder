@@ -18,10 +18,11 @@ function Decoder(bytes, fPort, groupID) {
     var timestamp = bytesToInt(bytes, index, 4); //timestamp
     payloadList.push(getPayloadData('timestamp', timestamp, groupID));
     index += 4;
-    var timezone = timezone_decode(bytes[index]); //timezone
+    var timezoneValue = bytes[index];
+    var timezone = timezone_decode(timezoneValue); //timezone
     payloadList.push(getPayloadData('timezone', timezone, groupID));
     index++;
-    var time = parse_time(timestamp, bytes[index] * 0.5);
+    var time = parse_time(timestamp, timezoneValue * 0.5);
     payloadList.push(getPayloadData('time', time, groupID));
     var temperature = bytes[index];
     if (temperature == 0x7f) {

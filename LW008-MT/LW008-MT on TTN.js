@@ -161,7 +161,7 @@ function decodeUplink(input) {
         // obj.event_type_code = eventTypeCode;
         obj.event_type = eventTypeArray[eventTypeCode];
         data.obj = obj;
-    } else if (fPort == 9 && bytes.length == 43) {
+    } else if (fPort == 9 && bytes.length == 39) {
         parse_port9_data(data, bytes.slice(3), fPort);
     }
     // data.obj = data_dic;
@@ -250,7 +250,6 @@ function parse_port9_data(data, bytes, port) {
     obj.gps_position_times = bytesToInt(bytes, 24, 4);
     obj.lora_send_times = bytesToInt(bytes, 28, 4);
     obj.lora_power = bytesToInt(bytes, 32, 4);
-    obj.battery_value = bytesToInt(bytes, 36, 4);
     data.obj = obj;
 }
 

@@ -7,7 +7,7 @@ const eventInfoUploadList = ["Downlink trigger","Calibration Successfully","Cali
 
 function Decode(fPort, bytes, uplink_info) {
     var deviceInfo = {};
-    if (fPort == 0) {
+    if (fPort == 0 || fPort == 10) {
         return deviceInfo;
     }
 
@@ -29,10 +29,11 @@ function Decode(fPort, bytes, uplink_info) {
 	deviceInfo.timestamp = bytesToInt(bytes, index, 4);		//timestamp
     index += 4;
 
-    deviceInfo.timezone = timezone_decode(bytes[index]);		//timezone
+    const timezone = bytes[index];
+    deviceInfo.timezone = timezone_decode(timezone);		//timezone
     index ++;
 
-    deviceInfo.time = parse_time(timestamp, bytes[index] * 0.5);
+    deviceInfo.time = parse_time(timestamp, timezone * 0.5);
 
     const temperature = bytes[index];
     if (temperature == 0x7f) {
