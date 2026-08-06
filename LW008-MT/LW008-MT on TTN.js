@@ -161,7 +161,7 @@ function decodeUplink(input) {
         // obj.event_type_code = eventTypeCode;
         obj.event_type = eventTypeArray[eventTypeCode];
         data.obj = obj;
-    } else if (fPort == 9 && bytes.length == 39) {
+    } else if (fPort == 9 && bytes.length == 51) {
         parse_port9_data(data, bytes.slice(3), fPort);
     }
     // data.obj = data_dic;
@@ -241,15 +241,20 @@ function parse_port4_data(data, bytes, port) {
 
 function parse_port9_data(data, bytes, port) {
     var obj = {};
-    obj.work_times = bytesToInt(bytes, 0, 4);
-    obj.adv_times = bytesToInt(bytes, 4, 4);
-    obj.flash_write_times = bytesToInt(bytes, 8, 4);
-    obj.axis_wakeup_times = bytesToInt(bytes, 12, 4);
-    obj.ble_position_times = bytesToInt(bytes, 16, 4);
-    obj.wifi_position_times = bytesToInt(bytes, 20, 4);
-    obj.gps_position_times = bytesToInt(bytes, 24, 4);
-    obj.lora_send_times = bytesToInt(bytes, 28, 4);
-    obj.lora_power = bytesToInt(bytes, 32, 4);
+    // 从字节0开始，每个字段占4字节
+    obj.work_times = bytesToInt(bytes, 0, 4);              // 设备工作时间，单位s
+    obj.adv_times = bytesToInt(bytes, 4, 4);               // 蓝牙广播次数
+    obj.axis_wakeup_times = bytesToInt(bytes, 8, 4);       // 三轴唤醒时长
+    obj.ble_position_times = bytesToInt(bytes, 12, 4);     // 蓝牙定位时长，单位s
+    obj.wifi_position_times = bytesToInt(bytes, 16, 4);    // WIFI定位时长，单位s
+    obj.gps_l76k_position_times = bytesToInt(bytes, 20, 4); // GPS_L76K定位时长，单位s
+    obj.gps_lr1110_position_times = bytesToInt(bytes, 24, 4); // GPS_LR1110定位时长，单位s
+    obj.static_position_times = bytesToInt(bytes, 28, 4);  // 运动模式下静止定位次数
+    obj.motion_position_times = bytesToInt(bytes, 32, 4);  // 运动模式下运动定位次数，单位mAS
+    obj.lora_send_times = bytesToInt(bytes, 36, 4);        // lorawan发送次数，单位0.001mAH
+    obj.lora_power = bytesToInt(bytes, 40, 4);             // lorawan发送接收功耗
+    obj.battery_total = bytesToInt(bytes, 44, 4);          // 电池总消耗
+    
     data.obj = obj;
 }
 

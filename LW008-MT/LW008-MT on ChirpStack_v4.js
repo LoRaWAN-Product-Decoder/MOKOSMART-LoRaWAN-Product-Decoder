@@ -62,22 +62,6 @@ function decodeUplink(input) {
         return deviceInfo;
     }
 
-    // if (fPort == 199) {
-    //     var access_points = [];
-    //     for (var i = 1; i < 4; i++) {
-    //         var sub_bytes = bytes.slice((i * 8), (i * 8 + 7));
-    //         var mac_address = bytesToHexString(sub_bytes, 0, 6);
-    //         var rssi = int8(sub_bytes[6]);
-    //         var data_dic = {
-    //             'macAddress': mac_address,
-    //             'signalStrength': rssi
-    //         };
-    //         access_points.push(data_dic);
-    //     }
-    //     data.access_points = access_points;
-    //     deviceInfo.data = data;
-    //     return deviceInfo;
-    // }
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
@@ -153,7 +137,7 @@ function decodeUplink(input) {
         var eventTypeCode = bytesToInt(bytes, 3, 1);
         // obj.event_type_code = eventTypeCode;
         data.event_type = eventTypeArray[eventTypeCode];
-    } else if (fPort == 9 && bytes.length == 39) {
+    } else if (fPort == 9 && bytes.length == 51) {
         data.payload_type = payloadTypeArray[7];
         parse_port9_data(data, bytes.slice(3), fPort);
     }
@@ -244,15 +228,20 @@ function parse_port4_data(data, bytes, port) {
 
 function parse_port9_data(data, bytes, port) {
     var obj = {};
-    obj.work_times = bytesToInt(bytes, 0, 4);
-    obj.adv_times = bytesToInt(bytes, 4, 4);
-    obj.flash_write_times = bytesToInt(bytes, 8, 4);
-    obj.axis_wakeup_times = bytesToInt(bytes, 12, 4);
-    obj.ble_position_times = bytesToInt(bytes, 16, 4);
-    obj.wifi_position_times = bytesToInt(bytes, 20, 4);
-    obj.gps_position_times = bytesToInt(bytes, 24, 4);
-    obj.lora_send_times = bytesToInt(bytes, 28, 4);
-    obj.lora_power = bytesToInt(bytes, 32, 4);
+    // 从字节0开始，每个字段占4字节
+    obj.work_times = bytesToInt(bytes, 0, 4);              // 设备工作时间，单位s
+    obj.adv_times = bytesToInt(bytes, 4, 4);               // 蓝牙广播次数
+    obj.axis_wakeup_times = bytesToInt(bytes, 8, 4);       // 三轴唤醒时长
+    obj.ble_position_times = bytesToInt(bytes, 12, 4);     // 蓝牙定位时长，单位s
+    obj.wifi_position_times = bytesToInt(bytes, 16, 4);    // WIFI定位时长，单位s
+    obj.gps_l76k_position_times = bytesToInt(bytes, 20, 4); // GPS_L76K定位时长，单位s
+    obj.gps_lr1110_position_times = bytesToInt(bytes, 24, 4); // GPS_LR1110定位时长，单位s
+    obj.static_position_times = bytesToInt(bytes, 28, 4);  // 运动模式下静止定位次数
+    obj.motion_position_times = bytesToInt(bytes, 32, 4);  // 运动模式下运动定位次数，单位mAS
+    obj.lora_send_times = bytesToInt(bytes, 36, 4);        // lorawan发送次数，单位0.001mAH
+    obj.lora_power = bytesToInt(bytes, 40, 4);             // lorawan发送接收功耗
+    obj.battery_total = bytesToInt(bytes, 44, 4);          // 电池总消耗
+    
     data.obj = obj;
 }
 
