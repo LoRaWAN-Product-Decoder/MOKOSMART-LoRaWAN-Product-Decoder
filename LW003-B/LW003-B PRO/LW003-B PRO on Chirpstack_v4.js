@@ -19,9 +19,11 @@ var BXPTagFlag = 0x3FFF;
 var OtherTypeFlag = 0x1F;
 var BXPPirFlag = 0x3FFF;
 var BXPTofFlag = 0x0FFF;
+var nanoBeaconFlag = 0x03FF;
 
 
 var chargingTypeArray = ['No Charging','DC Charging','Solar Charging'];
+var infoPackageArray = ['Trigger by downlink','Trip on start','In trip','Trip on end'];
 var shutDownTypeArray = ["Bluetooth command or App", "LoRaWAN Command", "Power button", "Battery run out"];
 var beaconTypeArray =
     [
@@ -60,6 +62,17 @@ var beaconConnectResultArray = [
 var getBXPBDDeviceInfoResultArray = ["Success","Device disconnect","Not support command"];
 var cmdResultArray = ["Success","Device disconnect","Not support command","Timeout"];
 var deleteTriggerResultArray = ["Single click","Double click","Long press"];
+var positionModeArray = [
+    'Standby mode','Periodic mode',
+    'Timing mode','Stationary of motion mode',
+    'Trip start of motion mode','In trip of motion mode',
+    'Trip end of motion mode'
+];
+var positionFailedArray = [
+    'GPS positioning timeout','GPS tech timeout',
+    'PDOP limit','Interrupted by trip end',
+    'Interrupted by trip start'
+];
 
 function decodeUplink(input) {
     var bytes = input.bytes;
@@ -72,6 +85,11 @@ function decodeUplink(input) {
     }
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+
+    if (fPort == 7) {
+        dev_info.data = data;
+        return dev_info;
+    }
 
     var index = 0;
 
@@ -122,7 +140,7 @@ function decodeUplink(input) {
         if (fPort == 1 || fPort == 3) {
             data.charging_type = chargingTypeArray[bytes[index]];
         }else if (fPort == 4) {
-            data.information_package_type = 'Downlink Message Trigger';
+            data.information_package_type = infoPackageArray[bytes[index]];
         }
 
         
@@ -176,6 +194,9 @@ function decodeUplink(input) {
         data.axis_wakeup_total_time = bytesToInt(bytes, index, 4) + 's';
         index += 4;
 
+        data.gps_position_total_time = bytesToInt(bytes, index, 4) + 's';
+        index += 4;
+
         data.lorawan_send_count = bytesToInt(bytes, index, 4);
         index += 4;
 
@@ -185,7 +206,7 @@ function decodeUplink(input) {
         data.power_consumption = bytesToInt(bytes, index, 4) * 0.001 + 'mAH';
 
     } else if (fPort == 5 || fPort == 10) {
-        // Scan data info
+        // Scan data info - 与 LW003-B Plus 完全一致
         data.packet_sequence = bytes[index];
         index += 1;
 
@@ -198,9 +219,6 @@ function decodeUplink(input) {
         data.beacon_number = bytes[index];
         index += 1;
         data.message_type = "Scan Data";
-
-        // var date = new Date();
-        // data.time = date.toJSON();
 
         var parse_len = index;
         var datas = [];
@@ -274,7 +292,6 @@ function decodeUplink(input) {
                         dataBlocks.push(dataBlock);
                         blockNum--;
                     }
-                    // item.dataBlocks = JSON.stringify(dataBlocks);
                     item.dataBlocks = dataBlocks;
                 }
                 if ((flag & 0x18)) {
@@ -507,7 +524,6 @@ function decodeUplink(input) {
                 }
                 if (flag & 0x40) {
                     item.battery_voltage = bytesToInt(bytes, parse_len, 2) + "mV";
-                    //item.batt_vol = bytesToInt(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
                 }
@@ -638,9 +654,7 @@ function decodeUplink(input) {
                 // ================
                 if (flag & 0x08) {
                     item.hall_sensor_status = bytes[parse_len] & 0x01 ? "Magnet away/absent" : "Magnet approach/present";
-                    //item.hall_sensor_status_code = bytes[parse_len] & 0x01;
                     item.accelerometer_sensor_status = bytes[parse_len] & 0x02 ? "In move" : "In static";
-                    //item.accelerometer_check_move = bytes[parse_len] & 0x02;
                     item.accelerometer_sensor_equipped_status = bytes[parse_len] & 0x04 ? "Equipped" : "Not equipped";
                     parse_len++;
                     beacon_len++;
@@ -665,7 +679,6 @@ function decodeUplink(input) {
                     var z_axis = bytesToHexString(bytes, parse_len, 2);
                     parse_len += 2;
                     beacon_len += 2;
-                    //item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
                     item.x_axis_data = signedHexToInt(x_axis);
                     item.y_axis_data = signedHexToInt(y_axis);
                     item.z_axis_data = signedHexToInt(z_axis);
@@ -806,7 +819,6 @@ function decodeUplink(input) {
                 if (flag & 0x10) {
                     item.password_verification_status = (bytes[parse_len] & 0x01) ? "Password verification enabled" : "Password verification disabled";
                     item.alarm_triggered_status = (bytes[parse_len] & 0x02) ? "Alarm be triggered" : "Alarm not be triggered";
-                    //item.alarm_status = bytes[parse_len] & 0x02;
                     parse_len++;
                     beacon_len++;
                 }
@@ -853,7 +865,6 @@ function decodeUplink(input) {
                         var z_axis = bytesToHexString(bytes, parse_len, 2);
                         parse_len += 2;
                         beacon_len += 2;
-                        //item.axis_data = "X:0x" + x_axis + " Y:0x" + y_axis + " Z:0x" + z_axis;
                         item.x_axis_data = signedHexToInt(x_axis);
                         item.y_axis_data = signedHexToInt(y_axis);
                         item.z_axis_data = signedHexToInt(z_axis);
@@ -959,7 +970,7 @@ function decodeUplink(input) {
                 datas.push(item);
             } else if (beacon_type == 11) {
                 // BXPTofFlag
-                var flag = BXPPirFlag;
+                var flag = BXPTofFlag;
                 if (flag & 0x01) {
                     item.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
                     parse_len += 6;
@@ -1085,11 +1096,186 @@ function decodeUplink(input) {
                     parse_len += item.raw_data_length;
                 }
                 datas.push(item);
+            } else if (beacon_type == 13) {
+                // nanoBeaconFlag
+                var flag = nanoBeaconFlag;
+                if (flag & 0x01) {
+                    item.mac = bytesToHexString(bytes, parse_len, 6).toLowerCase();
+                    parse_len += 6;
+                    beacon_len += 6;
+                }
+                if (flag & 0x02) {
+                    item.rssi = bytes[parse_len++] - 256;
+                    beacon_len += 1;
+                }
+                if (flag & 0x04) {
+                    item.timestamp = parse_time(bytesToInt(bytes, parse_len, 4), bytes[5] * 0.5);
+                    parse_len += 4;
+                    beacon_len += 4;
+                }
+                // ================
+                if (!no_response_package) {
+                    if (flag & 0x08) {
+                        item.mfg_code = '0x' + bytesToHexString(bytes, parse_len, 2);
+                        parse_len +=2;
+                        beacon_len +=2;
+                    }
+                    if (flag & 0x10) {
+                        item.adv_type_status =  bytesToInt(bytes, parse_len, 1) === 0 ? 'Normal' : 'Trigger';
+                        parse_len += 1;
+                        beacon_len += 1;
+                    }
+                    if (flag & 0x20) {
+                        item.battery_voltage = Math.round(bytesToInt(bytes, parse_len, 1) * 31.25) + 'mV';
+                        parse_len += 1;
+                        beacon_len += 1;
+                    }
+                    if (flag & 0x40) {
+                        item.temperature = (signedHexToInt(bytesToHexString(bytes, parse_len, 2)) * 0.01) + '°C';
+                        parse_len += 2;
+                        beacon_len += 2;
+                    }
+                    if (flag & 0x80) {
+                        item.sec_cnt = bytesToInt(bytes, parse_len, 4);
+                        parse_len += 4;
+                        beacon_len += 4;
+                    }
+                    if (flag & 0x0100) {
+                        const status = bytesToHexString(bytes,parse_len,1);
+                        var status_string = '';
+                        if (status == 'dd') {
+                            status_string = 'No Alarm';
+                        } else if (status == 'fd') {
+                            status_string = 'Cut-off Alarm';
+                        } else if (status == 'cd') {
+                            status_string = 'Button Alarm';
+                        } else if (status == 'ed') {
+                            status_string = 'Button alarm and Cut-off alarm';
+                        }
+                        item.trigger_status = status_string;
+                        
+                        parse_len += 1;
+                        beacon_len += 1;
+                    }
+                }
+                if (flag & 0x0200) {
+                    item.raw_data_length = current_data_len - beacon_len;
+                    item.raw_data = bytesToHexString(bytes, parse_len, item.raw_data_length).toUpperCase();
+                    parse_len += item.raw_data_length;
+                }
+                datas.push(item);
             }
         }
         data.scan_data = datas;
+        // ================ 新增 GPS 定位数据处理 ================
+        var gps_data_len = bytesToInt(bytes,parse_len,1);
+        parse_len ++;
+        if (gps_data_len == 5) {
+            //定位失败
+            var temp_data = {};
+            temp_data.pdop = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_one = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_two = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_three = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+            temp_data.satellite_signal_strength_four = bytesToInt(bytes, parse_len, 1);
+            parse_len ++;
+
+            data.position_failure_data = temp_data;
+        } else if (gps_data_len == 9) {
+            //定位成功
+            var temp_data = {};
+            var latitude = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 4)) * 0.0000001).toFixed(7);
+            parse_len += 4;
+            var longitude = Number(signedHexToInt(bytesToHexString(bytes, parse_len, 4)) * 0.0000001).toFixed(7);
+            parse_len += 4;
+            var pdop = Number(bytesToInt(bytes, parse_len, 1) * 0.1).toFixed(1);
+            parse_len ++;
+            temp_data.latitude = latitude;
+            temp_data.longitude = longitude;
+            temp_data.pdop = pdop;
+
+            data.position_data = temp_data;
+        }
+        // ================ GPS 定位数据处理结束 ================
     } else if (fPort == 11) {
         data = parsePort11(bytes);
+    } else if (fPort == 12) {
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
+        index += 2;
+
+        data.position_mode = positionModeArray[bytes[index]];
+        index ++;
+
+        const date = new Date(1000 * bytesToInt(bytes, index, 4));
+        data.timestamp = date.toLocaleString();
+        index += 4;
+
+        index ++;
+        
+        var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var pdop = Number(bytesToInt(bytes, index, 1) * 0.1).toFixed(1);
+        data.latitude = latitude;
+        data.longitude = longitude;
+        data.pdop = pdop;
+    } else if (fPort == 13) {
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        data.battery_voltage = bytesToInt(bytes, index, 2) + 'mV';
+        index += 2;
+
+        data.position_mode = positionModeArray[bytes[index]];
+        index ++;
+
+        data.fix_failure_reason = positionFailedArray[bytes[index]];
+        index ++;
+
+        var postion_len = bytes[index];
+        index ++;
+
+        var fix_failure_array = [];
+        for (var i = 0; i < (postion_len / 5); i ++) {
+            var temp_hex = bytes.slice(index + i * 5, index + (i + 1) * 5);
+            var temp_data = {};
+            temp_data.pdop = bytesToInt(temp_hex, 0, 1);
+            temp_data.satellite_signal_strength_one = bytesToInt(temp_hex, 1, 1);
+            temp_data.satellite_signal_strength_two = bytesToInt(temp_hex, 2, 1);
+            temp_data.satellite_signal_strength_three = bytesToInt(temp_hex, 3, 1);
+            temp_data.satellite_signal_strength_four = bytesToInt(temp_hex, 4, 1);
+            fix_failure_array.push(temp_data);
+        } 
+        data.fix_data = fix_failure_array;
+    } else if (fPort == 14) {
+        const battery_status = bytes[index];
+        index++;
+        data.battery_charging_status = ((battery_status & 0x80) == 0x80) ? "Charging" : "No Charge";
+        data.battery_level = (battery_status & 0x7F) + "%";
+
+        data.position_mode = positionModeArray[bytes[index]];
+        index ++;
+
+        var latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var longitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7);
+        index += 4;
+        var pdop = Number(bytesToInt(bytes, index, 1) * 0.1).toFixed(1);
+        data.latitude = latitude;
+        data.longitude = longitude;
+        data.pdop = pdop;
     }
     dev_info.data = data;
     return dev_info;
@@ -1346,29 +1532,25 @@ function bytesToInt(bytes, start, len) {
         var m = ((len - 1) - i) * 8;
         value = value | bytes[start + i] << m;
     }
-    // var value = ((bytes[start] << 24) | (bytes[start + 1] << 16) | (bytes[start + 2] << 8) | (bytes[start + 3]));
     return value;
 }
 
 function signedHexToInt(hexStr) {
-    var twoStr = parseInt(hexStr, 16).toString(2); // 将十六转十进制，再转2进制
-    var bitNum = hexStr.length * 4; // 1个字节 = 8bit ，0xff 一个 "f"就是4位
+    var twoStr = parseInt(hexStr, 16).toString(2);
+    var bitNum = hexStr.length * 4;
     if (twoStr.length < bitNum) {
         while (twoStr.length < bitNum) {
             twoStr = "0" + twoStr;
         }
     }
     if (twoStr.substring(0, 1) == "0") {
-        // 正数
-        twoStr = parseInt(twoStr, 2); // 二进制转十进制
+        twoStr = parseInt(twoStr, 2);
         return twoStr;
     }
-    // 负数
     var twoStr_unsign = "";
-    twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
+    twoStr = parseInt(twoStr, 2) - 1;
     twoStr = twoStr.toString(2);
-    twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
-    // 去除首字符，将0转为1，将1转为0   反码
+    twoStr_unsign = twoStr.substring(1, bitNum);
     twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
     twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
     twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
@@ -1410,7 +1592,6 @@ function parse_time(timestamp, timezone) {
     }
 
     var d = new Date(timestamp * 1000);
-    //d.setUTCSeconds(1660202724);
 
     var time_str = "";
     time_str += d.getUTCFullYear();
@@ -1457,7 +1638,6 @@ function fetchRawString(xHex, scale) {
     return Math.round(value);
 }
 
-
 String.prototype.format = function () {
     if (arguments.length == 0)
         return this;
@@ -1477,8 +1657,6 @@ function getData(hex) {
     }
     return datas;
 }
-
-// var datas = [17, 100, 145, 120, 51, 16, 9, 8, 1, 2, 1, 6, 5, 34, 0, 0, 0, 0];
 
 var input = {};
 input.fPort = 5;
