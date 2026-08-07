@@ -59,10 +59,10 @@ var eventTypeArray = [
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
-    var contain_vlotage = 0;
+    var contain_vlotage = 1;
     var deviceInfo = {};
     var data = {};
-    if (fPort == 0 || fPort == 10 || fPort == 11 || fPort == 12) {
+    if (fPort == 0 || fPort == 10 || fPort == 11) {
         deviceInfo.data = data;
         return deviceInfo;
     }
@@ -112,7 +112,7 @@ function decodeUplink(input) {
         parse_port1_data(data, bytes.slice(3));
     } else if (fPort == 2 && bytes.length >= 7) {
         data.payload_type = payloadTypeArray[1];
-        parse_port2_data(data, bytes.slice(3));
+        parse_port2_data(data, bytes.slice(3),contain_vlotage);
     } else if (fPort == 3 && bytes.length == 8) {
         data.payload_type = payloadTypeArray[7];
         parse_port3_data(data, bytes.slice(3));
@@ -125,11 +125,9 @@ function decodeUplink(input) {
         var shutdownTypeCode = bytesToInt(bytes, 3, 1);
         obj.shutdown_type = shutdownTypeArray[shutdownTypeCode];
         data.obj = obj;
-    } else if (fPort == 6 && bytes.length == 5) {
+    } else if (fPort == 6 && bytes.length == 4) {
         data.payload_type = payloadTypeArray[4];
-        var obj = {};
-        obj.number_of_shocks = bytesToInt(bytes, 3, 2);
-        data.obj = obj;
+        data.number_of_shocks = bytesToInt(bytes, 3, 1);
     } else if (fPort == 7 && bytes.length == 5) {
         data.payload_type = payloadTypeArray[5];
         var obj = {};
@@ -170,13 +168,13 @@ function parse_port1_data(data, bytes) {
 
     var temperature = bytesToHexString(bytes, index, 2);
     if (temperature != 'ffff') {
-        data.temperature = (signedHexToInt(bytesToHexString(bytes, index, 2)) * 0.01) + '°C';
+        data.temperature = (signedHexToInt(bytesToHexString(bytes, index, 2)) * 0.1) + '°C';
     }
     index += 2;
 
     var humidity = bytesToHexString(bytes, index, 2);
     if (humidity != 'ffff') {
-        data.humidity = (bytesToInt(bytes, index, 2) * 0.01) + '%';
+        data.humidity = (bytesToInt(bytes, index, 2) * 0.1) + '%';
     }
     index += 2;
 
@@ -232,7 +230,12 @@ function parse_port4_data(data, bytes, contain_vlotage) {
             item.mac_address = mac_address;
             item.rssi = rssi;
             if (contain_vlotage) {
-                item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
+                const voltage = bytesToInt(sub_bytes, 7, 2);
+                if (voltage == 65535) {
+                    item.voltage = "No Voltage";
+                } else {
+                    item.voltage = voltage + "mV";
+                }
             }
             data_list.push(item);
         }
@@ -263,11 +266,9 @@ function parse_port9_data(data, bytes, port) {
     index += 4;
     obj.adv_times = bytesToInt(bytes, index, 4);
     index += 4;
-    index += 4;
     obj.axis_wakeup_time = bytesToInt(bytes, index, 4);
     index += 4;
     obj.ble_position_time = bytesToInt(bytes, index, 4);
-    index += 4;
     index += 4;
     obj.gps_position_time = bytesToInt(bytes, index, 4);
     index += 4;
@@ -358,7 +359,12 @@ function parse_position_data(bytes, contain_vlotage) {
         item.mac_address = bytesToHexString(sub_bytes, 0, 6);
         item.rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
         if (contain_vlotage) {
-            item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
+            const voltage = bytesToInt(sub_bytes, 7, 2);
+            if (voltage == 65535) {
+                item.voltage = "No Voltage";
+            } else {
+                item.voltage = voltage + "mV";
+            }
         }
 
         mac_data.push(item);
@@ -494,3 +500,20 @@ function int8(byte) {
     }
     return byte;
 }
+
+function getData(hex) {
+	var length = hex.length;
+	var datas = [];
+	for (var i = 0; i < length; i += 2) {
+		var start = i;
+		var end = i + 2;
+		var data = parseInt("0x" + hex.substring(start, end));
+		datas.push(data);
+	}
+	return datas;
+}
+
+// var input = {};
+// input.fPort = 10;
+// input.bytes = getData("031F00015200BC00CD0A02");
+// console.log(JSON.stringify(decodeUplink(input), null, 2));
