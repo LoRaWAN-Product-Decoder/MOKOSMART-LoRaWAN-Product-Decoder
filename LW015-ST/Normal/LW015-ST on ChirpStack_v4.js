@@ -329,10 +329,17 @@ function parse_port14_data(data, bytes) {
     // 6: 阈值判定条件
     var thresholdConditionCode = bytesToInt(bytes, index, 1);
     var thresholdConditionMap = {
-        0: "Any Axis",
-        1: "X-Axis",
-        2: "Y-Axis",
-        3: "Z-Axis"
+        0: "X-Axis",
+        1: "Y-Axis",
+        2: "Z-Axis",
+        3: "X-Axis & Y-Axis",
+        4: "X-Axis & Z-Axis",
+        5: "Y-Axis & Z-Axis",
+        6: "X-Axis & Y-Axis & Z-Axis",
+        7: "X-Axis | Y-Axis",
+        8: "X-Axis | Z-Axis",
+        9: "Y-Axis | Z-Axis",
+        10: "X-Axis | Y-Axis | Z-Axis"
     };
     obj.threshold_condition = thresholdConditionMap[thresholdConditionCode] || "Unknown";
     index += 1;
