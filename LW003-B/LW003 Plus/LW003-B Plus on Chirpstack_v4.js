@@ -39,6 +39,7 @@ var beaconTypeArray =
         "BXP-PIR",
         "BXP-TOF",
         "BXP-iBeacon",
+        "NanoBeaconInfo"
     ];
 //var messageTypeArray = ["Normal heartbeat report", "The device come into low power state", "Other type"];
 var sampleRateArray = ["1Hz", "10Hz", "25Hz", "50Hz", "100Hz", "200Hz", "400Hz", "1344Hz", "1620Hz", "5376Hz"];
