@@ -270,6 +270,28 @@ function parse_port9_data(data, bytes, port) {
 }
 
 function parse_port12_data(data, bytes, port) {
+    var operationModeCode = bytes[0] & 0x07;
+    // data.operation_mode_code = operationModeCode;
+    data.operation_mode = operationModeArray[operationModeCode];
+
+    var batteryLevelCode = bytes[0] & 0x08;
+    // data.battery_level_code = batteryLevelCode;
+    data.battery_level = batteryLevelCode == 0 ? "Normal" : "Low battery";
+
+    var manDownStatusCode = bytes[0] & 0x10;
+    // data.mandown_status_code = manDownStatusCode;
+    data.mandown_status = manDownStatusCode == 0 ? "Not in idle" : "In idle";
+
+    var motionStateSinceLastPaylaodCode = bytes[0] & 0x20;
+    // data.motion_state_since_last_paylaod_code = motionStateSinceLastPaylaodCode;
+    data.motion_state_since_last_paylaod = motionStateSinceLastPaylaodCode == 0 ? "No" : "Yes";
+
+    var positioningTypeCode = bytes[0] & 0x40;
+    // data.positioning_type_code = positioningTypeCode;
+    data.positioning_type = positioningTypeCode == 0 ? "Normal" : "Downlink for position";
+
+    data.anti_demolition = ((bytes[0] & 0x80) == 0) ? "No trigger" : "Trigger";
+
     var obj = {};
     obj.ack = bytes[1] & 0x0f;
     obj.battery_value = (((bytes[1] >> 4) & 0xf) * 0.1 + 2.2).toFixed(1).toString() + "V";

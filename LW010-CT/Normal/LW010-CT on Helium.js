@@ -11,12 +11,14 @@ var deviceStatusArray = ["No auxiliary"
     ,"Downlink for positioning"
     ,"Alert alarm"
     ,"SOS alarm"];
-var shutdownTypeArray = ["Bluetooth command to turn off the device"
+var shutdownTypeArray = [
+    "Bluetooth command to turn off the device"
     , "LoRaWAN command to turn off the device"
     , "Magnetic to turn off the device"
     , "The battery run out"];
 var lowPowerPercentArray = ["10%","20%","30%","40%","50%","60%"];
-var eventTypeArray = ["Start movement"
+var eventTypeArray = [
+    "Start movement"
     ,"In movement"
     ,"End of movement"
     ,"Man Down start"
@@ -50,21 +52,26 @@ var assistanceTypeArray = ["No auxiliary","Man down","Downlink for positioning",
 //
 // Output must be an object with the following fields:
 // - data = Object representing the decoded payload.
-function Decoder(bytes, port, uplink_info) {
-    var fPort = port;
+function decodeUplink(input) {
+    var bytes = input.bytes;
+    var fPort = input.fPort;
     var contain_vlotage = 0;
     var deviceInfo = {};
     var data = {};
     if (fPort < 0 || fPort == 10 || fPort == 7 || fPort > 12) {
         deviceInfo.data = data;
-        if (uplink_info) {
-            deviceInfo.uplink_info = uplink_info;
-        }
         return deviceInfo;
     }
 
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
+
+    var date1 = new Date();
+    var timestamp1 = Math.trunc(date1.getTime() / 1000);
+    var offsetHours1 = Math.abs(Math.floor(date1.getTimezoneOffset() / 60));
+    data.timestamp = timestamp1;
+    data.time = parse_time(timestamp1, offsetHours1);
+    data.timezone = timezone_decode(offsetHours1 * 2);
 
     if (fPort == 6) {
         var index = 0;
@@ -133,11 +140,15 @@ function Decoder(bytes, port, uplink_info) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -164,11 +175,15 @@ function Decoder(bytes, port, uplink_info) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -191,11 +206,15 @@ function Decoder(bytes, port, uplink_info) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -215,11 +234,15 @@ function Decoder(bytes, port, uplink_info) {
             }
         }else if (fPort == 5 && bytes.length == 10) {
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var event_type = bytesToInt(bytes,index,1);
             data.event_type = eventTypeArray[event_type];
@@ -265,7 +288,7 @@ function Decoder(bytes, port, uplink_info) {
                     var item = {};
                     var temp_sub = position_data.slice((i * sub_bytes_len),(i * sub_bytes_len) + sub_bytes_len);
                     item.mac_address = bytesToHexString(temp_sub, 0, 6);
-                    item.rssi = signedHexToInt(bytesToHexString(temp_sub, 6, 1)); + 'dBm';
+                    item.rssi = signedHexToInt(bytesToHexString(temp_sub, 6, 1)) + 'dBm';
                     if (contain_vlotage) {
                         item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
                     }
@@ -274,16 +297,9 @@ function Decoder(bytes, port, uplink_info) {
                 data.position_data = data_list;
             }else if (position_symbol == 0x03) {
                 //GPS定位
-                var data_list = [];
-                for (var i = 0; i < (data_len / 9);i ++) {
-                    var item = {};
-                    var temp_sub = position_data.slice((i * 9),(i * 9) + 9);
-                    item.latitude = Number(signedHexToInt(bytesToHexString(temp_sub, 0, 4)) * 0.0000001).toFixed(7) + '°';
-                    item.longitude = Number(signedHexToInt(bytesToHexString(temp_sub, 4, 4)) * 0.0000001).toFixed(7) + '°';
-                    item.pdop = (bytesToInt(temp_sub, 8, 1) * 0.1).toFixed(1).toString();
-                    data_list.push(item);
-                }
-                data.position_data = data_list;
+                data.latitude = Number(signedHexToInt(bytesToHexString(position_data, 0, 4)) * 0.0000001).toFixed(7) + '°';
+                data.longitude = Number(signedHexToInt(bytesToHexString(position_data, 4, 4)) * 0.0000001).toFixed(7) + '°';
+                data.pdop = (bytesToInt(position_data, 8, 1) * 0.1).toFixed(1).toString();
             }else {
                 data.position_data = position_data;
             }
@@ -302,7 +318,10 @@ function Decoder(bytes, port, uplink_info) {
             index += 2;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
+
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, offsetHours1);
         }else if (fPort == 9 && bytes.length > 7) {
             data.position_type = positionTypeArray[bytes[index]];
             index += 1;
@@ -333,7 +352,7 @@ function Decoder(bytes, port, uplink_info) {
                     var item = {};
                     var temp_sub = failed_data.slice((i * sub_bytes_len),(i * sub_bytes_len) + sub_bytes_len);
                     item.mac_address = bytesToHexString(temp_sub, 0, 6);
-                    item.rssi = signedHexToInt(bytesToHexString(temp_sub, 6, 1)); + 'dBm';
+                    item.rssi = signedHexToInt(bytesToHexString(temp_sub, 6, 1)) + 'dBm';
                     if (contain_vlotage) {
                         item.voltage = bytesToInt(temp_sub, 7, 2) + "mV";
                     }
@@ -381,11 +400,15 @@ function Decoder(bytes, port, uplink_info) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -402,7 +425,7 @@ function Decoder(bytes, port, uplink_info) {
             if (light_intensity != 65535) {
                 data.light_intensity = light_intensity;
             }
-        }else if (fPort == 12 && bytes.len == 53) {
+        }else if (fPort == 12 && bytes.length == 53) {
             data.work_time = bytesToInt(bytes, index, 4);
             index += 4;
 
@@ -445,9 +468,6 @@ function Decoder(bytes, port, uplink_info) {
     }
     
     deviceInfo.data = data;
-    if (uplink_info) {
-        deviceInfo.uplink_info = uplink_info;
-    }
     return deviceInfo;
 }
 

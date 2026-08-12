@@ -12,6 +12,7 @@ function Decode(fPort, bytes, uplink_info) {
     }
 
     deviceInfo.port = fPort;
+    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
     deviceInfo.payload_type = deviceInfoTypeList[fPort - 1];
     if (command_format_check(bytes, fPort) == false) {
         deviceInfo.result = "Format wrong";

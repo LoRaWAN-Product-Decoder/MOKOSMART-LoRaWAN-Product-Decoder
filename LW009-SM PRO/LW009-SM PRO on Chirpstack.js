@@ -16,6 +16,7 @@ function decodeUplink(input) {
     }
 
     data.port = fPort;
+    data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
     data.payload_type = dataTypeList[fPort - 1];
     if (command_format_check(bytes, fPort) == false) {
         data.result = "Format wrong";

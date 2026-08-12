@@ -128,12 +128,12 @@ function decodeUplink(input) {
         return deviceInfo;
     }
 
-    var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '掳C';
+    var temperature = signedHexToInt(bytesToHexString(bytes, 1, 1)) + '℃';
     data.temperature = temperature;
 
     data.ack = bytes[2] & 0x0f;
     var tempVoltage = ((bytes[2] & 0xf0) >> 4);
-    data.battery_value = 2.2 + tempVoltage * 0.1;
+    data.battery_value = (2.2 + tempVoltage * 0.1).toFixed(1).toString() + 'V';
 
     if (fPort == 1 && bytes.length == 9) {
         parse_port1_data(data, bytes.slice(3), fPort);
@@ -261,7 +261,7 @@ function parse_port9_data(data, bytes, port) {
 function parse_port12_data(data, bytes, port) {
     var obj = {};
     obj.ack = bytes[1] & 0x0f;
-    obj.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
+    obj.battery_value = ((bytes[1] & 0xf0) * 0.1).toFixed(1).toString() + "V";
     obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '掳';
     obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)

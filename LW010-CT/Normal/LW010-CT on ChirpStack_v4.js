@@ -297,16 +297,9 @@ function decodeUplink(input) {
                 data.position_data = data_list;
             }else if (position_symbol == 0x03) {
                 //GPS定位
-                var data_list = [];
-                for (var i = 0; i < (data_len / 9);i ++) {
-                    var item = {};
-                    var temp_sub = position_data.slice((i * 9),(i * 9) + 9);
-                    item.latitude = Number(signedHexToInt(bytesToHexString(temp_sub, 0, 4)) * 0.0000001).toFixed(7) + '°';
-                    item.longitude = Number(signedHexToInt(bytesToHexString(temp_sub, 4, 4)) * 0.0000001).toFixed(7) + '°';
-                    item.pdop = (bytesToInt(temp_sub, 8, 1) * 0.1).toFixed(1).toString();
-                    data_list.push(item);
-                }
-                data.position_data = data_list;
+                data.latitude = Number(signedHexToInt(bytesToHexString(position_data, 0, 4)) * 0.0000001).toFixed(7) + '°';
+                data.longitude = Number(signedHexToInt(bytesToHexString(position_data, 4, 4)) * 0.0000001).toFixed(7) + '°';
+                data.pdop = (bytesToInt(position_data, 8, 1) * 0.1).toFixed(1).toString();
             }else {
                 data.position_data = position_data;
             }

@@ -88,7 +88,7 @@ function Decode(fPort, bytes) {
     deviceInfo.ack = bytes[2] & 0x0f;
 
     var tempVoltage = ((bytes[2] & 0xf0) >> 4);
-    deviceInfo.battery_value = 2.2 + tempVoltage * 0.1;
+    deviceInfo.battery_value = (2.2 + tempVoltage * 0.1).toFixed(1).toString() + 'V';
 
     if (fPort == 1 && bytes.length == 9) {
         parse_port1_data(deviceInfo, bytes.slice(3), fPort);
@@ -215,7 +215,7 @@ function parse_port9_data(data, bytes, port) {
 function parse_port12_data(deviceInfo, bytes, port) {
     var data = {};
     data.ack = bytes[1] & 0x0f;
-    data.battery_value = ((bytes[1] & 0xf0) * 0.1) + "V";
+    data.battery_value = ((bytes[1] & 0xf0) * 0.1).toFixed(1).toString() + "V";
     data.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';
     data.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)

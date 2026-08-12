@@ -104,7 +104,7 @@ function decodeUplink(input) {
 
     data.ack = bytes[2] & 0x0f;
     var tempVoltage = ((bytes[2] & 0xf0) >> 4);
-    data.battery_value = 2.2 + tempVoltage * 0.1;
+    data.battery_value = (2.2 + tempVoltage * 0.1).toFixed(1).toString() + 'V';
 
     if (fPort == 1 && bytes.length == 9) {
         data.payload_type = payloadTypeArray[0];
@@ -248,7 +248,7 @@ function parse_port9_data(data, bytes, port) {
 function parse_port12_data(data, bytes, port) {
     var obj = {};
     obj.ack = bytes[1] & 0x0f;
-    obj.battery_value = (2.2 + (bytes[1] & 0xf0) * 0.1) + "V";
+    obj.battery_value = (2.2 + (bytes[1] & 0xf0) * 0.1).toFixed(1).toString() + "V";
     obj.latitude = Number(signedHexToInt(bytesToHexString(bytes, 2, 4)) * 0.0000001).toFixed(7)
         + '°';
     obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)

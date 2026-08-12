@@ -66,6 +66,13 @@ function decodeUplink(input) {
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
+    var date1 = new Date();
+    var timestamp1 = Math.trunc(date1.getTime() / 1000);
+    var offsetHours1 = Math.abs(Math.floor(date1.getTimezoneOffset() / 60));
+    data.timestamp = timestamp1;
+    data.time = parse_time(timestamp1, offsetHours1);
+    data.timezone = timezone_decode(offsetHours1 * 2);
+
     if (fPort == 6) {
         var index = 0;
         var type_code = bytesToInt(bytes, index, 2);
@@ -133,11 +140,15 @@ function decodeUplink(input) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -164,11 +175,15 @@ function decodeUplink(input) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -191,11 +206,15 @@ function decodeUplink(input) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
@@ -215,11 +234,15 @@ function decodeUplink(input) {
             }
         }else if (fPort == 5 && bytes.length == 10) {
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var event_type = bytesToInt(bytes,index,1);
             data.event_type = eventTypeArray[event_type];
@@ -274,16 +297,9 @@ function decodeUplink(input) {
                 data.position_data = data_list;
             }else if (position_symbol == 0x03) {
                 //GPS定位
-                var data_list = [];
-                for (var i = 0; i < (data_len / 9);i ++) {
-                    var item = {};
-                    var temp_sub = position_data.slice((i * 9),(i * 9) + 9);
-                    item.latitude = Number(signedHexToInt(bytesToHexString(temp_sub, 0, 4)) * 0.0000001).toFixed(7) + '°';
-                    item.longitude = Number(signedHexToInt(bytesToHexString(temp_sub, 4, 4)) * 0.0000001).toFixed(7) + '°';
-                    item.pdop = (bytesToInt(temp_sub, 8, 1) * 0.1).toFixed(1).toString();
-                    data_list.push(item);
-                }
-                data.position_data = data_list;
+                data.latitude = Number(signedHexToInt(bytesToHexString(position_data, 0, 4)) * 0.0000001).toFixed(7) + '°';
+                data.longitude = Number(signedHexToInt(bytesToHexString(position_data, 4, 4)) * 0.0000001).toFixed(7) + '°';
+                data.pdop = (bytesToInt(position_data, 8, 1) * 0.1).toFixed(1).toString();
             }else {
                 data.position_data = position_data;
             }
@@ -302,7 +318,10 @@ function decodeUplink(input) {
             index += 2;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
+
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, offsetHours1);
         }else if (fPort == 9 && bytes.length > 7) {
             data.position_type = positionTypeArray[bytes[index]];
             index += 1;
@@ -381,11 +400,15 @@ function decodeUplink(input) {
             index += 1;
 
             const date = new Date(1000 * bytesToInt(bytes, index, 4));
-            data.time = date.toLocaleString();
+            var timestamp = Math.trunc(date.getTime() / 1000);
             index += 4;
+  
+	        var timezone = bytes[index];
+            data.timezone = timezone_decode(timezone);		//timezone
+            index ++;
 
-            data.timezone = signedHexToInt(bytesToHexString(bytes, index, 1));
-            index += 1;
+            data.timestamp = timestamp;
+            data.time = parse_time(timestamp, timezone/2);
 
             var work_mode = bytesToInt(bytes,index,1);
             data.work_mode = operationModeArray[work_mode];
