@@ -59,7 +59,7 @@ var eventTypeArray = [
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
-    var contain_vlotage = 1;
+    var contain_vlotage = 0;
     var deviceInfo = {};
     var data = {};
     if (fPort == 0 || fPort == 10 || fPort == 11) {
@@ -113,7 +113,7 @@ function decodeUplink(input) {
     } else if (fPort == 2 && bytes.length >= 7) {
         data.payload_type = payloadTypeArray[1];
         parse_port2_data(data, bytes.slice(3),contain_vlotage);
-    } else if (fPort == 3 && bytes.length == 8) {
+    } else if (fPort == 3 && bytes.length == 7) {
         data.payload_type = payloadTypeArray[7];
         parse_port3_data(data, bytes.slice(3));
     } else if (fPort == 4 && bytes.length >= 5) {

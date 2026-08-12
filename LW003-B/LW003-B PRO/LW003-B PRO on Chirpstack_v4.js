@@ -1174,7 +1174,7 @@ function decodeUplink(input) {
         if (gps_data_len == 5) {
             //定位失败
             var temp_data = {};
-            temp_data.pdop = bytesToInt(bytes, parse_len, 1);
+            temp_data.pdop = Number(bytesToInt(bytes, parse_len, 1) * 0.1).toFixed(1);
             parse_len ++;
             temp_data.satellite_signal_strength_one = bytesToInt(bytes, parse_len, 1);
             parse_len ++;
@@ -1252,7 +1252,7 @@ function decodeUplink(input) {
         for (var i = 0; i < (postion_len / 5); i ++) {
             var temp_hex = bytes.slice(index + i * 5, index + (i + 1) * 5);
             var temp_data = {};
-            temp_data.pdop = bytesToInt(temp_hex, 0, 1);
+            temp_data.pdop = Number(bytesToInt(temp_hex, 0, 1) * 0.1).toFixed(1);
             temp_data.satellite_signal_strength_one = bytesToInt(temp_hex, 1, 1);
             temp_data.satellite_signal_strength_two = bytesToInt(temp_hex, 2, 1);
             temp_data.satellite_signal_strength_three = bytesToInt(temp_hex, 3, 1);
@@ -1659,7 +1659,7 @@ function getData(hex) {
     return datas;
 }
 
-var input = {};
-input.fPort = 5;
-input.bytes = getData("0269ca4b3910021609f96f5aa233b4d769ca4b34094d4b20427574746f6e1609f15bc6d797d0be69ca4b35094d4b20427574746f6e");
-console.log(decodeUplink(input));
+// var input = {};
+// input.fPort = 5;
+// input.bytes = getData("046A7A0A2310039F09CB579E7A1B90A76A7A09C4200100000300000101094D4B20427574746F6E9F0978500500011BAC6A7A09CA200100000300000100094D4B20427574746F6E9F0978500500017DA96A7A09D1200100000300000100094D4B20427574746F6E052C201F1E1E");
+// console.log(JSON.stringify(decodeUplink(input), null, 2));
