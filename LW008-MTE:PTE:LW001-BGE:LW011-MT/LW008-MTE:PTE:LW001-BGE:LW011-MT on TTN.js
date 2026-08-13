@@ -104,7 +104,7 @@ function decodeUplink(input) {
     data.ack = bytes[2] & 0x0f;
 
     var tempVoltage = ((bytes[2] & 0xf0) >> 4);
-    data.battery_value = (2.8 + tempVoltage * 0.1).toFixed(1).toString() + 'V';
+    data.battery_value = (2.8 + tempVoltage * 0.1).toFixed(1).toString();
 
     if (fPort == 1 && bytes.length == 9) {
         data.payload_type = payloadTypeArray[0];

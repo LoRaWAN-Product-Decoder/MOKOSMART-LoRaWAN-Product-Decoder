@@ -75,7 +75,7 @@ function Decoder(bytes, port, uplink_info) {
     deviceInfo.ack = bytes[2] & 0x0f;
     
     var tempVoltage = ((bytes[2] & 0xf0) >> 4);
-    deviceInfo.battery_value = (2.2 + tempVoltage * 0.1).toFixed(1).toString() + 'V';
+    deviceInfo.battery_value = (2.2 + tempVoltage * 0.1).toFixed(1).toString();
 
     if (port == 1 && bytes.length == 9) {
         parse_port1_data(deviceInfo, bytes.slice(3), port);

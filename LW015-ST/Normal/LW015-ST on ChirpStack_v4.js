@@ -105,7 +105,7 @@ function decodeUplink(input) {
     data.ack = bytes[2] & 0x0f;
 
     var tempVoltage = ((bytes[2] & 0xf0) >> 4);
-    data.battery_value = (2.8 + tempVoltage * 0.1).toFixed(1).toString() + 'V';
+    data.battery_value = (2.8 + tempVoltage * 0.1).toFixed(1).toString();
 
     if (fPort == 1 && bytes.length == 9) {
         data.payload_type = payloadTypeArray[0];
@@ -209,7 +209,7 @@ function parse_port2_data(data, bytes, contain_vlotage) {
 }
 
 function parse_port3_data(data, bytes) {
-    data.current_cicle_battery_total_consumer = bytesToInt(bytes, 0, 4) + "mAH";
+    data.current_cicle_battery_total_consumer = bytesToInt(bytes, 0, 4) * 0.001 + "mAH";
 }
 
 function parse_port4_data(data, bytes, contain_vlotage) {
