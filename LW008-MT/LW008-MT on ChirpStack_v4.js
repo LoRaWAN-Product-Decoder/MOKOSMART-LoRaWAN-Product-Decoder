@@ -254,6 +254,9 @@ function parse_port12_data(data, bytes, port) {
     obj.longitude = Number(signedHexToInt(bytesToHexString(bytes, 6, 4)) * 0.0000001).toFixed(7)
         + '°';
     obj.pdop = bytesToInt(bytes, 10, 1);
+    data.latitude = obj.latitude;
+    data.longitude = obj.longitude;
+    data.pdop = obj.pdop;
     data.obj = obj;
 }
 
