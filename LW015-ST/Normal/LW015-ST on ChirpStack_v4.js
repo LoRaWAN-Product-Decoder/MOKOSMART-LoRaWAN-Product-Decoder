@@ -209,7 +209,8 @@ function parse_port2_data(data, bytes, contain_vlotage) {
 }
 
 function parse_port3_data(data, bytes) {
-    data.current_cicle_battery_total_consumer = bytesToInt(bytes, 0, 4) * 0.001 + "mAH";
+    data.low_power_percent = bytesToInt(bytes, 0, 1);
+    data.current_cicle_battery_total_consumer = bytesToInt(bytes, 1, 4) * 0.001 + "mAH";
 }
 
 function parse_port4_data(data, bytes, contain_vlotage) {

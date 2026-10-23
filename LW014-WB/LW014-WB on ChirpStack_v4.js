@@ -40,9 +40,9 @@ var eventTypeList = [
 var positionTypeList = [
     'Working Mode',     //工作模式定位
     'Man Down',         //Man Down定位
-    'downlink command', //下定请求定位
-    'alarm1',           //Alarm1定位
-    'alarm2'            //Alarm2定位
+    'Downlink command', //下定请求定位
+    'Alarm1',           //Alarm1定位
+    'Alarm2'            //Alarm2定位
 ];
 
 var posFailedReasonArray = [
@@ -86,34 +86,41 @@ function decodeUplink(input) {
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
 
-    if (fPort == 11) {            
+    var date1 = new Date();
+    var timestamp1 = Math.trunc(date1.getTime() / 1000);
+    var offsetHours1 = Math.abs(Math.floor(date1.getTimezoneOffset() / 60));
+    data.timestamp = timestamp1;
+    data.time = parse_time(timestamp1, offsetHours1);
+    data.timezone = timezone_decode(offsetHours1 * 2);
+
+    if (fPort == 11) {
         deviceInfo.data = parse_port11_data(bytes);
     } else if ((fPort == 1 || fPort == 3) && bytes.length >= 6) {
-        deviceInfo.data = parse_port1_data(bytes,fPort);
+        deviceInfo.data = parse_port1_data(bytes, fPort);
     } else if ((fPort == 2 || fPort == 4) && (bytes.length == 10 || bytes.length == 9)) {
-        deviceInfo.data = parse_port24_data(bytes,fPort);
+        deviceInfo.data = parse_port24_data(bytes, fPort);
     } else if (fPort == 5 && bytes.length == 7) {
         deviceInfo.data = parse_port5_data(bytes);
     } else if (fPort == 6 && bytes.length == 11) {
         deviceInfo.data = parse_port6_data(bytes);
     } else if (fPort == 8) {
-        deviceInfo.data = parse_port8_data(bytes,contain_vlotage);
+        deviceInfo.data = parse_port8_data(bytes, contain_vlotage);
     } else if (fPort == 9) {
-        deviceInfo.data = parse_port9_data(bytes,contain_vlotage);
+        deviceInfo.data = parse_port9_data(bytes, contain_vlotage);
     }
-    
+
     return deviceInfo;
 }
 
-function parse_port1_data(bytes,fPort) {
+function parse_port1_data(bytes, fPort) {
     var index = 0;
     var data = {};
     data.charging_status = ((bytes[0] & 0x80) ? "in charging" : "no charging");
     data.battery_level = (bytes[0] & 0x7F) + "%";
-    index ++;
+    index++;
 
     data.mcu_temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
-    index ++;
+    index++;
 
     var major_firmware_version = (bytes[index] >> 6) & 0x03;
     var minor_firmware_version = (bytes[index] >> 4) & 0x03;
@@ -131,7 +138,7 @@ function parse_port1_data(bytes,fPort) {
     data.device_mode = deviceModeList[bytes[index]];
     index += 1;
 
-    data.auxiliary_operation = auxiliaryStatusList[bytes[index]];
+    data.device_status = auxiliaryStatusList[bytes[index]];
     index += 1;
 
     if (fPort == 1 && bytes.length == 7) {
@@ -142,28 +149,35 @@ function parse_port1_data(bytes,fPort) {
     return data;
 }
 
-function parse_port24_data(bytes,fPort) {
+
+function parse_port24_data(bytes, fPort) {
     var index = 0;
     var data = {};
 
     data.charging_status = ((bytes[0] & 0x80) ? "in charging" : "no charging");
     data.battery_level = (bytes[0] & 0x7F) + "%";
-    index ++;
+    index++;
 
     data.temperature = signedHexToInt(bytesToHexString(bytes, index, 1)) + '°C';
-    index ++;
+    index++;
 
-    var timestamp = bytesToInt(bytes, index, 4);
+    const date = new Date(1000 * bytesToInt(bytes, index, 4));
+    var timestamp = Math.trunc(date.getTime() / 1000);
     index += 4;
 
-    data.timestamp = parse_time(timestamp, bytes[index] * 0.5);
-    index ++;
+    var timezone = bytes[index];
+    data.timezone = timezone_decode(timezone);		//timezone
+    index++;
+
+    data.timestamp = timestamp;
+    data.time = parse_time(timestamp, timezone / 2);
+    index++;
 
     data.device_mode = deviceModeList[bytes[index]];
     index += 1;
 
-    data.auxiliary_operation = auxiliaryStatusList[bytes[index]];
-    index ++;
+    data.device_status = auxiliaryStatusList[bytes[index]];
+    index++;
 
     if (fPort == 2 && bytes.length == 10) {
         data.shutdown_type = powerOffTypeList[bytes[index]];
@@ -177,16 +191,16 @@ function parse_port5_data(bytes) {
     var data = {};
     data.charging_status = ((bytes[0] & 0x80) ? "in charging" : "no charging");
     data.battery_level = (bytes[0] & 0x7F) + "%";
-    index ++;
+    index++;
 
     var timestamp = bytesToInt(bytes, index, 4);
     index += 4;
 
     data.timestamp = parse_time(timestamp, bytes[index] * 0.5);
-    index ++;
+    index++;
 
     data.event_type = eventTypeList[bytes[index]];
-    index ++;
+    index++;
 
     return data;
 }
@@ -195,9 +209,9 @@ function parse_port6_data(bytes) {
     var index = 0;
     var data = {};
 
-    var pos_type = ((bytesToInt(bytes,index,2) & 0xf000) >> 12);
-    data.pos_type = positionTypeList[pos_type];
-    data.Age = (bytesToInt(bytes,index,2) & 0x0fff);
+    var position_type = ((bytesToInt(bytes, index, 2) & 0xf000) >> 12);
+    data.position_type = positionTypeList[position_type];
+    data.age = (bytesToInt(bytes, index, 2) & 0x0fff);
     index += 2;
 
     data.latitude = Number(signedHexToInt(bytesToHexString(bytes, index, 4)) * 0.0000001).toFixed(7) + '°';
@@ -217,27 +231,27 @@ function parse_port8_data(bytes, contain_vlotage) {
 
     data.charging_status = ((bytes[index] & 0x80) ? "in charging" : "no charging");
     data.battery_level = (bytes[index] & 0x7F) + "%";
-    index ++;
+    index++;
 
     index += 2;
 
-    data.pos_type = positionTypeList[(bytes[index] & 0xf0) >> 4];
+    data.position_type = positionTypeList[(bytes[index] & 0xf0) >> 4];
 
-    var positionTypeCode = (bytes[index] & 0x0f);
-    data.position_success_type = (positionTypeCode == 0) ? "BLE Pos Success" : "GPS Pos Success";
-    index ++;
+    var position_symbol = (bytes[index] & 0x0f);
+    data.position_symbol = (position_symbol == 0) ? "Bluetooth positioning success" : "GPS positioning success";
+    index++;
 
     data.device_mode = deviceModeList[(bytes[index] & 0xf0) >> 4];
-    data.auxiliary_operation = auxiliaryStatusList[bytes[index] & 0x0f];
-    index ++;
+    data.device_status = auxiliaryStatusList[bytes[index] & 0x0f];
+    index++;
 
     var len = bytes[index];
-    index ++;
+    index++;
 
     // var sub_bytes = bytes.slice(index, index + len);
 
     var ble_len = bytes[index];
-    index ++;
+    index++;
 
     if (ble_len > 0) {
         var positionData = parse_port8_position_data(bytes.slice(index, index + ble_len), contain_vlotage);
@@ -248,7 +262,7 @@ function parse_port8_data(bytes, contain_vlotage) {
     index += ble_len;
 
     var gps_len = bytes[index];
-    index ++;
+    index++;
 
     var gpsPositionData = [];
     var gpsBytes = bytes.slice(index, index + gps_len);
@@ -256,26 +270,26 @@ function parse_port8_data(bytes, contain_vlotage) {
         //卫星信号强度数据开关关闭
         //纬度（4字节）+经度（4字节）+PDOP(1字节)
         var gpsItem = {
-                type: "GPS",
-                latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
-                longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
-                pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
-            };
+            type: "GPS",
+            latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
+            longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
+            pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
+        };
         gpsPositionData.push(gpsItem);
-        
+
     } else if (gps_len == 13) {
         //上报卫星信号强度数据开关开启
         //纬度（4字节）+经度（4字节）+PDOP(1字节)+卫星信号强度（4字节）
         var gpsItem = {
-                type: "GPS",
-                latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
-                longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
-                pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
-                satellite_signal_strength_one: bytesToInt(gpsBytes, 9, 1),
-                satellite_signal_strength_two: bytesToInt(gpsBytes, 10, 1),
-                satellite_signal_strength_three: bytesToInt(gpsBytes, 11, 1),
-                satellite_signal_strength_four: bytesToInt(gpsBytes, 12, 1),
-            };
+            type: "GPS",
+            latitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 0, 4)) * 0.0000001).toFixed(7),
+            longitude: Number(signedHexToInt(bytesToHexString(gpsBytes, 4, 4)) * 0.0000001).toFixed(7),
+            pdop: Number(bytesToInt(gpsBytes, 8, 1) * 0.1).toFixed(1),
+            satellite_signal_strength_1: bytesToInt(gpsBytes, 9, 1),
+            satellite_signal_strength_2: bytesToInt(gpsBytes, 10, 1),
+            satellite_signal_strength_3: bytesToInt(gpsBytes, 11, 1),
+            satellite_signal_strength_4: bytesToInt(gpsBytes, 12, 1),
+        };
         gpsPositionData.push(gpsItem);
     }
 
@@ -284,7 +298,9 @@ function parse_port8_data(bytes, contain_vlotage) {
     index += gps_len;
 
     const date = new Date(1000 * bytesToInt(bytes, index, 4));
-    data.time = date.toLocaleString();
+    var timestamp = Math.trunc(date.getTime() / 1000);
+    var offsetHours = Math.abs(Math.floor(date.getTimezoneOffset() / 60));
+    data.time = parse_time(timestamp, offsetHours);
     index += 4;
 
     return data;
@@ -296,37 +312,37 @@ function parse_port9_data(bytes, contain_vlotage) {
 
     obj.charging_status = ((bytes[index] & 0x80) ? "in charging" : "no charging");
     obj.battery_level = (bytes[index] & 0x7F) + "%";
-    index ++;
+    index++;
 
-    obj.pos_type = positionTypeList[bytes[index]];
-    index ++;
+    obj.position_type = positionTypeList[bytes[index]];
+    index++;
 
     obj.device_mode = deviceModeList[bytes[index]];
-    index ++;
+    index++;
 
     obj.auxiliary_status = auxiliaryStatusList[bytes[index]];
-    index ++;
+    index++;
 
     var failedTypeCode = bytesToInt(bytes, index, 1);
-    index ++;
+    index++;
 
     var dataLen = bytesToInt(bytes, index, 1);
-    index ++;
+    index++;
 
     var dataBytes = bytes.slice(index);
-    
+
     // 将解析结果合并到obj中
     obj.reasons_for_positioning_failure_code = failedTypeCode;
     obj.reasons_for_positioning_failure = posFailedReasonArray[failedTypeCode];
     obj.location_failure_data = parsePositionData(dataBytes, contain_vlotage);
-    
+
     return obj;
 }
 
 function parse_port11_data(bytes) {
     var index = 0;
     var data = {};
-    data.work_time = bytesToInt(bytes,  index, 4);
+    data.work_time = bytesToInt(bytes, index, 4);
     index += 4;
 
     data.adv_times = bytesToInt(bytes, index, 4);
@@ -390,7 +406,7 @@ function parse_port8_position_data(bytes, contain_vlotage) {
         var rssi = bytesToInt(sub_bytes, 6, 1) - 256 + 'dBm';
         obj.mac_address = mac_address;
         obj.rssi = rssi;
-        
+
         // 检查电压值，如果是0xFFFF则不包含voltage字段
         if (contain_vlotage && sub_bytes.length >= 9) {
             var voltageValue = bytesToInt(sub_bytes, 7, 2);
@@ -406,19 +422,19 @@ function parse_port8_position_data(bytes, contain_vlotage) {
 function parsePositionData(dataBytes, contain_vlotage) {
     var n = dataBytes.length;
     var result = [];
-    
+
     var ble_sub_len = contain_vlotage ? 9 : 7;
     var gps_sub_len = 5;
-        
+
     if (n == gps_sub_len) {
         // 情况1: 仅有一条GPS定位失败数据 
         var item = {
             type: "GPS",
             pdop: bytesToInt(dataBytes, 0, 1) / 10,
-            satellite_signal_strength_one: bytesToInt(dataBytes, 1, 1),
-            satellite_signal_strength_two: bytesToInt(dataBytes, 2, 1),
-            satellite_signal_strength_three: bytesToInt(dataBytes, 3, 1),
-            satellite_signal_strength_four: bytesToInt(dataBytes, 4, 1),
+            satellite_signal_strength_1: bytesToInt(dataBytes, 1, 1),
+            satellite_signal_strength_2: bytesToInt(dataBytes, 2, 1),
+            satellite_signal_strength_3: bytesToInt(dataBytes, 3, 1),
+            satellite_signal_strength_4: bytesToInt(dataBytes, 4, 1),
         };
         result.push(item);
     } else if (n % ble_sub_len === 0) {
@@ -429,7 +445,7 @@ function parsePositionData(dataBytes, contain_vlotage) {
             var start = i * ble_sub_len;
             var end = start + ble_sub_len;
             var sub_bytes = dataBytes.slice(start, end);
-            
+
             var item = {
                 type: "BLE",
                 mac_address: bytesToHexString(sub_bytes, 0, 6),
@@ -462,28 +478,28 @@ function parsePositionData(dataBytes, contain_vlotage) {
             }
         }
         result.push(bleItem);
-        
+
         // 解析GPS数据 (最后5字节)
         var gpsBytes = dataBytes.slice(ble_sub_len);
         var gpsItem = {
             type: "GPS",
             pdop: bytesToInt(gpsBytes, 0, 1) / 10,
-            satellite_signal_strength_one: bytesToInt(gpsBytes, 1, 1),
-            satellite_signal_strength_two: bytesToInt(gpsBytes, 2, 1),
-            satellite_signal_strength_three: bytesToInt(gpsBytes, 3, 1),
-            satellite_signal_strength_four: bytesToInt(gpsBytes, 4, 1),
+            satellite_signal_strength_1: bytesToInt(gpsBytes, 1, 1),
+            satellite_signal_strength_2: bytesToInt(gpsBytes, 2, 1),
+            satellite_signal_strength_3: bytesToInt(gpsBytes, 3, 1),
+            satellite_signal_strength_4: bytesToInt(gpsBytes, 4, 1),
         };
         result.push(gpsItem);
     } else if (n > ble_sub_len + gps_sub_len && (n - gps_sub_len) % ble_sub_len === 0) {
         // 情况4: 多条BLE + GPS
         var bleNumber = (n - gps_sub_len) / ble_sub_len;
-        
+
         // 解析BLE数据
         for (var i = 0; i < bleNumber; i++) {
             var start = i * ble_sub_len;
             var end = start + ble_sub_len;
             var sub_bytes = dataBytes.slice(start, end);
-            
+
             var item = {
                 type: "BLE",
                 mac_address: bytesToHexString(sub_bytes, 0, 6),
@@ -498,20 +514,20 @@ function parsePositionData(dataBytes, contain_vlotage) {
             }
             result.push(item);
         }
-        
+
         // 解析GPS数据 (最后5字节)
         var gpsBytes = dataBytes.slice(bleNumber * ble_sub_len);
         var gpsItem = {
             type: "GPS",
             pdop: bytesToInt(gpsBytes, 0, 1) / 10,
-            satellite_signal_strength_one: bytesToInt(gpsBytes, 1, 1),
-            satellite_signal_strength_two: bytesToInt(gpsBytes, 2, 1),
-            satellite_signal_strength_three: bytesToInt(gpsBytes, 3, 1),
-            satellite_signal_strength_four: bytesToInt(gpsBytes, 4, 1),
+            satellite_signal_strength_1: bytesToInt(gpsBytes, 1, 1),
+            satellite_signal_strength_2: bytesToInt(gpsBytes, 2, 1),
+            satellite_signal_strength_3: bytesToInt(gpsBytes, 3, 1),
+            satellite_signal_strength_4: bytesToInt(gpsBytes, 4, 1),
         };
         result.push(gpsItem);
     }
-    
+
     return result;
 }
 
@@ -647,15 +663,15 @@ function int8(byte) {
 }
 
 function getData(hex) {
-	var length = hex.length;
-	var datas = [];
-	for (var i = 0; i < length; i += 2) {
-		var start = i;
-		var end = i + 2;
-		var data = parseInt("0x" + hex.substring(start, end));
-		datas.push(data);
-	}
-	return datas;
+    var length = hex.length;
+    var datas = [];
+    for (var i = 0; i < length; i += 2) {
+        var start = i;
+        var end = i + 2;
+        var data = parseInt("0x" + hex.substring(start, end));
+        datas.push(data);
+    }
+    return datas;
 }
 
 // var input = {};
